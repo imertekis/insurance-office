@@ -1,0 +1,153 @@
+# CLAUDE.md
+
+Local multi-user web app for an insurance office (customers, vehicles,
+ownership, policies, intermediaries). Replaces Excel files.
+
+Source of truth, read before any task:
+- `docs/SPEC.md` — requirements, validation rules, acceptance criteria
+- `docs/DATA_MODEL.md` — tables, columns, enum values, indexes
+- `docs/ARCHITECTURE.md` — stack, package layout, mechanisms
+- `docs/DECISIONS.md` — accepted/rejected deviations from the spec
+- `docs/NOTES.md` — open items that override older wording elsewhere
+- `docs/TASKS.md` — the implementation plan
+
+## Workflow — ONE task at a time
+
+1. Work on exactly ONE task from `docs/TASKS.md`, in order, unless the
+   user names a different one.
+2. Do only what that task lists. Do not pull in work from later tasks
+   (e.g. no Thymeleaf before Task 8, no Spring Security before Task 10).
+3. A task is **done only when `./mvnw verify` passes** (all unit and
+   Testcontainers integration tests green) and the task's acceptance
+   criteria are met. Never report a task done with failing, skipped or
+   `@Disabled` tests. If a test cannot pass, stop and report why.
+4. When the task is done: summarize what changed, show the test result,
+   and **STOP**. Do not start the next task without being asked.
+5. If the docs conflict or are ambiguous for the current task, stop and
+   ask. Do not silently pick one side. Known conflicts are listed below.
+
+## Stack
+
+- **Java 21** (LTS). Set `<java.version>21</java.version>` in `pom.xml`.
+- Spring Boot, Maven with the Maven wrapper (`./mvnw`, committed).
+- PostgreSQL (with `unaccent`, `pg_trgm`), run locally via `docker compose`.
+- Flyway, plain SQL migrations in `src/main/resources/db/migration`,
+  named `V<n>__<description>.sql`. Never edit a migration once committed;
+  add a new one.
+- Spring Data JPA / Hibernate. MapStruct for Entity↔DTO mapping.
+- Thymeleaf (+ a little vanilla JS/HTMX) for UI. No SPA, no Node.js build.
+- Tests: JUnit 5, AssertJ, Testcontainers (real PostgreSQL, never H2).
+- Apache POI for the Excel import.
+
+## Packages and layering
+
+Root package: `gr.insuranceoffice`. Technical layering, strictly:
+
+| Package | Contains |
+|---|---|
+| `controller` | Spring MVC controllers. Call services only. |
+| `service` | Business logic, validation, `@Transactional` boundaries. |
+| `repository` | Spring Data JPA interfaces only. |
+| `entity` | JPA entities only. |
+| `dto` | DTOs to/from the UI/API. |
+| `mapper` | MapStruct mappers (Entity↔DTO). |
+| `config` | Spring configuration (Web, JPA, Security wiring). |
+| `security` | Authentication/authorization logic. |
+| `importer` | Excel import (POI) and its transformations. |
+
+Rules:
+- Dependencies point downward: `controller → service → repository → entity`.
+- Controllers never touch repositories and never receive or return entities.
+  They use DTOs, and mapping is done by `mapper`.
+- `@Transactional` goes on services, not on controllers or repositories.
+- Business rules live in services. Entities hold only persistence concerns
+  (JPA callbacks for normalization, `@Version`, listeners).
+- `importer` writes through services/repositories. It must not duplicate
+  validation or normalization logic.
+- On the Java side, text/plate normalization lives in ONE utility
+  (`TextNormalizationUtils`), used by `Vehicle`'s JPA callbacks and by
+  `SearchService`. Never duplicate it in Java. `search_normalized` is the
+  one exception and is computed in SQL (see "Resolved doc conflicts" §1).
+
+## Naming and language
+
+- DB table/column names and Java class/field names: **English**
+  (`customer.tax_id`, `Vehicle.fuelType`).
+- **Domain enum values stay in Greek**, exactly as written in
+  `DATA_MODEL.md`. Do not transliterate or translate them:
+  - `fuel_type`: `ΒΕΝΖΙΝΗ`, `ΠΕΤΡΕΛΑΙΟ`, `ΥΒΡΙΔΙΚΟ`, `ΗΛΕΚΤΡΙΣΜΟΣ`, `LPG`, `CNG`
+  - `usage_type`: `ΕΙΧ`, `ΦΙΧ`, `ΔΧ`, `ΤΑΞΙ`, `ΛΕΩΦΟΡΕΙΟ`
+  - `surcharge_type`: `ΝΕΟΣ_ΟΔΗΓΟΣ`, `ΗΛΙΚΙΑΣ`, `ΑΛΛΟ`
+  - `role`: `ΥΠΑΛΛΗΛΟΣ`, `ΔΙΑΧΕΙΡΙΣΤΗΣ`
+  
+  Java enum constants use the same Greek identifiers, persisted with
+  `@Enumerated(EnumType.STRING)`. Enums that `DATA_MODEL.md` defines in
+  English stay English (`entity_type`: `INDIVIDUAL`/`COMPANY`; audit
+  `action`: `CREATE`/`UPDATE`/`DELETE`/`VIEW`).
+- UI labels are Greek. Source files are UTF-8.
+
+## Domain rules to keep in mind
+
+- `customer.tax_id` and `customer.mobile` are **nullable**. Missing ΑΦΜ
+  gives a warning and never blocks saving. Mobile is required only for the
+  primary owner of a vehicle with a current policy (DECISIONS §1, §2).
+- `vehicle.engine_cc` is nullable. `0` on an electric vehicle is stored as `NULL`.
+- **Hard delete only**. There is no `deleted_at` and no soft-delete filters.
+  Recovery goes through `audit_log` (DECISIONS §4).
+- Audit logging uses a custom JPA `@EntityListener` writing JSONB to
+  `audit_log` in the same transaction. No Hibernate Envers.
+- Optimistic locking uses `@Version` on customer, vehicle and policy.
+  A conflict returns HTTP 409.
+- Search is a single box with regex type detection (DECISIONS §3, REJECTED
+  proposal: do not add a type dropdown). VIN regex is
+  `^[A-HJ-NPR-Z0-9]{17}$`, never `^.{17}$` (NOTES). If a pattern is
+  ambiguous, search all matching types and group the results (e.g. `21…`,
+  see "Resolved doc conflicts" §3).
+- Policy duration is never assumed (6- and 12-month policies both exist).
+- Money is `NUMERIC(10,2)` / `BigDecimal`, never `double` or text.
+- Ownership percentages per vehicle sum to 100. Exactly one `is_primary`
+  per vehicle. Ownership is a join **entity** (two `@ManyToOne`), not
+  `@ManyToMany`.
+- Never commit real customer data. `*.xlsx`, `*.xls`, `*.csv` and `.env`
+  are gitignored. Tests use synthetic fixtures only.
+
+## Resolved doc conflicts
+
+These override any older wording in `docs/`.
+
+1. **`search_normalized` is computed in the DATABASE.** It is a
+   `GENERATED ALWAYS AS (...) STORED` column built from an IMMUTABLE
+   wrapper around `unaccent` (created by a Flyway migration).
+   - Why: any write that bypasses JPA (Excel import, manual SQL,
+     migrations) would otherwise leave it empty.
+   - JPA maps it read-only (`insertable = false, updatable = false`) and
+     never sets it from Java.
+   - `plate_normalized` stays in Java, filled by `@PrePersist`/`@PreUpdate`
+     on `Vehicle` using `TextNormalizationUtils`, because the Greek→Latin
+     mapping is awkward in SQL. `vehicle.search_normalized` reads from
+     `plate_normalized`.
+   - This means accent removal plus upper-casing exists twice: in SQL for
+     the write path and in `TextNormalizationUtils` for the search input.
+     An integration test must prove that both give the same output for
+     accented, mixed-case and final-sigma Greek input.
+2. **The REST endpoint in Task 1 is deliberately temporary.** It only
+   proves the infrastructure. Thymeleaf replaces it in Task 8.
+3. **10 digits starting with `21` searches BOTH landline and policy
+   number.** The clerk should not have to know the difference: run two
+   queries and group the results by type.
+4. **SPEC §7.1 wins for the expiry dashboard.** Filters are 7 / 30 / 60 / 90
+   days, per insurer, and already expired. The default view is 30 days.
+
+## Open questions (ask before implementing)
+
+- "Already expired" filter (Task 8): does it show every policy with
+  `end_date < today`, or only vehicles whose *latest* policy has expired
+  (i.e. not renewed)? Is there a look-back window?
+
+## Commands
+
+```bash
+docker compose up -d        # start PostgreSQL
+./mvnw verify               # build + all tests (definition of done)
+./mvnw spring-boot:run      # run the app
+```

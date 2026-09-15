@@ -22,11 +22,13 @@
 ## Task 2: Search Normalization Foundation (High Risk)
 **Στόχος:** Υλοποίηση της κανονικοποίησης κειμένου. Αυτό πρέπει να γίνει νωρίς, ώστε να υπάρχει ένα και μοναδικό σημείο αλήθειας (Single Source of Truth) τόσο για το Entity Lifecycle όσο και για το SearchService.
 **Αρχεία (δημιουργία/τροποποίηση):**
-*   `V2__unaccent_wrapper.sql` (Δημιουργία custom `IMMUTABLE` PostgreSQL συνάρτησης γύρω από την `unaccent`)
-*   `TextNormalizationUtils.java` (Java utility class)
+*   `V2__unaccent_wrapper.sql` (Extensions `unaccent`/`pg_trgm`, custom `IMMUTABLE` PostgreSQL συνάρτηση γύρω από την `unaccent`, στήλη `customer.search_normalized` ως `GENERATED ALWAYS AS (...) STORED` και GIN index πάνω της)
+*   `TextNormalizationUtils.java` (Java utility class: αφαίρεση τόνων/κεφαλαία για το input αναζήτησης, κανονικοποίηση πινακίδας με αντιστοίχιση ελληνικών→λατινικών)
 *   `TextNormalizationUtilsTest.java` (Unit tests)
-*   `Customer.java` (Προσθήκη `@PrePersist`/`@PreUpdate` για `search_normalized`)
-**Κριτήρια Αποδοχής:** Το Flyway migration περνάει. Τα unit tests αποδεικνύουν ότι τα τονισμένα ελληνικά γίνονται άτονα, οι ελληνικοί χαρακτήρες πινακίδων (π.χ. 'Α', 'Β', 'Ε') γίνονται οι λατινικοί 'A', 'B', 'E', και όλα μετατρέπονται σε κεφαλαία. Κατά την αποθήκευση Customer, το `search_normalized` γεμίζει αυτόματα.
+*   `Customer.java` (Αντιστοίχιση του `search_normalized` ως read-only: `insertable = false, updatable = false`. **Όχι** `@PrePersist` για αυτό το πεδίο.)
+*   `SearchNormalizationConsistencyTest.java` (Integration test με Testcontainers)
+**Απόφαση:** Το `search_normalized` υπολογίζεται στη **βάση** (generated column), ώστε να γεμίζει και σε εγγραφές που παρακάμπτουν το JPA (import, χειροκίνητο SQL, migrations). Το `plate_normalized` μένει σε `@PrePersist`/`@PreUpdate` στο `Vehicle` (Task 3) μέσω του `TextNormalizationUtils`, γιατί η αντιστοίχιση ελληνικών→λατινικών είναι δύσχρηστη σε SQL.
+**Κριτήρια Αποδοχής:** Το Flyway migration περνάει. Τα unit tests αποδεικνύουν ότι τα τονισμένα ελληνικά γίνονται άτονα, οι ελληνικοί χαρακτήρες πινακίδων (π.χ. 'Α', 'Β', 'Ε') γίνονται οι λατινικοί 'A', 'B', 'E', οι παύλες/κενά αφαιρούνται από τις πινακίδες και όλα μετατρέπονται σε κεφαλαία. Το `search_normalized` γεμίζει αυτόματα τόσο κατά την αποθήκευση Customer μέσω JPA όσο και με απευθείας `INSERT` σε SQL. Το consistency test επιβεβαιώνει ότι η Java κανονικοποίηση του input δίνει το ίδιο αποτέλεσμα με τη συνάρτηση της βάσης (τονισμένα, πεζά/κεφαλαία, τελικό σίγμα).
 
 ## Task 3: Πλήρες Σχήμα & MapStruct DTOs
 **Στόχος:** Ολοκλήρωση του Data Model (χωρίς soft deletes) βάσει των προδιαγραφών και εισαγωγή των DTOs για την απομόνωση του domain model.
@@ -76,7 +78,8 @@
 *   `pom.xml` (Thymeleaf, Webjars για CSS/Bootstrap)
 *   `templates/layout.html`, `templates/dashboard.html`
 *   `DashboardController.java`
-**Κριτήρια Αποδοχής:** Η εφαρμογή επιστρέφει HTML. Η αρχική οθόνη (root `/`) τραβάει από το `PolicyRepository.findByEndDateBetween` και προβάλλει τα συμβόλαια που λήγουν σε 30 ημέρες σε μορφή πίνακα, με φίλτρα 7 / 30 / 60 ημερών.
+*   Αφαίρεση του προσωρινού REST endpoint `GET /api/customers` του Task 1 (αντικαθίσταται από Thymeleaf) και ενημέρωση του αντίστοιχου test
+**Κριτήρια Αποδοχής:** Η εφαρμογή επιστρέφει HTML. Η αρχική οθόνη (root `/`) τραβάει από το `PolicyRepository` και προβάλλει εξ ορισμού τα συμβόλαια που λήγουν σε 30 ημέρες σε μορφή πίνακα, ταξινομημένα κατά ημερομηνία λήξης. Κάθε γραμμή: πινακίδα, πελάτης, κινητό, ημερομηνία λήξης, ασφαλιστική, ασφάλιστρο. Φίλτρα (SPEC §7.1): 7 / 30 / 60 / 90 ημέρες, ανά ασφαλιστική, και ήδη ληγμένα.
 
 ## Task 9: UI - Search & Καρτέλες (CRUD Views)
 **Στόχος:** Ολοκλήρωση του Frontend για προβολή και αναζήτηση δεδομένων (Αμφίδρομη πλοήγηση).
