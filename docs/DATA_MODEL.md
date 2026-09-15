@@ -25,7 +25,7 @@ PostgreSQL. Ονόματα πινάκων/στηλών στα αγγλικά (σ
 | Στήλη | Τύπος | Περιορισμοί | Excel |
 |---|---|---|---|
 | `id` | BIGSERIAL | PK | — |
-| `tax_id` | VARCHAR(9) | NOT NULL, UNIQUE, checksum | Α.Φ.Μ. |
+| `tax_id` | VARCHAR(9) | NULL, UNIQUE, checksum | Α.Φ.Μ. |
 | `entity_type` | VARCHAR(20) | NOT NULL, default `INDIVIDUAL` | — |
 | `last_name` | VARCHAR(100) | NOT NULL | Επώνυμο |
 | `first_name` | VARCHAR(100) | NULL για νομικά πρόσωπα | Όνομα |
@@ -36,21 +36,15 @@ PostgreSQL. Ονόματα πινάκων/στηλών στα αγγλικά (σ
 | `street` | VARCHAR(200) | NULL | Οδός |
 | `city` | VARCHAR(100) | NULL | Πόλη |
 | `postal_code` | VARCHAR(5) | NULL | Τ.Κ. |
-| `mobile` | VARCHAR(10) | NOT NULL, αρχή `6` | Κινητό Τηλέφωνο |
+| `mobile` | VARCHAR(10) | NULL, αρχή `6` | Κινητό Τηλέφωνο |
 | `phone` | VARCHAR(10) | NULL, αρχή `2` | Σταθερό Τηλέφωνο |
 | `email` | VARCHAR(255) | NULL | Email |
 | `search_normalized` | TEXT | generated, βλ. §Αναζήτηση | — |
 | `notes` | TEXT | NULL | — |
 | `version` | BIGINT | optimistic locking | — |
-| `deleted_at` | TIMESTAMP | soft delete | — |
 | `created_at` / `updated_at` | TIMESTAMP | NOT NULL | — |
 
 `entity_type`: `INDIVIDUAL` | `COMPANY`
-
-> Το `mobile` είναι υποχρεωτικό. Εξαίρεση: συνιδιοκτήτες που
-> καταχωρούνται μόνο για να υπάρχει η σχέση ιδιοκτησίας (π.χ.
-> «Αλεξίου Μαρία»). Υλοποίηση: πεδίο `is_stub BOOLEAN` που
-> χαλαρώνει τον έλεγχο, με ένδειξη στο UI ότι η καρτέλα είναι ελλιπής.
 
 ---
 
@@ -61,7 +55,7 @@ PostgreSQL. Ονόματα πινάκων/στηλών στα αγγλικά (σ
 | `id` | BIGSERIAL | PK | — |
 | `vin` | VARCHAR(17) | NOT NULL, UNIQUE | Αρ. Πλαισίου / VIN (E) |
 | `plate` | VARCHAR(10) | NOT NULL | Αρ. Κυκλοφορίας (A) |
-| `plate_normalized` | VARCHAR(10) | generated, UNIQUE μεταξύ ενεργών | — |
+| `plate_normalized` | VARCHAR(10) | generated, UNIQUE | — |
 | `brand` | VARCHAR(50) | NOT NULL | Μάρκα (D.1) |
 | `model` | VARCHAR(100) | NOT NULL | Μοντέλο (D.3) |
 | `first_registration` | DATE | NOT NULL | 1η Άδεια (B) |
@@ -70,7 +64,7 @@ PostgreSQL. Ονόματα πινάκων/στηλών στα αγγλικά (σ
 | `usage_type` | VARCHAR(20) | NOT NULL | Χρήση Οχήματος |
 | `color` | VARCHAR(50) | NOT NULL | Χρώμα (R) |
 | `seats` | SMALLINT | NULL | Θέσεις (S.1) |
-| `engine_cc` | INTEGER | NOT NULL, NULL αν ηλεκτρικό | Κυβικά (P.1) |
+| `engine_cc` | INTEGER | NULL (υποχρεωτικό στο app, εκτός αν fuel_type=ΗΛΕΚΤΡΙΣΜΟΣ) | Κυβικά (P.1) |
 | `power_kw` | NUMERIC(6,2) | NOT NULL | Ισχύς kW (P.2) |
 | `fuel_type` | VARCHAR(20) | NOT NULL | Καύσιμο (P.3) |
 | `engine_number` | VARCHAR(50) | NULL | Αρ. Κινητήρα (P.5) |
@@ -81,7 +75,7 @@ PostgreSQL. Ονόματα πινάκων/στηλών στα αγγλικά (σ
 | `license_city` | VARCHAR(100) | NULL | Πόλη |
 | `license_postal_code` | VARCHAR(5) | NULL | Τ.Κ. |
 | `search_normalized` | TEXT | generated | — |
-| `version`, `deleted_at`, `created_at`, `updated_at` | | | — |
+| `version`, `created_at`, `updated_at` | | | — |
 
 `fuel_type`: `ΒΕΝΖΙΝΗ` | `ΠΕΤΡΕΛΑΙΟ` | `ΥΒΡΙΔΙΚΟ` | `ΗΛΕΚΤΡΙΣΜΟΣ` | `LPG` | `CNG`
 `usage_type`: `ΕΙΧ` | `ΦΙΧ` | `ΔΧ` | `ΤΑΞΙ` | `ΛΕΩΦΟΡΕΙΟ`
@@ -202,12 +196,9 @@ CREATE INDEX idx_customer_search ON customer
   USING gin (search_normalized gin_trgm_ops);
 CREATE INDEX idx_vehicle_search ON vehicle
   USING gin (search_normalized gin_trgm_ops);
-CREATE UNIQUE INDEX idx_customer_tax_id ON customer (tax_id)
-  WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX idx_vehicle_vin ON vehicle (vin)
-  WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX idx_vehicle_plate ON vehicle (plate_normalized)
-  WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX idx_customer_tax_id ON customer (tax_id);
+CREATE UNIQUE INDEX idx_vehicle_vin ON vehicle (vin);
+CREATE UNIQUE INDEX idx_vehicle_plate ON vehicle (plate_normalized);
 CREATE INDEX idx_policy_end_date ON policy (end_date);
 CREATE INDEX idx_ownership_vehicle ON ownership (vehicle_id);
 CREATE INDEX idx_ownership_customer ON ownership (customer_id);
@@ -239,7 +230,7 @@ public static boolean isValidTaxId(String afm) {
 | Πίνακας | Εγγραφές |
 |---|---|
 | `intermediary` | 1 |
-| `customer` | 8 (7 πλήρεις + 1 stub) |
+| `customer` | 8 (μία εγγραφή, π.χ. Αλεξίου Μαρία, έχει μόνο όνομα και ΑΦΜ) |
 | `vehicle` | 8 |
 | `ownership` | 9 (7×100% + 2×50%) |
 | `policy` | 8 |
