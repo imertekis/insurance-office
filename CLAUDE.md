@@ -54,6 +54,7 @@ Root package: `gr.insuranceoffice`. Technical layering, strictly:
 | `config` | Spring configuration (Web, JPA, Security wiring). |
 | `security` | Authentication/authorization logic. |
 | `importer` | Excel import (POI) and its transformations. |
+| `util` | Stateless helpers shared across layers (e.g. `TextNormalizationUtils`). No Spring beans, no dependencies on other app packages. |
 
 Rules:
 - Dependencies point downward: `controller → service → repository → entity`.
@@ -137,6 +138,11 @@ These override any older wording in `docs/`.
    queries and group the results by type.
 4. **SPEC §7.1 wins for the expiry dashboard.** Filters are 7 / 30 / 60 / 90
    days, per insurer, and already expired. The default view is 30 days.
+5. **Plate normalization maps only the 14 Greek/Latin look-alikes**
+   (Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ). Greek-only letters (Γ, Δ, Σ…) stay Greek, so
+   `ΑΒΓ-1234` ≠ `ABG-1234`. Standard plates only use the look-alikes; special
+   plates (e.g. army `ΕΣ`) keep their Greek letters. The SPEC and DATA_MODEL
+   examples use `ΑΒΕ-1234` = `ABE-1234`.
 
 ## Open questions (ask before implementing)
 

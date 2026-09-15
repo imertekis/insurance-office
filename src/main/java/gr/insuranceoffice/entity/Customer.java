@@ -13,7 +13,9 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Generated;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.generator.EventType;
 
 @Entity
 @Table(name = "customer")
@@ -72,6 +74,12 @@ public class Customer {
 
 	@Column(name = "notes")
 	private String notes;
+
+	// Generated column computed by PostgreSQL (V2 migration). Never written
+	// from Java; Hibernate re-reads it after every insert and update.
+	@Generated(event = { EventType.INSERT, EventType.UPDATE })
+	@Column(name = "search_normalized", insertable = false, updatable = false)
+	private String searchNormalized;
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
@@ -203,6 +211,10 @@ public class Customer {
 
 	public void setNotes(String notes) {
 		this.notes = notes;
+	}
+
+	public String getSearchNormalized() {
+		return searchNormalized;
 	}
 
 	public LocalDateTime getCreatedAt() {

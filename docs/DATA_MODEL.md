@@ -186,7 +186,7 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 Ν→N  Ο→O  Ρ→P  Τ→T  Υ→Y  Χ→X
 ```
 
-Ώστε `ΑΒΓ-1234` και `ABG-1234` να δίνουν το ίδιο `plate_normalized`.
+Ώστε `ΑΒΕ-1234` και `ABE-1234` να δίνουν το ίδιο `plate_normalized`.
 Η αρχική μορφή διατηρείται στο `plate` για εμφάνιση.
 
 ### Indexes
