@@ -74,6 +74,9 @@ class SearchNormalizationConsistencyTest {
 			"Κωνσταντίνος", "ΚΩΝΣΤΑΝΤΙΝΟΣ", "κωνσταντινος",
 			"ΆΈΉΊΌΎΏ άέήίόύώ", "ϊΐϋΰ ΪΫ", "Μαΐου",
 			"ἀᾶῥ",
+			// Leading and trailing whitespace: SQL rtrim() strips trailing
+			// spaces only, so normalizeText() must keep the leading ones.
+			"Αλεξίου ", "Αλεξίου   ", " Αλεξίου", "  Μαρία Αλεξίου  ",
 			"Müller Café", "maria.alexiou@example.com", "6900000001" })
 	void javaNormalizationMatchesDatabase(String input) {
 		// The generated column is the source of truth, so compare against it

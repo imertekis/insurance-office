@@ -12,16 +12,23 @@ public final class TextNormalizationUtils {
 
 	private static final Pattern COMBINING_MARKS = Pattern.compile("\\p{M}");
 
+	// Mirrors SQL rtrim(): trailing spaces only, never leading ones and never
+	// tabs or newlines. \z rather than $ so a trailing newline is kept, as in SQL.
+	private static final Pattern TRAILING_SPACES = Pattern.compile(" +\\z");
+
 	private TextNormalizationUtils() {
 	}
 
 	/**
-	 * Removes accents and upper-cases: "Αλεξίου", "αλεξιου" and "ΑΛΕΞΙΟΥ" all
-	 * become "ΑΛΕΞΙΟΥ".
+	 * Removes accents, strips trailing spaces and upper-cases: "Αλεξίου",
+	 * "αλεξιου", "ΑΛΕΞΙΟΥ" and "Αλεξίου " all become "ΑΛΕΞΙΟΥ".
 	 * <p>
 	 * Used on search input so it matches {@code search_normalized}, which
-	 * PostgreSQL computes with {@code upper(immutable_unaccent(...))} (V2
-	 * migration). Both must give the same result;
+	 * PostgreSQL computes with {@code upper(immutable_unaccent(rtrim(...)))}
+	 * (V2 migration). The trailing-space handling mirrors SQL {@code rtrim()}
+	 * exactly: leading spaces are kept, and so are trailing tabs and newlines,
+	 * because {@code rtrim()} strips only spaces. Both sides must give the same
+	 * result;
 	 * {@code SearchNormalizationConsistencyTest} checks that they do. Known gap:
 	 * letters that Unicode does not decompose (ø, æ, œ, ł) are expanded by
 	 * {@code unaccent} but left as they are here.
@@ -30,7 +37,9 @@ public final class TextNormalizationUtils {
 		if (input == null) {
 			return null;
 		}
-		String decomposed = Normalizer.normalize(input, Normalizer.Form.NFD);
+		// rtrim first, like the SQL expression does, before unaccent and upper.
+		String trimmed = TRAILING_SPACES.matcher(input).replaceAll("");
+		String decomposed = Normalizer.normalize(trimmed, Normalizer.Form.NFD);
 		String withoutMarks = COMBINING_MARKS.matcher(decomposed).replaceAll("");
 		return Normalizer.normalize(withoutMarks, Normalizer.Form.NFC).toUpperCase(Locale.ROOT);
 	}
