@@ -2,14 +2,18 @@ package gr.insuranceoffice.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -80,6 +84,9 @@ public class Customer {
 	@Generated(event = { EventType.INSERT, EventType.UPDATE })
 	@Column(name = "search_normalized", insertable = false, updatable = false)
 	private String searchNormalized;
+
+	@OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+	private List<Ownership> ownerships = new ArrayList<>();
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
@@ -215,6 +222,10 @@ public class Customer {
 
 	public String getSearchNormalized() {
 		return searchNormalized;
+	}
+
+	public List<Ownership> getOwnerships() {
+		return ownerships;
 	}
 
 	public LocalDateTime getCreatedAt() {

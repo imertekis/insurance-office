@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import gr.insuranceoffice.dto.CustomerDto;
-import gr.insuranceoffice.entity.Customer;
+import gr.insuranceoffice.mapper.CustomerMapper;
 import gr.insuranceoffice.repository.CustomerRepository;
 
 @Service
@@ -17,36 +17,16 @@ public class CustomerService {
 
 	private final CustomerRepository customerRepository;
 
-	public CustomerService(CustomerRepository customerRepository) {
+	private final CustomerMapper customerMapper;
+
+	public CustomerService(CustomerRepository customerRepository, CustomerMapper customerMapper) {
 		this.customerRepository = customerRepository;
+		this.customerMapper = customerMapper;
 	}
 
 	@Transactional(readOnly = true)
 	public List<CustomerDto> findAll() {
-		return customerRepository.findAll(BY_NAME).stream()
-				.map(CustomerService::toDto)
-				.toList();
-	}
-
-	// Hand-written until MapStruct mappers are introduced in Task 3.
-	private static CustomerDto toDto(Customer customer) {
-		return new CustomerDto(
-				customer.getId(),
-				customer.getTaxId(),
-				customer.getEntityType().name(),
-				customer.getLastName(),
-				customer.getFirstName(),
-				customer.getFatherName(),
-				customer.getBirthDate(),
-				customer.getLicenseDate(),
-				customer.getTaxOffice(),
-				customer.getStreet(),
-				customer.getCity(),
-				customer.getPostalCode(),
-				customer.getMobile(),
-				customer.getPhone(),
-				customer.getEmail(),
-				customer.getNotes());
+		return customerMapper.toDtoList(customerRepository.findAll(BY_NAME));
 	}
 
 }
