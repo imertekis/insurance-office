@@ -284,6 +284,24 @@ class ExcelImporterServiceTest {
 	}
 
 	@Test
+	void refusesOwnershipSharesThatDoNotSumToAHundred() {
+		List<Map<String, Object>> archive = sampleArchive();
+		// Co-owned 50/40, and a sole owner with 80%.
+		archive.get(3).put("Ποσοστό Ιδιοκτησίας (Συνιδιοκτήτης %)", "40%");
+		archive.get(5).put("Ποσοστό Ιδιοκτησίας (Κύριος %)", "80%");
+
+		assertThatThrownBy(() -> importFiles(sampleCustomers(), archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.extracting(ImportError::file, ImportError::row, ImportError::column, ImportError::message)
+						.containsExactly(
+								tuple(ARCHIVE_FILE, 5, "Ποσοστό Ιδιοκτησίας (Κύριος %)",
+										"τα ποσοστά ιδιοκτησίας του οχήματος αθροίζουν 90% αντί για 100%"),
+								tuple(ARCHIVE_FILE, 7, "Ποσοστό Ιδιοκτησίας (Κύριος %)",
+										"τα ποσοστά ιδιοκτησίας του οχήματος αθροίζουν 80% αντί για 100%")));
+		assertRowCounts(0, 0, 0, 0, 0);
+	}
+
+	@Test
 	void reportsARowTheDatabaseRefusesWithItsRowNumber() {
 		List<Map<String, Object>> archive = sampleArchive();
 		// End before start is not re-checked by the importer; the database refuses it.

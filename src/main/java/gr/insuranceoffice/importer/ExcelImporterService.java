@@ -30,6 +30,8 @@ import gr.insuranceoffice.repository.IntermediaryRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.service.OwnershipService;
+import gr.insuranceoffice.service.OwnershipService.Share;
 
 /**
  * Imports the office's two Excel files (SPEC §10): the customer details, and
@@ -42,9 +44,10 @@ import gr.insuranceoffice.repository.VehicleRepository;
  * intermediary name) and overwritten from the file.
  * <p>
  * No normalization or business rule is repeated here. Plates are normalized
- * by {@link Vehicle}'s callbacks and search columns by the database, and a
- * rule the database enforces, such as a policy ending after it starts, is
- * reported as a refused row.
+ * by {@link Vehicle}'s callbacks and search columns by the database, the
+ * ownership rule is checked by {@link OwnershipService}, and a rule the
+ * database enforces, such as a policy ending after it starts, is reported as
+ * a refused row.
  */
 @Service
 public class ExcelImporterService {
@@ -117,15 +120,17 @@ public class ExcelImporterService {
 	private final OwnershipRepository ownershipRepository;
 	private final PolicyRepository policyRepository;
 	private final IntermediaryRepository intermediaryRepository;
+	private final OwnershipService ownershipService;
 
 	public ExcelImporterService(CustomerRepository customerRepository, VehicleRepository vehicleRepository,
 			OwnershipRepository ownershipRepository, PolicyRepository policyRepository,
-			IntermediaryRepository intermediaryRepository) {
+			IntermediaryRepository intermediaryRepository, OwnershipService ownershipService) {
 		this.customerRepository = customerRepository;
 		this.vehicleRepository = vehicleRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
 		this.intermediaryRepository = intermediaryRepository;
+		this.ownershipService = ownershipService;
 	}
 
 	/**
@@ -315,8 +320,17 @@ public class ExcelImporterService {
 		BigDecimal ownerShare = row.requiredValue(OWNER_SHARE, ExcelValues::parsePercentage);
 		String coOwnerTaxId = row.text(CO_OWNER_TAX_ID);
 		BigDecimal coOwnerShare = row.value(CO_OWNER_SHARE, ExcelValues::parsePercentage);
-		if (row.has(CO_OWNER_TAX_ID) != row.has(CO_OWNER_SHARE)) {
+		boolean hasCoOwner = row.has(CO_OWNER_TAX_ID);
+		if (hasCoOwner != row.has(CO_OWNER_SHARE)) {
 			row.reject(CO_OWNER_SHARE, "ο συνιδιοκτήτης χρειάζεται και ΑΦΜ και ποσοστό");
+		} else if (ownerShare != null && (!hasCoOwner || coOwnerShare != null)) {
+			// Checked on the shares as written, even when an owner cannot be
+			// linked, so that every problem in the row is reported at once.
+			List<Share> shares = new ArrayList<>(List.of(new Share(ownerShare, true)));
+			if (hasCoOwner) {
+				shares.add(new Share(coOwnerShare, false));
+			}
+			ownershipService.checkCurrentOwners(shares).forEach(problem -> row.reject(OWNER_SHARE, problem));
 		}
 		if (ownerTaxId != null && ownerTaxId.equals(coOwnerTaxId)) {
 			row.reject(CO_OWNER_TAX_ID, "ίδιος ΑΦΜ με τον κύριο ιδιοκτήτη");
