@@ -1,8 +1,10 @@
 package gr.insuranceoffice.repository;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Vehicle;
@@ -10,5 +12,29 @@ import gr.insuranceoffice.entity.Vehicle;
 public interface OwnershipRepository extends JpaRepository<Ownership, Long> {
 
 	List<Ownership> findByVehicle(Vehicle vehicle);
+
+	/** The current primary ownership of each vehicle, with its customer, in one query for all of them. */
+	@Query("""
+			select o from Ownership o join fetch o.customer
+			where o.vehicle.id in :vehicleIds and o.primary = true and o.toDate is null
+			""")
+	List<Ownership> findCurrentPrimaryOwners(Collection<Long> vehicleIds);
+
+	/** How many vehicles each customer currently owns, in one query for all of them. */
+	@Query("""
+			select o.customer.id as customerId, count(distinct o.vehicle.id) as vehicleCount
+			from Ownership o
+			where o.customer.id in :customerIds and o.toDate is null
+			group by o.customer.id
+			""")
+	List<VehicleCount> countCurrentVehicles(Collection<Long> customerIds);
+
+	interface VehicleCount {
+
+		Long getCustomerId();
+
+		long getVehicleCount();
+
+	}
 
 }
