@@ -15,7 +15,10 @@
   incomplete Excel can silently break ownership links.
 - Before the app goes live, decide whether import should become
   insert-only, or require an explicit "overwrite existing"
-  confirmation.
+  confirmation. For now the `import` profile (`ExcelImportRunner`)
+  refuses a database that already has customers or vehicles unless
+  `--import.allow-existing-data=true` is given. That flag is the only
+  confirmation; nothing checks what would be overwritten.
 - The ownership check on import counts only the owners written in
   the file. Ownerships with transfer dates are left untouched and
   not counted, so once the app records transfers, a re-import

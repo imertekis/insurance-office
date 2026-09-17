@@ -161,4 +161,10 @@ None at the moment.
 docker compose up -d        # start PostgreSQL
 ./mvnw verify               # build + all tests (definition of done)
 ./mvnw spring-boot:run      # run the app
+
+# One-off Excel migration into the configured database, then exit.
+# Refuses a database that already has customers or vehicles unless
+# --import.allow-existing-data=true is added (NOTES "Import risks").
+./mvnw spring-boot:run -Dspring-boot.run.profiles=import \
+  -Dspring-boot.run.arguments="--import.customers-file=<customers.xlsx> --import.archive-file=<archive.xlsx>"
 ```

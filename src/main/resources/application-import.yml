@@ -1,0 +1,6 @@
+# Profile "import": run the one-off Excel migration and exit (ExcelImportRunner).
+# The database settings come from application.yml, as for the application.
+spring:
+  main:
+    # No web server: the process imports, logs a report and ends.
+    web-application-type: none
