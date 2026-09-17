@@ -6,8 +6,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -27,6 +29,7 @@ import org.hibernate.generator.EventType;
 import gr.insuranceoffice.util.TextNormalizationUtils;
 
 @Entity
+@EntityListeners(AuditListener.class)
 @Table(name = "vehicle")
 public class Vehicle {
 
@@ -119,10 +122,15 @@ public class Vehicle {
 	@Column(name = "search_normalized", insertable = false, updatable = false)
 	private String searchNormalized;
 
-	@OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY)
+	// REMOVE, so that a hard delete removes the children through JPA and each
+	// one is written to audit_log (DECISIONS §4). The database's ON DELETE
+	// CASCADE alone would drop them without a trace. Delete a vehicle loaded
+	// from the database: these lists are not kept in step on save, and a
+	// delete from a stale copy fails rather than lose a child unlogged.
+	@OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
 	private List<Ownership> ownerships = new ArrayList<>();
 
-	@OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
 	private List<Policy> policies = new ArrayList<>();
 
 	@CreationTimestamp

@@ -17,7 +17,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * Change history, and the only way back after a hard delete (DECISIONS §4).
- * The listener that fills it arrives in Task 6.
+ * Filled by {@link AuditListener}.
  */
 @Entity
 @Table(name = "audit_log")

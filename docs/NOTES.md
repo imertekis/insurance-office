@@ -26,12 +26,17 @@
 Not fixed yet. Findings 2 and 4 are from `docs/REVIEW-02.md`; the rest
 came up while implementing the task named.
 
-- **Finding 2, JPA cascade/orphan mismatch.** The database has
-  `ON DELETE CASCADE` on `ownership` and `policy`, but the `@OneToMany`
-  collections on `Customer` and `Vehicle` have no `cascade = REMOVE` and
-  no `orphanRemoval`. JPA does not know about the cascade, so a hard delete
-  can leave the persistence context stale or fail on ordering. Matters from
-  Task 7, when the app starts editing and deleting through services.
+- **Finding 2, JPA cascade/orphan mismatch.** Partly fixed in Task 6: the
+  `@OneToMany` collections on `Customer` and `Vehicle` now have
+  `cascade = REMOVE`, so a hard delete removes ownerships and policies
+  through JPA and logs each one. Still open:
+  - No `orphanRemoval`. Decide in Task 11, when the ownership form edits
+    all owners of a vehicle together.
+  - The collections are not kept in step on save (`Ownership.setVehicle`
+    does not add to `Vehicle.ownerships`). A delete must start from an
+    entity loaded from the database; deleting the copy `save()` returned
+    fails with `TransientPropertyValueException` instead of losing
+    children. Services should load by id before deleting.
 - **Finding 4, `flush()` inside the import loop.** `ExcelImporterService`
   flushes after every row to pin a database error to its row. This defeats
   Hibernate's JDBC batching, so every row makes its own round trips. The
@@ -45,3 +50,11 @@ came up while implementing the task named.
   known ΑΦΜ returns no results instead of falling back to free text.
   Decide in Task 9 whether the UI should explain this or the search
   should fall back.
+
+## Doc conflicts to settle
+
+- **Audit user: username or id (Task 10).** TASKS Task 10 says the
+  `SecurityContextHolder` feeds the **username** to the `AuditListener`,
+  but ARCHITECTURE §6 says the listener takes the **user ID**, and
+  `audit_log.user_id` is a `BIGINT` referencing `app_user`. Until then the
+  listener writes `user_id` as `NULL`. Settle before implementing Task 10.

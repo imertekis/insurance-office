@@ -5,8 +5,10 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -22,6 +24,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.generator.EventType;
 
 @Entity
+@EntityListeners(AuditListener.class)
 @Table(name = "customer")
 public class Customer {
 
@@ -85,7 +88,12 @@ public class Customer {
 	@Column(name = "search_normalized", insertable = false, updatable = false)
 	private String searchNormalized;
 
-	@OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
+	// REMOVE, so that a hard delete removes the ownerships through JPA and
+	// each one is written to audit_log (DECISIONS §4). The database's ON
+	// DELETE CASCADE alone would drop them without a trace. Delete a customer
+	// loaded from the database: this list is not kept in step on save, and a
+	// delete from a stale copy fails rather than lose a child unlogged.
+	@OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
 	private List<Ownership> ownerships = new ArrayList<>();
 
 	@CreationTimestamp

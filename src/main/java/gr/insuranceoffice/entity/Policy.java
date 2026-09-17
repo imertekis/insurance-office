@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -24,6 +25,7 @@ import org.hibernate.annotations.UpdateTimestamp;
  * kept. Six- and twelve-month policies both exist: no duration is assumed.
  */
 @Entity
+@EntityListeners(AuditListener.class)
 @Table(name = "policy")
 public class Policy {
 

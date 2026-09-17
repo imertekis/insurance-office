@@ -2,6 +2,7 @@ package gr.insuranceoffice.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -12,6 +13,7 @@ import jakarta.persistence.Table;
  * a second adviser cannot be spelled differently on every row.
  */
 @Entity
+@EntityListeners(AuditListener.class)
 @Table(name = "intermediary")
 public class Intermediary {
 

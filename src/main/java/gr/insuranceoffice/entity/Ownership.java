@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -25,6 +26,7 @@ import org.hibernate.annotations.CreationTimestamp;
  * checked in the service layer.
  */
 @Entity
+@EntityListeners(AuditListener.class)
 @Table(name = "ownership")
 public class Ownership {
 
