@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- The single search box (SPEC §6, DECISIONS §3): one input, no type
+	     dropdown. On every page, so a search always starts from where the
+	     clerk is. Pages include it with
+	     <nav th:replace="~{fragments/header :: header('Λήξεις')}"></nav> -->
+	<nav th:fragment="header(active)" class="navbar navbar-expand bg-body-tertiary border-bottom mb-4">
+		<div class="container">
+			<a class="navbar-brand" th:href="@{/}">Ασφαλιστικό Γραφείο</a>
+			<ul class="navbar-nav me-auto">
+				<li class="nav-item">
+					<a class="nav-link" th:href="@{/}" th:classappend="${active == 'Λήξεις'} ? 'active'"
+						th:attrappend="aria-current=${active == 'Λήξεις'} ? 'page'">Λήξεις</a>
+				</li>
+			</ul>
+			<form class="d-flex" role="search" method="get" th:action="@{/search}">
+				<label class="visually-hidden" for="q">Αναζήτηση</label>
+				<input class="form-control me-2" type="search" id="q" name="q" style="min-width: 22rem"
+					placeholder="Πινακίδα, ΑΦΜ, όνομα, VIN, τηλέφωνο, αρ. συμβολαίου"
+					th:value="${searchQuery}">
+				<button class="btn btn-outline-primary" type="submit">Αναζήτηση</button>
+			</form>
+		</div>
+	</nav>
+</body>
+</html>

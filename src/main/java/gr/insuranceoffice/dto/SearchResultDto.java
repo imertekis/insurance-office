@@ -21,9 +21,27 @@ public record SearchResultDto(
 		List<VehicleHit> vehicles,
 		boolean truncated) {
 
-	/** The input patterns of SPEC §6. */
+	/** The input patterns of SPEC §6, with the label shown above the results. */
 	public enum SearchType {
-		VIN, PLATE, TAX_ID, MOBILE, PHONE, POLICY_NUMBER, TEXT
+
+		VIN("VIN"),
+		PLATE("Πινακίδα"),
+		TAX_ID("ΑΦΜ"),
+		MOBILE("Κινητό"),
+		PHONE("Σταθερό"),
+		POLICY_NUMBER("Αριθμός συμβολαίου"),
+		TEXT("Ελεύθερο κείμενο");
+
+		private final String label;
+
+		SearchType(String label) {
+			this.label = label;
+		}
+
+		public String getLabel() {
+			return label;
+		}
+
 	}
 
 	/** «Αλεξίου Κωνσταντίνος — ΑΦΜ 189856820 — 2 οχήματα» */

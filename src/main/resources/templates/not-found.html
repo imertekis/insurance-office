@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Δεν βρέθηκε')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('')}"></nav>
+	<main class="container">
+		<h1 class="h3">Δεν βρέθηκε</h1>
+		<p th:text="${message}">Η εγγραφή δεν βρέθηκε.</p>
+		<a th:href="@{/}">Επιστροφή στις λήξεις</a>
+	</main>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Αναζήτηση')}"></head>
+<body th:with="searchQuery=${result.query}">
+	<nav th:replace="~{fragments/header :: header('Αναζήτηση')}"></nav>
+
+	<main class="container" th:with="r=${result}">
+		<h1 class="h3 mb-3">Αποτελέσματα αναζήτησης</h1>
+
+		<p th:if="${#strings.isEmpty(#strings.trim(r.query))}" class="text-body-secondary">
+			Πληκτρολογήστε στο πεδίο αναζήτησης: πινακίδα, ΑΦΜ, όνομα, VIN, τηλέφωνο ή αριθμό συμβολαίου.
+		</p>
+
+		<div th:unless="${#strings.isEmpty(#strings.trim(r.query))}">
+			<p class="mb-3">
+				<span class="text-body-secondary">Αναζήτηση για</span>
+				<strong th:text="|«${r.query}»|">«αλεξ»</strong>
+				<!-- The type label: how the input was read (SPEC §6). -->
+				<span th:each="type : ${r.searchedAs}" class="badge text-bg-secondary ms-1"
+					th:text="${type.label}">Ελεύθερο κείμενο</span>
+			</p>
+
+			<div class="alert alert-warning" th:if="${r.truncated}">
+				Πάρα πολλά αποτελέσματα· εμφανίζονται τα πρώτα. Συμπληρώστε περισσότερα στοιχεία.
+			</div>
+
+			<div class="alert alert-light border"
+				th:if="${#lists.isEmpty(r.customers) and #lists.isEmpty(r.vehicles)}">
+				Κανένα αποτέλεσμα.
+			</div>
+
+			<section th:unless="${#lists.isEmpty(r.customers)}" class="mb-4">
+				<h2 class="h5">Πελάτες <span class="badge text-bg-light" th:text="${#lists.size(r.customers)}">1</span></h2>
+				<div class="table-responsive">
+					<table class="table table-hover align-middle" id="customers">
+						<thead>
+							<tr>
+								<th scope="col">Τύπος</th>
+								<th scope="col">Ονοματεπώνυμο</th>
+								<th scope="col">ΑΦΜ</th>
+								<th scope="col">Οχήματα</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr th:each="customer : ${r.customers}">
+								<td><span class="badge text-bg-primary">ΠΕΛΑΤΗΣ</span></td>
+								<td>
+									<a th:href="@{/customers/{id}(id=${customer.id})}"
+										th:text="${customer.firstName == null} ? ${customer.lastName} : |${customer.lastName} ${customer.firstName}|">Αλεξίου Μαρία</a>
+								</td>
+								<td th:text="${customer.taxId} ?: '—'">900000080</td>
+								<td th:text="${customer.vehicleCount}">2</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+
+			<section th:unless="${#lists.isEmpty(r.vehicles)}">
+				<h2 class="h5">Οχήματα <span class="badge text-bg-light" th:text="${#lists.size(r.vehicles)}">1</span></h2>
+				<div class="table-responsive">
+					<table class="table table-hover align-middle" id="vehicles">
+						<thead>
+							<tr>
+								<th scope="col">Τύπος</th>
+								<th scope="col">Πινακίδα</th>
+								<th scope="col">Όχημα</th>
+								<th scope="col">Κύριος ιδιοκτήτης</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr th:each="vehicle : ${r.vehicles}">
+								<td><span class="badge text-bg-success">ΟΧΗΜΑ</span></td>
+								<td class="text-nowrap">
+									<a th:href="@{/vehicles/{id}(id=${vehicle.id})}" th:text="${vehicle.plate}">ΑΒΕ-1234</a>
+								</td>
+								<td th:text="|${vehicle.brand} ${vehicle.model}|">Volkswagen Golf</td>
+								<td>
+									<a th:if="${vehicle.primaryOwnerId != null}"
+										th:href="@{/customers/{id}(id=${vehicle.primaryOwnerId})}"
+										th:text="${vehicle.primaryOwnerFirstName == null} ? ${vehicle.primaryOwnerLastName} : |${vehicle.primaryOwnerLastName} ${vehicle.primaryOwnerFirstName}|">Αλεξίου Μαρία</a>
+									<span th:if="${vehicle.primaryOwnerId == null}" class="text-body-secondary">—</span>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</section>
+		</div>
+	</main>
+</body>
+</html>

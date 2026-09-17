@@ -39,6 +39,22 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 			""")
 	List<ExpiringPolicy> findNotRenewedEndingBetween(LocalDate from, LocalDate to, String insuranceCompany);
 
+	/** A vehicle's policies with their intermediary, newest first. */
+	@Query("""
+			select p from Policy p left join fetch p.intermediary
+			where p.vehicle.id = :vehicleId
+			order by p.endDate desc, p.id desc
+			""")
+	List<Policy> findByVehicleIdWithIntermediary(Long vehicleId);
+
+	/** The policies of every vehicle the customer owns or owned, newest first. */
+	@Query("""
+			select p from Policy p join fetch p.vehicle v left join fetch p.intermediary
+			where v.id in (select o.vehicle.id from Ownership o where o.customer.id = :customerId)
+			order by p.endDate desc, p.id desc
+			""")
+	List<Policy> findByOwnerWithVehicleAndIntermediary(Long customerId);
+
 	@Query("select distinct p.insuranceCompany from Policy p order by p.insuranceCompany")
 	List<String> findInsuranceCompanies();
 

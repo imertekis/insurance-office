@@ -1,19 +1,14 @@
 package gr.insuranceoffice.controller;
 
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
-import gr.insuranceoffice.dto.SearchResultDto;
 import gr.insuranceoffice.service.SearchService;
 
-/**
- * The single search box as JSON. Like the Task 1 endpoint it only proves the
- * service end to end; Task 9 shows the results as a page.
- */
-@RestController
-@RequestMapping("/api/search")
+/** The single search box (SPEC §6): one input, results grouped by kind. */
+@Controller
 public class SearchController {
 
 	private final SearchService searchService;
@@ -22,9 +17,10 @@ public class SearchController {
 		this.searchService = searchService;
 	}
 
-	@GetMapping
-	public SearchResultDto search(@RequestParam(name = "q", defaultValue = "") String query) {
-		return searchService.search(query);
+	@GetMapping("/search")
+	public String search(@RequestParam(name = "q", defaultValue = "") String query, Model model) {
+		model.addAttribute("result", searchService.search(query));
+		return "search-results";
 	}
 
 }

@@ -132,9 +132,11 @@ These override any older wording in `docs/`.
      An integration test must prove that both give the same output for
      accented, mixed-case and final-sigma Greek input.
 2. **The REST endpoint in Task 1 is deliberately temporary.** It only
-   proves the infrastructure. Thymeleaf replaces it in Task 8, which removed
-   `GET /api/customers`. `POST`/`PUT /api/customers` (Task 7, the 409 over
-   HTTP) stay until the Task 11 forms; `/api/search` until Task 9.
+   proves the infrastructure. Thymeleaf replaces it: Task 8 removed
+   `GET /api/customers` and Task 9 replaced `/api/search` with the `/search`
+   page. What is left is `POST`/`PUT /api/customers` in
+   `CustomerApiController` (Task 7, the 409 over HTTP), until the Task 11
+   forms.
 3. **10 digits starting with `21` searches BOTH landline and policy
    number.** The clerk should not have to know the difference: run two
    queries and group the results by type.

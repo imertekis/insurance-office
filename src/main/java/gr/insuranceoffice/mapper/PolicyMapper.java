@@ -6,6 +6,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import gr.insuranceoffice.dto.PolicyDto;
+import gr.insuranceoffice.dto.PolicyStatus;
+import gr.insuranceoffice.dto.PolicyViewDto;
 import gr.insuranceoffice.entity.Policy;
 
 @Mapper(componentModel = "spring")
@@ -17,5 +19,11 @@ public interface PolicyMapper {
 	PolicyDto toDto(Policy policy);
 
 	List<PolicyDto> toDtoList(List<Policy> policies);
+
+	// The status is worked out by the service, which knows today's date.
+	@Mapping(target = "vehicleId", source = "policy.vehicle.id")
+	@Mapping(target = "plate", source = "policy.vehicle.plate")
+	@Mapping(target = "intermediaryName", source = "policy.intermediary.fullName")
+	PolicyViewDto toViewDto(Policy policy, PolicyStatus status);
 
 }

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="el" xmlns:th="http://www.thymeleaf.org">
-<!-- Shared fragments. A page includes them with th:replace, e.g.
+<!-- The shared <head>. A page includes it with
      <head th:replace="~{layout :: head('Λήξεις')}"></head> -->
 <head th:fragment="head(title)">
 	<meta charset="UTF-8">
@@ -10,13 +10,6 @@
 	<link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
 </head>
 <body>
-	<nav th:fragment="navbar" class="navbar navbar-expand bg-body-tertiary border-bottom mb-4">
-		<div class="container">
-			<a class="navbar-brand" th:href="@{/}">Ασφαλιστικό Γραφείο</a>
-			<ul class="navbar-nav me-auto">
-				<li class="nav-item"><a class="nav-link" th:href="@{/}">Λήξεις</a></li>
-			</ul>
-		</div>
-	</nav>
+	<!-- The navbar with the search box lives in fragments/header.html. -->
 </body>
 </html>

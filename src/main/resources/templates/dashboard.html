@@ -2,7 +2,7 @@
 <html lang="el" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{layout :: head('Λήξεις')}"></head>
 <body>
-	<nav th:replace="~{layout :: navbar}"></nav>
+	<nav th:replace="~{fragments/header :: header('Λήξεις')}"></nav>
 
 	<main class="container" th:with="d=${dashboard}">
 		<h1 class="h3 mb-3">Λήξεις συμβολαίων</h1>
@@ -54,10 +54,12 @@
 				</thead>
 				<tbody>
 					<tr th:each="policy : ${d.policies}">
-						<td class="text-nowrap" th:text="${policy.plate}">ΑΒΕ-1234</td>
+						<td class="text-nowrap">
+							<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ-1234</a>
+						</td>
 						<td>
-							<span th:if="${policy.customerId != null}"
-								th:text="${policy.firstName == null} ? ${policy.lastName} : |${policy.lastName} ${policy.firstName}|">Αλεξίου Μαρία</span>
+							<a th:if="${policy.customerId != null}" th:href="@{/customers/{id}(id=${policy.customerId})}"
+								th:text="${policy.firstName == null} ? ${policy.lastName} : |${policy.lastName} ${policy.firstName}|">Αλεξίου Μαρία</a>
 							<span th:if="${policy.customerId == null}" class="text-body-secondary">Χωρίς κύριο ιδιοκτήτη</span>
 						</td>
 						<td class="text-nowrap">

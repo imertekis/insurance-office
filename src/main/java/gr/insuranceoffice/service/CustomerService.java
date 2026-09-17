@@ -11,12 +11,19 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import gr.insuranceoffice.dto.CustomerDetailDto;
 import gr.insuranceoffice.dto.CustomerDto;
+import gr.insuranceoffice.dto.PolicyStatus;
+import gr.insuranceoffice.dto.PolicyViewDto;
 import gr.insuranceoffice.dto.SavedCustomerDto;
 import gr.insuranceoffice.entity.Customer;
+import gr.insuranceoffice.entity.Policy;
 import gr.insuranceoffice.mapper.CustomerMapper;
+import gr.insuranceoffice.mapper.OwnershipMapper;
+import gr.insuranceoffice.mapper.PolicyMapper;
 import gr.insuranceoffice.repository.CustomerRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
+import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.service.BusinessException.Violation;
 
 @Service
@@ -33,13 +40,45 @@ public class CustomerService {
 
 	private final OwnershipRepository ownershipRepository;
 
+	private final PolicyRepository policyRepository;
+
 	private final CustomerMapper customerMapper;
 
+	private final OwnershipMapper ownershipMapper;
+
+	private final PolicyMapper policyMapper;
+
 	public CustomerService(CustomerRepository customerRepository, OwnershipRepository ownershipRepository,
-			CustomerMapper customerMapper) {
+			PolicyRepository policyRepository, CustomerMapper customerMapper, OwnershipMapper ownershipMapper,
+			PolicyMapper policyMapper) {
 		this.customerRepository = customerRepository;
 		this.ownershipRepository = ownershipRepository;
+		this.policyRepository = policyRepository;
 		this.customerMapper = customerMapper;
+		this.ownershipMapper = ownershipMapper;
+		this.policyMapper = policyMapper;
+	}
+
+	/**
+	 * The customer with the vehicles they own and the policies of all of them
+	 * (SPEC §7.3): three queries, whatever the number of rows.
+	 *
+	 * @throws NotFoundException if the customer does not exist
+	 */
+	@Transactional(readOnly = true)
+	public CustomerDetailDto findDetail(Long id) {
+		return customerRepository.findById(id)
+				.map(customer -> new CustomerDetailDto(customerMapper.toDto(customer),
+						ownershipMapper.toOwnedVehicleDtoList(ownershipRepository.findByCustomerIdWithVehicle(id)),
+						policyViews(policyRepository.findByOwnerWithVehicleAndIntermediary(id))))
+				.orElseThrow(() -> new NotFoundException("Ο πελάτης δεν βρέθηκε."));
+	}
+
+	private List<PolicyViewDto> policyViews(List<Policy> policies) {
+		LocalDate today = LocalDate.now();
+		return policies.stream()
+				.map(policy -> policyMapper.toViewDto(policy, PolicyStatus.of(policy.getEndDate(), today)))
+				.toList();
 	}
 
 	/**

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Πελάτης')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('')}"></nav>
+
+	<main class="container" th:with="c=${detail.customer}">
+		<h1 class="h3 mb-1"
+			th:text="${c.firstName == null} ? ${c.lastName} : |${c.lastName} ${c.firstName}|">Αλεξίου Μαρία</h1>
+		<p class="text-body-secondary" th:text="${c.entityType == 'COMPANY'} ? 'Νομικό πρόσωπο' : 'Φυσικό πρόσωπο'">Φυσικό πρόσωπο</p>
+
+		<section class="mb-4">
+			<h2 class="h5">Στοιχεία</h2>
+			<dl class="row mb-0" id="details">
+				<dt class="col-sm-3">Πατρώνυμο</dt>
+				<dd class="col-sm-9" th:text="${c.fatherName} ?: '—'">Γεώργιος</dd>
+				<dt class="col-sm-3">ΑΦΜ</dt>
+				<dd class="col-sm-9">
+					<span th:if="${c.taxId != null}" th:text="${c.taxId}">900000080</span>
+					<!-- DECISIONS §2: a missing ΑΦΜ is allowed, but shown as missing. -->
+					<span th:if="${c.taxId == null}" class="badge text-bg-warning">Λείπει</span>
+				</dd>
+				<dt class="col-sm-3">Δ.Ο.Υ.</dt>
+				<dd class="col-sm-9" th:text="${c.taxOffice} ?: '—'">Δοκιμούπολης</dd>
+				<dt class="col-sm-3">Ημ. Γέννησης</dt>
+				<dd class="col-sm-9"
+					th:text="${c.birthDate != null} ? ${#temporals.format(c.birthDate, 'dd/MM/yyyy')} : '—'">15/04/1980</dd>
+				<dt class="col-sm-3">Ημ. Διπλώματος</dt>
+				<dd class="col-sm-9"
+					th:text="${c.licenseDate != null} ? ${#temporals.format(c.licenseDate, 'dd/MM/yyyy')} : '—'">20/05/1999</dd>
+				<dt class="col-sm-3">Διεύθυνση</dt>
+				<dd class="col-sm-9"
+					th:text="${c.street == null and c.city == null} ? '—'
+						: |${c.street ?: ''} ${c.city ?: ''} ${c.postalCode ?: ''}|">Οδός Δοκιμής 1 Δοκιμούπολη 99000</dd>
+				<dt class="col-sm-3">Κινητό</dt>
+				<dd class="col-sm-9">
+					<span th:if="${c.mobile != null}" th:text="${c.mobile}">6900000001</span>
+					<span th:if="${c.mobile == null}" class="badge text-bg-warning">Λείπει</span>
+				</dd>
+				<dt class="col-sm-3">Σταθερό</dt>
+				<dd class="col-sm-9" th:text="${c.phone} ?: '—'">2990000000</dd>
+				<dt class="col-sm-3">Email</dt>
+				<dd class="col-sm-9" th:text="${c.email} ?: '—'">test@example.com</dd>
+			</dl>
+		</section>
+
+		<section class="mb-4">
+			<h2 class="h5">Οχήματα</h2>
+			<div class="alert alert-light border" th:if="${#lists.isEmpty(detail.vehicles)}">
+				Ο πελάτης δεν έχει οχήματα.
+			</div>
+			<div class="table-responsive" th:unless="${#lists.isEmpty(detail.vehicles)}">
+				<table class="table table-hover align-middle" id="vehicles">
+					<thead>
+						<tr>
+							<th scope="col">Πινακίδα</th>
+							<th scope="col">Όχημα</th>
+							<th scope="col">Ποσοστό</th>
+							<th scope="col">Από / Έως</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="vehicle : ${detail.vehicles}"
+							th:classappend="${vehicle.current} ? '' : 'text-body-secondary'">
+							<td class="text-nowrap">
+								<!-- Every plate is a link to the vehicle card. -->
+								<a th:href="@{/vehicles/{id}(id=${vehicle.vehicleId})}" th:text="${vehicle.plate}">ΑΒΕ-1234</a>
+								<span th:if="${vehicle.primary}" class="badge text-bg-primary ms-1">Κύριος ιδιοκτήτης</span>
+								<span th:unless="${vehicle.current}" class="badge text-bg-light ms-1">Πρώην</span>
+							</td>
+							<td th:text="|${vehicle.brand} ${vehicle.model}|">Volkswagen Golf</td>
+							<td th:text="|${#numbers.formatDecimal(vehicle.percentage, 1, 'POINT', 0, 'COMMA')}%|">100%</td>
+							<td class="text-nowrap"
+								th:text="|${vehicle.fromDate != null ? #temporals.format(vehicle.fromDate, 'dd/MM/yyyy') : '—'} / ${vehicle.toDate != null ? #temporals.format(vehicle.toDate, 'dd/MM/yyyy') : '—'}|">— / —</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+
+		<section>
+			<h2 class="h5">Συμβόλαια</h2>
+			<div class="alert alert-light border" th:if="${#lists.isEmpty(detail.policies)}">
+				Ο πελάτης δεν έχει συμβόλαια.
+			</div>
+			<div class="table-responsive" th:unless="${#lists.isEmpty(detail.policies)}">
+				<table class="table table-hover align-middle" id="policies">
+					<thead>
+						<tr>
+							<th scope="col">Κατάσταση</th>
+							<th scope="col">Πινακίδα</th>
+							<th scope="col">Αρ. Συμβολαίου</th>
+							<th scope="col">Ασφαλιστική</th>
+							<th scope="col">Έναρξη</th>
+							<th scope="col">Λήξη</th>
+							<th scope="col" class="text-end">Ασφάλιστρο</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="policy : ${detail.policies}">
+							<td>
+								<span class="badge"
+									th:classappend="${policy.status.name() == 'EXPIRED'} ? 'text-bg-secondary'
+										: (${policy.status.name() == 'EXPIRING'} ? 'text-bg-warning' : 'text-bg-success')"
+									th:text="${policy.status.label}">Ενεργό</span>
+							</td>
+							<td class="text-nowrap">
+								<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ-1234</a>
+							</td>
+							<td th:text="${policy.policyNumber}">2100000001</td>
+							<td th:text="${policy.insuranceCompany}">Northwind</td>
+							<td class="text-nowrap" th:text="${#temporals.format(policy.startDate, 'dd/MM/yyyy')}">01/03/2026</td>
+							<td class="text-nowrap" th:text="${#temporals.format(policy.endDate, 'dd/MM/yyyy')}">01/03/2027</td>
+							<td class="text-end text-nowrap"
+								th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+		</section>
+	</main>
+</body>
+</html>
