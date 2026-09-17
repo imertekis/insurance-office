@@ -23,7 +23,8 @@
 
 ## Deferred review findings
 
-From `docs/REVIEW-02.md`, not fixed yet:
+Not fixed yet. Findings 2 and 4 are from `docs/REVIEW-02.md`; the rest
+came up while implementing the task named.
 
 - **Finding 2, JPA cascade/orphan mismatch.** The database has
   `ON DELETE CASCADE` on `ownership` and `policy`, but the `@OneToMany`
@@ -35,3 +36,12 @@ From `docs/REVIEW-02.md`, not fixed yet:
   flushes after every row to pin a database error to its row. This defeats
   Hibernate's JDBC batching, so every row makes its own round trips. The
   per-row `findBy…` lookups add N+1 reads on top of that.
+- **Policy number search (Task 5).** A policy number is only recognised
+  as 10 digits starting with `21`, which fits the sample data but not
+  other insurers' formats. `policy_number` is not part of any
+  `search_normalized`, so other formats cannot be found at all. Consider
+  adding it to a searchable field or adding a dedicated lookup.
+- **Unknown ΑΦΜ finds nothing (Task 5).** A 9-digit input that is not a
+  known ΑΦΜ returns no results instead of falling back to free text.
+  Decide in Task 9 whether the UI should explain this or the search
+  should fall back.
