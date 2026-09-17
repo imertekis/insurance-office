@@ -1,5 +1,6 @@
 package gr.insuranceoffice.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -45,32 +46,21 @@ class CustomerControllerTest {
 		customerRepository.deleteAll();
 	}
 
+	// Task 8: the Task 1 JSON listing is replaced by the Thymeleaf pages.
 	@Test
-	void returnsEmptyJsonArrayWhenThereAreNoCustomers() throws Exception {
+	void noLongerListsCustomersAsJson() throws Exception {
 		mockMvc.perform(get("/api/customers"))
-				.andExpect(status().isOk())
-				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-				.andExpect(jsonPath("$").isArray())
-				.andExpect(jsonPath("$").isEmpty());
+				.andExpect(status().isMethodNotAllowed());
 	}
 
 	@Test
-	void returnsPersistedCustomersSortedByName() throws Exception {
-		customerRepository.save(customer("Βασιλείου", "Νίκος", null, null));
-		customerRepository.save(customer("Αλεξίου", "Κωνσταντίνος", "123456783", "6900000001"));
-
-		mockMvc.perform(get("/api/customers"))
-				.andExpect(status().isOk())
-				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-				.andExpect(jsonPath("$.length()").value(2))
-				.andExpect(jsonPath("$[0].lastName").value("Αλεξίου"))
-				.andExpect(jsonPath("$[0].firstName").value("Κωνσταντίνος"))
-				.andExpect(jsonPath("$[0].taxId").value("123456783"))
-				.andExpect(jsonPath("$[0].entityType").value("INDIVIDUAL"))
-				.andExpect(jsonPath("$[1].lastName").value("Βασιλείου"))
-				// tax_id and mobile are nullable (DECISIONS §1, §2).
-				.andExpect(jsonPath("$[1].taxId").value(nullValue()))
-				.andExpect(jsonPath("$[1].mobile").value(nullValue()));
+	void createsACustomerWithoutMobileOrTaxId() throws Exception {
+		// tax_id and mobile are nullable (DECISIONS §1, §2).
+		mockMvc.perform(post("/api/customers").contentType(MediaType.APPLICATION_JSON)
+				.content(json(dto(null, null, null, null))))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.customer.taxId").value(nullValue()))
+				.andExpect(jsonPath("$.customer.mobile").value(nullValue()));
 	}
 
 	@Test
@@ -108,8 +98,8 @@ class CustomerControllerTest {
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
 				.andExpect(jsonPath("$.title").value("Ταυτόχρονη αλλαγή"));
 
-		mockMvc.perform(get("/api/customers"))
-				.andExpect(jsonPath("$[0].mobile").value("6900000001"));
+		assertThat(customerRepository.findById(stored.getId())).get().extracting(Customer::getMobile)
+				.isEqualTo("6900000001");
 	}
 
 	@Test

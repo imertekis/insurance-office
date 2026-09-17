@@ -20,12 +20,29 @@
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<!-- Not managed by Spring Boot. -->
 		<poi.version>5.5.1</poi.version>
+		<!-- Not managed by Spring Boot. Served locally: the office LAN may
+		     have no internet access, so no CDN. -->
+		<bootstrap.version>5.3.8</bootstrap.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-thymeleaf</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>bootstrap</artifactId>
+			<version>${bootstrap.version}</version>
+		</dependency>
+		<!-- Lets templates link /webjars/bootstrap/... without the version. -->
+		<dependency>
+			<groupId>org.webjars</groupId>
+			<artifactId>webjars-locator-lite</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

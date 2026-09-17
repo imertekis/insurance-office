@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Λήξεις')}"></head>
+<body>
+	<nav th:replace="~{layout :: navbar}"></nav>
+
+	<main class="container" th:with="d=${dashboard}">
+		<h1 class="h3 mb-3">Λήξεις συμβολαίων</h1>
+
+		<!-- A plain GET form, so every view has its own URL. The selects submit
+		     on change; the button is there for browsers without JavaScript. -->
+		<form method="get" th:action="@{/}" class="d-flex flex-wrap gap-3 align-items-end mb-3">
+			<div class="btn-group" role="group" aria-label="Περίοδος">
+				<th:block th:each="p : ${periods}">
+					<input type="radio" class="btn-check" name="period" onchange="this.form.submit()"
+						th:id="|period-${p.param}|" th:value="${p.param}" th:checked="${p == d.period}">
+					<label class="btn btn-outline-primary" th:for="|period-${p.param}|" th:text="${p.label}">30 ημέρες</label>
+				</th:block>
+			</div>
+			<div>
+				<label for="insuranceCompany" class="form-label mb-1">Ασφαλιστική</label>
+				<select id="insuranceCompany" name="insuranceCompany" class="form-select" onchange="this.form.submit()">
+					<option value="">Όλες</option>
+					<option th:each="company : ${d.insuranceCompanies}" th:value="${company}" th:text="${company}"
+						th:selected="${company == d.insuranceCompany}">Northwind</option>
+				</select>
+			</div>
+			<noscript><button type="submit" class="btn btn-primary">Εφαρμογή</button></noscript>
+		</form>
+
+		<p class="text-body-secondary" id="range">
+			<span th:if="${d.period.expired}"
+				th:text="|Έληξαν από ${#temporals.format(d.from, 'dd/MM/yyyy')} έως ${#temporals.format(d.to, 'dd/MM/yyyy')} χωρίς ανανέωση:|">Έληξαν χωρίς ανανέωση:</span>
+			<span th:unless="${d.period.expired}"
+				th:text="|Λήγουν από ${#temporals.format(d.from, 'dd/MM/yyyy')} έως ${#temporals.format(d.to, 'dd/MM/yyyy')} χωρίς ανανέωση:|">Λήγουν χωρίς ανανέωση:</span>
+			<strong th:text="${#lists.size(d.policies)}">0</strong>
+		</p>
+
+		<div class="alert alert-light border" th:if="${#lists.isEmpty(d.policies)}">
+			Κανένα συμβόλαιο σε αυτή την περίοδο.
+		</div>
+
+		<div class="table-responsive" th:unless="${#lists.isEmpty(d.policies)}">
+			<table class="table table-hover align-middle" id="policies">
+				<thead>
+					<tr>
+						<th scope="col">Πινακίδα</th>
+						<th scope="col">Πελάτης</th>
+						<th scope="col">Κινητό</th>
+						<th scope="col">Λήξη</th>
+						<th scope="col">Ασφαλιστική</th>
+						<th scope="col" class="text-end">Ασφάλιστρο</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr th:each="policy : ${d.policies}">
+						<td class="text-nowrap" th:text="${policy.plate}">ΑΒΕ-1234</td>
+						<td>
+							<span th:if="${policy.customerId != null}"
+								th:text="${policy.firstName == null} ? ${policy.lastName} : |${policy.lastName} ${policy.firstName}|">Αλεξίου Μαρία</span>
+							<span th:if="${policy.customerId == null}" class="text-body-secondary">Χωρίς κύριο ιδιοκτήτη</span>
+						</td>
+						<td class="text-nowrap">
+							<span th:if="${policy.mobile != null}" th:text="${policy.mobile}">6900000001</span>
+							<span th:if="${policy.customerId != null and policy.mobile == null}"
+								class="badge text-bg-warning">Λείπει</span>
+						</td>
+						<td class="text-nowrap" th:text="${#temporals.format(policy.endDate, 'dd/MM/yyyy')}">01/03/2027</td>
+						<td th:text="${policy.insuranceCompany}">Northwind</td>
+						<td class="text-end text-nowrap"
+							th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</main>
+</body>
+</html>

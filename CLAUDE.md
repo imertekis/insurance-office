@@ -132,7 +132,9 @@ These override any older wording in `docs/`.
      An integration test must prove that both give the same output for
      accented, mixed-case and final-sigma Greek input.
 2. **The REST endpoint in Task 1 is deliberately temporary.** It only
-   proves the infrastructure. Thymeleaf replaces it in Task 8.
+   proves the infrastructure. Thymeleaf replaces it in Task 8, which removed
+   `GET /api/customers`. `POST`/`PUT /api/customers` (Task 7, the 409 over
+   HTTP) stay until the Task 11 forms; `/api/search` until Task 9.
 3. **10 digits starting with `21` searches BOTH landline and policy
    number.** The clerk should not have to know the difference: run two
    queries and group the results by type.
@@ -143,12 +145,15 @@ These override any older wording in `docs/`.
    `ΑΒΓ-1234` ≠ `ABG-1234`. Standard plates only use the look-alikes; special
    plates (e.g. army `ΕΣ`) keep their Greek letters. The SPEC and DATA_MODEL
    examples use `ΑΒΕ-1234` = `ABE-1234`.
+6. **The expiry dashboard lists renewals still to do.** A policy counts
+   as renewed when its vehicle has a policy with a later `start_date`, and
+   renewed policies are left out of every view. "Already expired" means
+   not renewed, with `end_date` in the last 90 days (yesterday included).
+   A policy ending today is still in force, so it is expiring, not expired.
 
 ## Open questions (ask before implementing)
 
-- "Already expired" filter (Task 8): does it show every policy with
-  `end_date < today`, or only vehicles whose *latest* policy has expired
-  (i.e. not renewed)? Is there a look-back window?
+None at the moment.
 
 ## Commands
 

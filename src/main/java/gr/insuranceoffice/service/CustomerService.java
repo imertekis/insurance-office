@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-import org.springframework.data.domain.Sort;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +21,6 @@ import gr.insuranceoffice.service.BusinessException.Violation;
 
 @Service
 public class CustomerService {
-
-	private static final Sort BY_NAME = Sort.by("lastName", "firstName", "id");
 
 	// SPEC §8.
 	private static final Pattern MOBILE = Pattern.compile("6\\d{9}");
@@ -43,11 +40,6 @@ public class CustomerService {
 		this.customerRepository = customerRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.customerMapper = customerMapper;
-	}
-
-	@Transactional(readOnly = true)
-	public List<CustomerDto> findAll() {
-		return customerMapper.toDtoList(customerRepository.findAll(BY_NAME));
 	}
 
 	/**

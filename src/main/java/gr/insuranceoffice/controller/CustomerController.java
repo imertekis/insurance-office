@@ -1,10 +1,8 @@
 package gr.insuranceoffice.controller;
 
 import java.net.URI;
-import java.util.List;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,9 +15,10 @@ import gr.insuranceoffice.dto.SavedCustomerDto;
 import gr.insuranceoffice.service.CustomerService;
 
 /**
- * Temporary REST endpoint proving the infrastructure end to end.
- * Replaced by Thymeleaf views in Task 8. Errors are mapped by
- * {@link GlobalExceptionHandler}.
+ * Temporary JSON endpoints for saving a customer, so that validation and the
+ * 409 on a concurrent change can be reached over HTTP before the Task 11
+ * forms replace them. The Task 1 listing is gone: the pages are Thymeleaf
+ * from Task 8 on. Errors are mapped by {@link GlobalExceptionHandler}.
  */
 @RestController
 @RequestMapping("/api/customers")
@@ -29,11 +28,6 @@ public class CustomerController {
 
 	public CustomerController(CustomerService customerService) {
 		this.customerService = customerService;
-	}
-
-	@GetMapping
-	public List<CustomerDto> findAll() {
-		return customerService.findAll();
 	}
 
 	@PostMapping
