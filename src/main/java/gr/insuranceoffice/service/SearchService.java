@@ -45,6 +45,20 @@ public class SearchService {
 	/** Hits per group. A broader query should be narrowed, not scrolled. */
 	static final int MAX_HITS = 50;
 
+	/**
+	 * Characters of input read; the rest is ignored. Far longer than any
+	 * name, plate or number a clerk types, and it bounds the work done on
+	 * pasted text before it is split (REVIEW-03 §3).
+	 */
+	static final int MAX_INPUT_LENGTH = 200;
+
+	/**
+	 * Words of free text matched; the rest are ignored. Each word is one LIKE
+	 * condition, so an unbounded count would let one input build a query
+	 * PostgreSQL struggles to plan (REVIEW-03 §3).
+	 */
+	static final int MAX_TERMS = 6;
+
 	// Matched against the input after accents are removed and letters
 	// upper-cased. Never ^.{17}$ for a VIN, which would take any 17
 	// characters, a long surname included (NOTES).
@@ -82,7 +96,7 @@ public class SearchService {
 	 */
 	@Transactional(readOnly = true)
 	public SearchResultDto search(String query) {
-		String input = TextNormalizationUtils.normalizeText(query).strip();
+		String input = TextNormalizationUtils.normalizeText(firstCharacters(query)).strip();
 		List<SearchType> types = detectTypes(input);
 		List<Customer> customers = new ArrayList<>();
 		List<Vehicle> vehicles = new ArrayList<>();
@@ -96,7 +110,7 @@ public class SearchService {
 				case PHONE -> customers.addAll(customerRepository.findByPhone(input, CUSTOMERS_BY_NAME, FETCH_LIMIT));
 				case POLICY_NUMBER -> vehicleRepository.findByPolicyNumber(input).ifPresent(vehicles::add);
 				case TEXT -> {
-					List<String> words = List.of(WHITESPACE.split(input));
+					List<String> words = WHITESPACE.splitAsStream(input).limit(MAX_TERMS).toList();
 					customers.addAll(customerRepository.findBy(customerText(words),
 							found -> found.sortBy(CUSTOMERS_BY_NAME).limit(FETCH_LIMIT.max()).all()));
 					vehicles.addAll(vehicleRepository.findBy(vehicleText(words),
@@ -107,6 +121,14 @@ public class SearchService {
 		boolean truncated = customers.size() > MAX_HITS || vehicles.size() > MAX_HITS;
 		return new SearchResultDto(query, types, customerHits(firstHits(customers)), vehicleHits(firstHits(vehicles)),
 				truncated);
+	}
+
+	// Cut by code point, so a character outside the BMP is never split in two.
+	private static String firstCharacters(String query) {
+		if (query == null || query.codePointCount(0, query.length()) <= MAX_INPUT_LENGTH) {
+			return query;
+		}
+		return query.substring(0, query.offsetByCodePoints(0, MAX_INPUT_LENGTH));
 	}
 
 	private static List<SearchType> detectTypes(String input) {

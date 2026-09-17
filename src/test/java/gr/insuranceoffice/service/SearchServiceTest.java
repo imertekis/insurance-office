@@ -14,9 +14,13 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.hibernate.SessionFactory;
+import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,9 +55,11 @@ import gr.insuranceoffice.repository.VehicleRepository;
 /**
  * Searches PostgreSQL. Not {@code @Transactional}: the data is committed
  * first, so the search runs in a fresh persistence context, where every lazy
- * load it caused would show up as an extra statement.
+ * load it caused would show up as an extra statement. The SQL itself is
+ * recorded by {@link RecordingStatementInspector}.
  */
-@SpringBootTest
+@SpringBootTest(properties = "spring.jpa.properties.hibernate.session_factory.statement_inspector="
+		+ "gr.insuranceoffice.service.SearchServiceTest$RecordingStatementInspector")
 @Import(TestcontainersConfiguration.class)
 class SearchServiceTest {
 
@@ -81,6 +87,7 @@ class SearchServiceTest {
 	@BeforeEach
 	void startEmpty() {
 		truncateTables();
+		RecordingStatementInspector.STATEMENTS.clear();
 	}
 
 	// Other test classes share this database.
@@ -342,6 +349,98 @@ class SearchServiceTest {
 		long forOneVehicle = statementsFor("Clio");
 		assertThat(forOneVehicle).isPositive();
 		assertThat(statementsFor("Golf")).isEqualTo(forOneVehicle);
+	}
+
+	// REVIEW-03 §3: every word is a LIKE condition, so their number is capped.
+	@Test
+	void matchesAtMostSixWordsAndIgnoresTheRest() {
+		Customer customer = saveCustomer("Αλεξίου", "Μαρία", "900000080");
+		// 60 words. The first six all match; so would the rest, but they are
+		// not even sent.
+		String sixty = "Αλεξίου Μαρία ".repeat(30);
+
+		SearchResultDto result = searchService.search(sixty);
+
+		assertThat(result.customers()).extracting(CustomerHit::id).containsExactly(customer.getId());
+		assertThat(likeConditions("from customer")).isEqualTo(SearchService.MAX_TERMS);
+		// Vehicles also try each word in plate form (Greek look-alikes to
+		// Latin), so at most two conditions per word.
+		assertThat(likeConditions("from vehicle")).isEqualTo(2 * SearchService.MAX_TERMS);
+	}
+
+	@Test
+	void ignoresWordsBeyondTheSixthEvenWhenTheyWouldMatchNothing() {
+		Customer customer = saveCustomer("Αλεξίου", "Μαρία", "900000080");
+
+		SearchResultDto result = searchService.search("Αλεξίου Μαρία Αλεξίου Μαρία Αλεξίου Μαρία Ζωγράφου Ξάνθη");
+
+		assertThat(result.customers()).extracting(CustomerHit::id).containsExactly(customer.getId());
+		assertThat(likeConditions("from customer")).isEqualTo(6);
+	}
+
+	@Test
+	void readsOnlyTheFirstTwoHundredCharactersOfAVeryLongInput() {
+		Customer customer = saveCustomer("Αλεξίου", "Μαρία", "900000080");
+		// "Ζωγράφου" starts after character 200. Read, it would match nothing.
+		String padded = "Αλεξίου" + " ".repeat(SearchService.MAX_INPUT_LENGTH) + "Ζωγράφου";
+
+		SearchResultDto result = searchService.search(padded);
+
+		assertThat(result.customers()).extracting(CustomerHit::id).containsExactly(customer.getId());
+		assertThat(likeConditions("from customer")).isEqualTo(1);
+	}
+
+	@Test
+	void boundsAPastedWallOfText() {
+		saveCustomer("Αλεξίου", "Μαρία", "900000080");
+		String wall = "ΑΒΓΔ ΕΖΗΘ ".repeat(10_000);
+
+		SearchResultDto result = searchService.search(wall);
+
+		assertThat(result.searchedAs()).containsExactly(TEXT);
+		assertThat(result.customers()).isEmpty();
+		assertThat(likeConditions("from customer")).isLessThanOrEqualTo(SearchService.MAX_TERMS);
+		assertThat(likeConditions("from vehicle")).isLessThanOrEqualTo(2 * SearchService.MAX_TERMS);
+	}
+
+	@Test
+	void leavesTwoAndThreeWordSearchesAsTheyWere() {
+		Customer maria = saveCustomer("Αλεξίου", "Μαρία", "900000080");
+		saveCustomer("Αλεξίου", "Γιώργος", "900000091");
+		Vehicle golf = saveVehicle("WVWZZZ1KZAW123456", "ΑΒΕ-1234", "Volkswagen", "Golf");
+		saveOwnership(golf, maria, "100", true);
+
+		assertThat(searchService.search("μαρία αλεξίου").customers()).extracting(CustomerHit::id)
+				.containsExactly(maria.getId());
+		assertThat(likeConditions("from customer")).isEqualTo(2);
+
+		assertThat(searchService.search("Volkswagen Golf ABE").vehicles()).extracting(VehicleHit::id)
+				.containsExactly(golf.getId());
+		assertThat(likeConditions("from vehicle")).isEqualTo(3);
+	}
+
+	// LIKE conditions in the last search's statement against this table.
+	private static long likeConditions(String fromTable) {
+		List<String> statements = RecordingStatementInspector.STATEMENTS.stream()
+				.filter(sql -> sql.toLowerCase(Locale.ROOT).contains(fromTable + " "))
+				.toList();
+		assertThat(statements).as("statements %s", fromTable).isNotEmpty();
+		return LIKE.matcher(statements.getLast().toLowerCase(Locale.ROOT)).results().count();
+	}
+
+	private static final Pattern LIKE = Pattern.compile("\\blike\\b");
+
+	/** Keeps the SQL Hibernate sends, cleared before each test. */
+	public static class RecordingStatementInspector implements StatementInspector {
+
+		static final List<String> STATEMENTS = new CopyOnWriteArrayList<>();
+
+		@Override
+		public String inspect(String sql) {
+			STATEMENTS.add(sql);
+			return sql;
+		}
+
 	}
 
 	private long statementsFor(String query) {

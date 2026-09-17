@@ -23,8 +23,9 @@
 
 ## Deferred review findings
 
-Not fixed yet. Findings 2 and 4 are from `docs/REVIEW-02.md`; the rest
-came up while implementing the task named.
+Not fixed yet. "Finding 2" and "Finding 4" are from `docs/REVIEW-02.md`,
+entries marked REVIEW-03 from `docs/REVIEW-03.md`; the rest came up while
+implementing the task named.
 
 - **Finding 2, JPA cascade/orphan mismatch.** Partly fixed in Task 6: the
   `@OneToMany` collections on `Customer` and `Vehicle` now have
@@ -57,6 +58,35 @@ came up while implementing the task named.
   `PolicyService`. `OwnershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle`
   holds the definition: `is_primary`, `to_date IS NULL`, and a policy with
   `start_date <= today <= end_date`.
+- **REVIEW-03 finding 1, extra SELECT per update.**
+  `PostgreSQLVersionCheckingDialect` turns off `UPDATE ... RETURNING` so
+  that a version conflict on Customer or Vehicle is reported as one
+  (Task 7). The cost: every update of those two entities is an `UPDATE`
+  plus a `SELECT` for `search_normalized`. Negligible for a 3-user office,
+  but it adds to the import's round trips (Finding 4). Revisit when
+  Hibernate checks the row count before reading `RETURNING` values;
+  `OptimisticLockingTest` shows whether the dialect can go.
+- **REVIEW-03 finding 2, audit log gaps.**
+  - `plate_normalized` is not in a Vehicle `UPDATE` diff, because entity
+    listeners run before the entity's own `@PreUpdate`. Accepted in
+    Task 6: `plate` is in the diff, and `DELETE` rows hold the right value.
+  - Bulk JPQL or native `UPDATE`/`DELETE` statements bypass JPA callbacks
+    and are never logged. None exist today. Do not add them for audited
+    entities, or write the `audit_log` rows alongside them.
+  - Each flush writes its own `UPDATE` row, so an entity changed and
+    flushed several times in one transaction gets several rows instead of
+    one. The importer flushes after every Excel row, so a customer who
+    appears on several rows can be logged once per row.
+- **REVIEW-03 finding 4, importer bypasses customer validation.**
+  `ExcelImporterService` saves customers through `CustomerRepository`, so
+  the Task 7 rules in `CustomerService` (ΑΦΜ check digit, phone and ΤΚ
+  formats, mobile for the primary owner of an insured vehicle) are never
+  checked on import. Harmless for the one-off migration, but **before the
+  office ever re-imports**, customer writes must go through
+  `CustomerService`, with rows it refuses listed in the import report
+  rather than dropped silently. This pairs with the "Import risks" above:
+  a re-import that overwrites app edits would also write values the app
+  itself refuses.
 
 ## Doc conflicts to settle
 
