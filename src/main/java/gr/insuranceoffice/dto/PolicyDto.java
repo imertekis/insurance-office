@@ -13,5 +13,7 @@ public record PolicyDto(
 		LocalDate endDate,
 		BigDecimal premium,
 		boolean surcharge,
-		String surchargeType) {
+		String surchargeType,
+		// Sent back unchanged on save; a mismatch means someone else saved first.
+		Long version) {
 }

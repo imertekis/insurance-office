@@ -16,6 +16,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -66,6 +67,12 @@ public class Policy {
 	@Enumerated(EnumType.STRING)
 	@Column(name = "surcharge_type", length = 30)
 	private SurchargeType surchargeType;
+
+	// Optimistic locking (SPEC §9): a save based on an outdated copy fails
+	// instead of silently overwriting another user's change.
+	@Version
+	@Column(name = "version", nullable = false)
+	private Long version;
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
@@ -149,6 +156,10 @@ public class Policy {
 
 	public void setSurchargeType(SurchargeType surchargeType) {
 		this.surchargeType = surchargeType;
+	}
+
+	public Long getVersion() {
+		return version;
 	}
 
 	public LocalDateTime getCreatedAt() {

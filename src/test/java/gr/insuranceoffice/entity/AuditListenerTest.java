@@ -138,7 +138,7 @@ class AuditListenerTest {
 		Policy reloaded = policyRepository.findById(saved.getId()).orElseThrow();
 		reloaded.setPremium(new BigDecimal("120"));
 		reloaded.setEndDate(LocalDate.of(2026, 9, 1));
-		policyRepository.save(reloaded);
+		reloaded = policyRepository.save(reloaded);
 		policyRepository.delete(reloaded);
 
 		List<LogRow> log = log().stream().filter(row -> row.entityType().equals("Policy")).toList();

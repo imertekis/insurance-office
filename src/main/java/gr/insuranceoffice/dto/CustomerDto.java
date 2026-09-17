@@ -18,5 +18,7 @@ public record CustomerDto(
 		String mobile,
 		String phone,
 		String email,
-		String notes) {
+		String notes,
+		// Sent back unchanged on save; a mismatch means someone else saved first.
+		Long version) {
 }

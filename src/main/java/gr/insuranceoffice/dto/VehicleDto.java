@@ -24,5 +24,7 @@ public record VehicleDto(
 		Integer weightKg,
 		String licenseStreet,
 		String licenseCity,
-		String licensePostalCode) {
+		String licensePostalCode,
+		// Sent back unchanged on save; a mismatch means someone else saved first.
+		Long version) {
 }

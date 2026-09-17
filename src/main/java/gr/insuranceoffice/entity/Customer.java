@@ -17,6 +17,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
@@ -95,6 +96,12 @@ public class Customer {
 	// delete from a stale copy fails rather than lose a child unlogged.
 	@OneToMany(mappedBy = "customer", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
 	private List<Ownership> ownerships = new ArrayList<>();
+
+	// Optimistic locking (SPEC §9): a save based on an outdated copy fails
+	// instead of silently overwriting another user's change.
+	@Version
+	@Column(name = "version", nullable = false)
+	private Long version;
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
@@ -234,6 +241,10 @@ public class Customer {
 
 	public List<Ownership> getOwnerships() {
 		return ownerships;
+	}
+
+	public Long getVersion() {
+		return version;
 	}
 
 	public LocalDateTime getCreatedAt() {

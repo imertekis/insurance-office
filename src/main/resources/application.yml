@@ -9,6 +9,8 @@ spring:
     password: ${DB_PASSWORD:insurance}
   jpa:
     open-in-view: false
+    # Keeps optimistic locking working with generated columns; see the class.
+    database-platform: gr.insuranceoffice.config.PostgreSQLVersionCheckingDialect
     hibernate:
       # Flyway owns the schema; Hibernate only checks that entities match it.
       ddl-auto: validate

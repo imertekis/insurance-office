@@ -1,5 +1,6 @@
 package gr.insuranceoffice.repository;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 
@@ -28,6 +29,19 @@ public interface OwnershipRepository extends JpaRepository<Ownership, Long> {
 			group by o.customer.id
 			""")
 	List<VehicleCount> countCurrentVehicles(Collection<Long> customerIds);
+
+	/**
+	 * Whether the customer is the current primary owner of a vehicle with a
+	 * policy in force on the given day (start and end dates included).
+	 */
+	@Query("""
+			select count(o) > 0 from Ownership o
+			where o.customer.id = :customerId and o.primary = true and o.toDate is null
+			and exists (
+				select p.id from Policy p
+				where p.vehicle = o.vehicle and p.startDate <= :day and p.endDate >= :day)
+			""")
+	boolean isCurrentPrimaryOwnerOfInsuredVehicle(Long customerId, LocalDate day);
 
 	interface VehicleCount {
 

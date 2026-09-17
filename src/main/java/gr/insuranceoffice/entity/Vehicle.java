@@ -20,6 +20,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
@@ -132,6 +133,12 @@ public class Vehicle {
 
 	@OneToMany(mappedBy = "vehicle", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
 	private List<Policy> policies = new ArrayList<>();
+
+	// Optimistic locking (SPEC §9): a save based on an outdated copy fails
+	// instead of silently overwriting another user's change.
+	@Version
+	@Column(name = "version", nullable = false)
+	private Long version;
 
 	@CreationTimestamp
 	@Column(name = "created_at", nullable = false, updatable = false)
@@ -326,6 +333,10 @@ public class Vehicle {
 
 	public List<Policy> getPolicies() {
 		return policies;
+	}
+
+	public Long getVersion() {
+		return version;
 	}
 
 	public LocalDateTime getCreatedAt() {

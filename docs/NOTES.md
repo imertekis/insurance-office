@@ -50,6 +50,13 @@ came up while implementing the task named.
   known ΑΦΜ returns no results instead of falling back to free text.
   Decide in Task 9 whether the UI should explain this or the search
   should fall back.
+- **Mobile rule from the other side (Task 11).** Task 7 checks the rule
+  when a customer is saved. Making a customer without a mobile the primary
+  owner (ownership form) or adding a current policy to their vehicle
+  (policy form) must be refused too, in `OwnershipService` and
+  `PolicyService`. `OwnershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle`
+  holds the definition: `is_primary`, `to_date IS NULL`, and a policy with
+  `start_date <= today <= end_date`.
 
 ## Doc conflicts to settle
 
