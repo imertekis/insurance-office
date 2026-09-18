@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Δεν επιτρέπεται')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('')}"></nav>
+	<main class="container">
+		<h1 class="h3">Δεν επιτρέπεται</h1>
+		<!-- SPEC §2: deleting is for the ΔΙΑΧΕΙΡΙΣΤΗΣ. -->
+		<p>Αυτή η ενέργεια επιτρέπεται μόνο στον διαχειριστή. Αν χρειάζεται να γίνει, ζητήστε το από τον υπεύθυνο
+			του γραφείου.</p>
+		<a th:href="@{/}">Επιστροφή στις λήξεις</a>
+	</main>
+</body>
+</html>

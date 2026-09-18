@@ -1,6 +1,8 @@
 package gr.insuranceoffice.service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -8,13 +10,17 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.PolicyStatus;
 import gr.insuranceoffice.dto.PolicyViewDto;
 import gr.insuranceoffice.dto.VehicleDetailDto;
 import gr.insuranceoffice.dto.VehicleDto;
+import gr.insuranceoffice.entity.Customer;
+import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
 import gr.insuranceoffice.entity.Vehicle;
 import gr.insuranceoffice.mapper.OwnershipMapper;
@@ -23,6 +29,7 @@ import gr.insuranceoffice.mapper.VehicleMapper;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.security.Roles;
 import gr.insuranceoffice.util.TextNormalizationUtils;
 
 /** The vehicle card (SPEC §7.2) and the rules its form must satisfy. */
@@ -40,6 +47,8 @@ public class VehicleService {
 	private final OwnershipMapper ownershipMapper;
 
 	private final PolicyMapper policyMapper;
+
+	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	// SPEC §8: I, O and Q never appear in a VIN.
 	private static final Pattern VIN = Pattern.compile("[A-HJ-NPR-Z0-9]{17}");
@@ -119,6 +128,48 @@ public class VehicleService {
 		// the returned version is the new one.
 		vehicleRepository.flush();
 		return vehicleMapper.toDto(vehicle);
+	}
+
+	/**
+	 * What deleting the vehicle takes with it (Task 11e): all its policies
+	 * and ownerships, current and former.
+	 *
+	 * @throws NotFoundException if the vehicle does not exist
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional(readOnly = true)
+	public DeletionPreviewDto deletionPreview(Long id) {
+		Vehicle vehicle = vehicleRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε."));
+		List<String> alsoDeleted = new ArrayList<>();
+		for (Policy policy : policyRepository.findByVehicleIdWithIntermediary(id)) {
+			alsoDeleted.add("Το συμβόλαιο " + policy.getPolicyNumber() + " ("
+					+ policy.getStartDate().format(GREEK_DATE) + " – " + policy.getEndDate().format(GREEK_DATE) + ")");
+		}
+		for (Ownership ownership : ownershipRepository.findByVehicleIdWithCustomer(id)) {
+			Customer owner = ownership.getCustomer();
+			alsoDeleted.add((ownership.getToDate() == null ? "Η ιδιοκτησία του " : "Η παλιά ιδιοκτησία του ")
+					+ (owner.getFirstName() == null ? owner.getLastName()
+							: owner.getLastName() + " " + owner.getFirstName())
+					+ " (" + ownership.getPercentage().stripTrailingZeros().toPlainString().replace('.', ',') + "%)");
+		}
+		return new DeletionPreviewDto("Το όχημα " + vehicle.getPlate() + " (" + vehicle.getBrand() + " "
+				+ vehicle.getModel() + ")", alsoDeleted, List.of(), null);
+	}
+
+	/**
+	 * Hard delete (DECISIONS §4): the vehicle, its policies and its
+	 * ownerships go, each written to audit_log, from where they can be put
+	 * back.
+	 *
+	 * @throws NotFoundException if the vehicle does not exist
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional
+	public void delete(Long id) {
+		// Loaded, so the children are removed through JPA and logged (Task 6).
+		vehicleRepository.delete(vehicleRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε.")));
 	}
 
 	// A VIN is written in capitals, whatever the clerk typed. The plate keeps

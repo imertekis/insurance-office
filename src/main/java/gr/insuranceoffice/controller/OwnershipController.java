@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.OwnersFormDto;
 import gr.insuranceoffice.dto.OwnersSubmissionDto;
 import gr.insuranceoffice.dto.SearchResultDto.CustomerHit;
@@ -76,6 +78,28 @@ public class OwnershipController {
 			model.addAttribute("results", candidates(query, submission));
 		}
 		return view(ownershipService.ownersForm(id, submission), model);
+	}
+
+	// Task 11e: ΔΙΑΧΕΙΡΙΣΤΗΣ only, and only a closed row; OwnershipService
+	// refuses anything else.
+	@GetMapping("/ownerships/{id}/delete")
+	public String confirmDelete(@PathVariable Long id, Model model) {
+		DeletionPreviewDto preview = ownershipService.deletionPreview(id);
+		return DeleteConfirmation.show(preview, "/ownerships/" + id + "/delete", "/vehicles/" + preview.vehicleId(),
+				model);
+	}
+
+	@PostMapping("/ownerships/{id}/delete")
+	public String delete(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+		Long vehicleId;
+		try {
+			vehicleId = ownershipService.delete(id);
+		} catch (BusinessException exception) {
+			return confirmDelete(id, model);
+		}
+		redirect.addFlashAttribute("notice", "Η παλιά ιδιοκτησία διαγράφηκε. "
+				+ "Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
+		return "redirect:/vehicles/" + vehicleId;
 	}
 
 	private String view(OwnersFormDto owners, Model model) {

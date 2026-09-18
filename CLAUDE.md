@@ -95,6 +95,11 @@ Rules:
 - `vehicle.engine_cc` is nullable. `0` on an electric vehicle is stored as `NULL`.
 - **Hard delete only**. There is no `deleted_at` and no soft-delete filters.
   Recovery goes through `audit_log` (DECISIONS §4).
+- **Only the ΔΙΑΧΕΙΡΙΣΤΗΣ deletes** (SPEC §2, Task 11e). Every delete is a
+  service method with `@PreAuthorize(Roles.ADMINISTRATOR_ONLY)`, reached
+  through a confirmation page; hiding the button is only a courtesy. A new
+  delete must carry the same guard. Deletes load the entity first, so JPA
+  cascades the children and `AuditListener` logs each one.
 - Audit logging uses a custom JPA `@EntityListener` writing JSONB to
   `audit_log` in the same transaction. No Hibernate Envers.
 - Optimistic locking uses `@Version` on customer, vehicle and policy.

@@ -27,6 +27,14 @@ public final class CurrentUser {
 		return appUser().map(AppUserDetails::getFullName).or(() -> Optional.ofNullable(authentication.getName()));
 	}
 
+	/** Whether the logged-in user may delete (SPEC §2, Task 11e). */
+	public static boolean isAdministrator() {
+		Authentication authentication = authentication();
+		return authentication != null && authentication.isAuthenticated()
+				&& authentication.getAuthorities().stream()
+						.anyMatch(authority -> Roles.ADMINISTRATOR_AUTHORITY.equals(authority.getAuthority()));
+	}
+
 	private static Optional<AppUserDetails> appUser() {
 		Authentication authentication = authentication();
 		return authentication != null && authentication.getPrincipal() instanceof AppUserDetails user

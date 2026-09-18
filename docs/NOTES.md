@@ -118,9 +118,9 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   that. Intermediaries are in the same position: the policy form of Task
   11d only picks from existing ones, and today they are created only by
   the import. Worth a task of its own, covering both.
-- **Roles are not enforced yet (Task 10).** Every logged-in user may do
-  everything: the role only becomes an authority (`ROLE_ΥΠΑΛΛΗΛΟΣ`,
-  `ROLE_ΔΙΑΧΕΙΡΙΣΤΗΣ`). SPEC §2 reserves deletions, user management,
-  the audit log and exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ. Task 11e wires up the
-  deletions; user management, audit log viewing and exports have no task
-  yet.
+- **Roles enforced for deletions only (Tasks 10, 11e).** Since Task 11e
+  only the ΔΙΑΧΕΙΡΙΣΤΗΣ may delete, checked with `@PreAuthorize` on the
+  services. SPEC §2 also reserves user management, the audit log and
+  exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ; none of them exists yet, and each will
+  need the same guard when it does. Recovering a deleted record from
+  `audit_log` (DECISIONS §4) is still done by hand in SQL.

@@ -7,6 +7,9 @@
 	<main class="container" th:with="d=${dashboard}">
 		<h1 class="h3 mb-3">Λήξεις συμβολαίων</h1>
 
+		<!-- After deleting a customer or a vehicle, the clerk lands here. -->
+		<div class="alert alert-success" th:if="${notice != null}" th:text="${notice}">Διαγράφηκε.</div>
+
 		<!-- A plain GET form, so every view has its own URL. The selects submit
 		     on change; the button is there for browsers without JavaScript. -->
 		<form method="get" th:action="@{/}" class="d-flex flex-wrap gap-3 align-items-end mb-3">

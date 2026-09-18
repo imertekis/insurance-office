@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Objects;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.IntermediaryDto;
 import gr.insuranceoffice.dto.PolicyDto;
 import gr.insuranceoffice.dto.PolicyFormDto;
@@ -24,6 +26,7 @@ import gr.insuranceoffice.repository.IntermediaryRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.security.Roles;
 
 /**
  * The policy form (Task 11d) and the rules a policy must satisfy (SPEC §8).
@@ -143,6 +146,35 @@ public class PolicyService {
 		// the returned version is the new one.
 		policyRepository.flush();
 		return policyMapper.toDto(policy);
+	}
+
+	/**
+	 * What deleting the policy means (Task 11e). Nothing hangs off a policy.
+	 *
+	 * @throws NotFoundException if the policy does not exist
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional(readOnly = true)
+	public DeletionPreviewDto deletionPreview(Long id) {
+		Policy policy = policy(id);
+		return new DeletionPreviewDto("Το συμβόλαιο " + policy.getPolicyNumber() + " του οχήματος "
+				+ policy.getVehicle().getPlate() + " (" + policy.getStartDate().format(GREEK_DATE) + " – "
+				+ policy.getEndDate().format(GREEK_DATE) + ")", List.of(), List.of(), policy.getVehicle().getId());
+	}
+
+	/**
+	 * Hard delete (DECISIONS §4), written to audit_log.
+	 *
+	 * @return the vehicle the policy belonged to
+	 * @throws NotFoundException if the policy does not exist
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional
+	public Long delete(Long id) {
+		Policy policy = policy(id);
+		Long vehicleId = policy.getVehicle().getId();
+		policyRepository.delete(policy);
+		return vehicleId;
 	}
 
 	private void apply(PolicyFormDto values, BigDecimal premium, Policy policy) {

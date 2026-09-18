@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import gr.insuranceoffice.dto.VehicleDto;
 import gr.insuranceoffice.entity.Vehicle.FuelType;
@@ -75,6 +76,21 @@ public class VehicleController {
 					+ "Ανοίξτε ξανά την καρτέλα για να δείτε τις αλλαγές του και επαναλάβετε τη δική σας.");
 			return form(vehicle, model);
 		}
+	}
+
+	// Task 11e: ΔΙΑΧΕΙΡΙΣΤΗΣ only; VehicleService refuses anyone else.
+	@GetMapping("/vehicles/{id}/delete")
+	public String confirmDelete(@PathVariable Long id, Model model) {
+		return DeleteConfirmation.show(vehicleService.deletionPreview(id), "/vehicles/" + id + "/delete",
+				"/vehicles/" + id, model);
+	}
+
+	@PostMapping("/vehicles/{id}/delete")
+	public String delete(@PathVariable Long id, RedirectAttributes redirect) {
+		vehicleService.delete(id);
+		redirect.addFlashAttribute("notice", "Το όχημα διαγράφηκε, μαζί με τα συμβόλαια και τις ιδιοκτησίες του. "
+				+ "Μπορούν να ανακτηθούν από το ιστορικό αλλαγών.");
+		return "redirect:/";
 	}
 
 	private String formWithProblems(VehicleDto vehicle, BusinessException exception, Model model) {

@@ -1,21 +1,26 @@
 package gr.insuranceoffice.service;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import gr.insuranceoffice.dto.CustomerDetailDto;
 import gr.insuranceoffice.dto.CustomerDto;
+import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.PolicyStatus;
 import gr.insuranceoffice.dto.PolicyViewDto;
 import gr.insuranceoffice.dto.SavedCustomerDto;
 import gr.insuranceoffice.entity.Customer;
+import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
 import gr.insuranceoffice.mapper.CustomerMapper;
 import gr.insuranceoffice.mapper.OwnershipMapper;
@@ -23,9 +28,13 @@ import gr.insuranceoffice.mapper.PolicyMapper;
 import gr.insuranceoffice.repository.CustomerRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
+import gr.insuranceoffice.security.Roles;
+import gr.insuranceoffice.service.BusinessException.Violation;
 
 @Service
 public class CustomerService {
+
+	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	// SPEC §8.
 	private static final Pattern MOBILE = Pattern.compile("6\\d{9}");
@@ -139,6 +148,52 @@ public class CustomerService {
 	}
 
 	/**
+	 * What deleting the customer would take with it (Task 11e). Blocked while
+	 * they own a vehicle: deleting them would leave it below 100% or without
+	 * a primary owner, so its owners have to change first.
+	 *
+	 * @throws NotFoundException if the customer does not exist
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional(readOnly = true)
+	public DeletionPreviewDto deletionPreview(Long id) {
+		Customer customer = customerRepository.findById(id)
+				.orElseThrow(() -> new NotFoundException("Ο πελάτης δεν βρέθηκε."));
+		List<String> alsoDeleted = new ArrayList<>();
+		List<String> blockers = new ArrayList<>();
+		for (Ownership ownership : ownershipRepository.findByCustomerIdWithVehicle(id)) {
+			String plate = ownership.getVehicle().getPlate();
+			if (ownership.getToDate() == null) {
+				blockers.add("Είναι τρέχων ιδιοκτήτης του οχήματος " + plate
+						+ "· αλλάξτε πρώτα τους ιδιοκτήτες του.");
+			} else {
+				alsoDeleted.add("Η παλιά ιδιοκτησία του οχήματος " + plate + " (έως "
+						+ ownership.getToDate().format(GREEK_DATE) + ")");
+			}
+		}
+		return new DeletionPreviewDto("Ο πελάτης " + name(customer), alsoDeleted, blockers, null);
+	}
+
+	/**
+	 * Hard delete (DECISIONS §4): the customer and their former ownerships go,
+	 * each written to audit_log, from where they can be put back.
+	 *
+	 * @throws NotFoundException if the customer does not exist
+	 * @throws BusinessException while the customer still owns a vehicle
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional
+	public void delete(Long id) {
+		DeletionPreviewDto preview = deletionPreview(id);
+		if (preview.isBlocked()) {
+			throw new BusinessException(preview.blockers().stream()
+					.map(blocker -> new Violation(null, blocker)).toList());
+		}
+		// Loaded, so the ownerships are removed through JPA and logged (Task 6).
+		customerRepository.delete(customerRepository.findById(id).orElseThrow());
+	}
+
+	/**
 	 * ΑΦΜ check digit (DATA_MODEL "Έλεγχος ΑΦΜ"): the first 8 digits weighted
 	 * 2⁸…2¹, summed, mod 11, mod 10, give the 9th.
 	 */
@@ -175,6 +230,11 @@ public class CustomerService {
 		violations.format("postalCode", values.postalCode(), POSTAL_CODE, "Ο Τ.Κ. πρέπει να έχει 5 ψηφία.");
 		violations.format("email", values.email(), EMAIL, "Μη έγκυρο email.");
 		return violations;
+	}
+
+	private static String name(Customer customer) {
+		return customer.getFirstName() == null ? customer.getLastName()
+				: customer.getLastName() + " " + customer.getFirstName();
 	}
 
 	// DECISIONS §2: a missing ΑΦΜ never blocks saving, but the clerk is told.

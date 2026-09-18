@@ -8,8 +8,13 @@
 		<h1 class="h3 mb-1" th:text="${v.plate}">ΑΒΕ-1234</h1>
 		<p class="text-body-secondary" th:text="|${v.brand} ${v.model}|">Volkswagen Golf</p>
 
+		<div class="alert alert-success" th:if="${notice != null}" th:text="${notice}">Διαγράφηκε.</div>
+
 		<p>
 			<a class="btn btn-outline-primary btn-sm" th:href="@{/vehicles/{id}/edit(id=${v.id})}">Επεξεργασία</a>
+			<!-- Task 11e: only the ΔΙΑΧΕΙΡΙΣΤΗΣ deletes. -->
+			<a class="btn btn-outline-danger btn-sm" th:if="${canDelete}"
+				th:href="@{/vehicles/{id}/delete(id=${v.id})}">Διαγραφή οχήματος</a>
 		</p>
 
 		<!-- The field codes (A, B, E, D.1…) are the ones printed on the licence
@@ -82,6 +87,7 @@
 							<th scope="col">Κινητό</th>
 							<th scope="col">Ποσοστό</th>
 							<th scope="col">Από / Έως</th>
+							<th scope="col"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -101,6 +107,12 @@
 							<td th:text="|${#numbers.formatDecimal(owner.percentage, 1, 'POINT', 0, 'COMMA')}%|">100%</td>
 							<td class="text-nowrap"
 								th:text="|${owner.fromDate != null ? #temporals.format(owner.fromDate, 'dd/MM/yyyy') : '—'} / ${owner.toDate != null ? #temporals.format(owner.toDate, 'dd/MM/yyyy') : '—'}|">— / —</td>
+							<td class="text-end">
+								<!-- Only a former owner's row can go (Task 11e); current owners
+								     change through the owners form. -->
+								<a class="btn btn-sm btn-outline-danger" th:if="${canDelete and !owner.current}"
+									th:href="@{/ownerships/{id}/delete(id=${owner.ownershipId})}">Διαγραφή</a>
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -148,6 +160,8 @@
 							<td class="text-end">
 								<a class="btn btn-sm btn-outline-secondary fw-normal"
 									th:href="@{/policies/{id}/edit(id=${policy.id})}">Επεξεργασία</a>
+								<a class="btn btn-sm btn-outline-danger fw-normal" th:if="${canDelete}"
+									th:href="@{/policies/{id}/delete(id=${policy.id})}">Διαγραφή</a>
 							</td>
 						</tr>
 					</tbody>

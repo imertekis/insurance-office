@@ -16,6 +16,9 @@
 
 		<p>
 			<a class="btn btn-outline-primary btn-sm" th:href="@{/customers/{id}/edit(id=${c.id})}">Επεξεργασία</a>
+			<!-- Task 11e: only the ΔΙΑΧΕΙΡΙΣΤΗΣ deletes. -->
+			<a class="btn btn-outline-danger btn-sm" th:if="${canDelete}"
+				th:href="@{/customers/{id}/delete(id=${c.id})}">Διαγραφή πελάτη</a>
 		</p>
 
 		<section class="mb-4">

@@ -20,6 +20,7 @@ public interface OwnershipMapper {
 	List<OwnershipDto> toDtoList(List<Ownership> ownerships);
 
 	// For the vehicle card: the owner behind the share.
+	@Mapping(target = "ownershipId", source = "id")
 	@Mapping(target = "customerId", source = "customer.id")
 	@Mapping(target = "lastName", source = "customer.lastName")
 	@Mapping(target = "firstName", source = "customer.firstName")

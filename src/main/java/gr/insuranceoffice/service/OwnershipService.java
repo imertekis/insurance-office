@@ -2,6 +2,7 @@ package gr.insuranceoffice.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -14,9 +15,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.OwnersFormDto;
 import gr.insuranceoffice.dto.OwnersFormDto.OwnerRowDto;
 import gr.insuranceoffice.dto.OwnersSubmissionDto;
@@ -27,6 +30,7 @@ import gr.insuranceoffice.repository.CustomerRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.security.Roles;
 
 /**
  * The ownership rule (SPEC §8, DATA_MODEL "ownership"): a vehicle's current
@@ -41,6 +45,8 @@ import gr.insuranceoffice.repository.VehicleRepository;
 public class OwnershipService {
 
 	private static final BigDecimal FULL = new BigDecimal(100);
+
+	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	private final OwnershipRepository ownershipRepository;
 
@@ -218,6 +224,48 @@ public class OwnershipService {
 			ownership.setPrimary(customerId.equals(submission.primaryCustomerId()));
 			ownershipRepository.save(ownership);
 		}
+	}
+
+	/**
+	 * What deleting one ownership row means (Task 11e). Only a closed row can
+	 * go, to correct history, e.g. a transfer recorded by mistake; current
+	 * owners change through the form, so the 100% rule cannot be broken here.
+	 *
+	 * @throws NotFoundException if the ownership does not exist
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional(readOnly = true)
+	public DeletionPreviewDto deletionPreview(Long ownershipId) {
+		Ownership ownership = ownershipRepository.findById(ownershipId)
+				.orElseThrow(() -> new NotFoundException("Η ιδιοκτησία δεν βρέθηκε."));
+		String period = ownership.getToDate() == null ? "τρέχουσα"
+				: "έως " + ownership.getToDate().format(GREEK_DATE);
+		List<String> blockers = ownership.getToDate() == null
+				? List.of("Είναι τρέχουσα ιδιοκτησία· οι τρέχοντες ιδιοκτήτες αλλάζουν από τη φόρμα ιδιοκτητών.")
+				: List.of();
+		return new DeletionPreviewDto("Η ιδιοκτησία του " + name(ownership.getCustomer()) + " στο όχημα "
+				+ ownership.getVehicle().getPlate() + " (" + period + ")", List.of(), blockers,
+				ownership.getVehicle().getId());
+	}
+
+	/**
+	 * Hard delete of a closed ownership row (DECISIONS §4), written to
+	 * audit_log.
+	 *
+	 * @return the vehicle the ownership belonged to
+	 * @throws NotFoundException if the ownership does not exist
+	 * @throws BusinessException if it is a current ownership
+	 */
+	@PreAuthorize(Roles.ADMINISTRATOR_ONLY)
+	@Transactional
+	public Long delete(Long ownershipId) {
+		DeletionPreviewDto preview = deletionPreview(ownershipId);
+		if (preview.isBlocked()) {
+			throw new BusinessException(preview.blockers().stream()
+					.map(blocker -> new BusinessException.Violation(null, blocker)).toList());
+		}
+		ownershipRepository.deleteById(ownershipId);
+		return preview.vehicleId();
 	}
 
 	// Reads one share as typed; "33,33" and "33.33" are the same.

@@ -69,6 +69,25 @@ public class CustomerController {
 		}
 	}
 
+	// Task 11e: ΔΙΑΧΕΙΡΙΣΤΗΣ only; CustomerService refuses anyone else.
+	@GetMapping("/customers/{id}/delete")
+	public String confirmDelete(@PathVariable Long id, Model model) {
+		return DeleteConfirmation.show(customerService.deletionPreview(id), "/customers/" + id + "/delete",
+				"/customers/" + id, model);
+	}
+
+	@PostMapping("/customers/{id}/delete")
+	public String delete(@PathVariable Long id, Model model, RedirectAttributes redirect) {
+		try {
+			customerService.delete(id);
+		} catch (BusinessException exception) {
+			// Became blocked since the page was shown: show why.
+			return confirmDelete(id, model);
+		}
+		redirect.addFlashAttribute("notice", "Ο πελάτης διαγράφηκε. Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
+		return "redirect:/";
+	}
+
 	private String saved(SavedCustomerDto saved, RedirectAttributes redirect) {
 		// DECISIONS §2: a missing ΑΦΜ is saved, and said out loud on the card.
 		redirect.addFlashAttribute("warnings", saved.warnings());

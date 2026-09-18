@@ -15,6 +15,7 @@ public record VehicleDetailDto(
 
 	/** Current owners come first; a former owner keeps its transfer dates. */
 	public record OwnerDto(
+			Long ownershipId,
 			Long customerId,
 			String lastName,
 			String firstName,

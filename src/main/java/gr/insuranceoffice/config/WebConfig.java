@@ -12,6 +12,8 @@ public class WebConfig implements WebMvcConfigurer {
 	public void addViewControllers(ViewControllerRegistry registry) {
 		// Spring Security only handles the POST; the page itself is ours.
 		registry.addViewController("/login").setViewName("login");
+		// Shown by Spring Security, with status 403, when a role is missing.
+		registry.addViewController("/access-denied").setViewName("access-denied");
 	}
 
 }

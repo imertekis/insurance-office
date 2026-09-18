@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.PolicyDto;
 import gr.insuranceoffice.dto.PolicyFormDto;
 import gr.insuranceoffice.entity.Policy.SurchargeType;
@@ -77,6 +79,21 @@ public class PolicyController {
 					+ "Ανοίξτε ξανά την καρτέλα για να δείτε τις αλλαγές του και επαναλάβετε τη δική σας.");
 			return form(policy, policy.vehicleId(), model);
 		}
+	}
+
+	// Task 11e: ΔΙΑΧΕΙΡΙΣΤΗΣ only; PolicyService refuses anyone else.
+	@GetMapping("/policies/{id}/delete")
+	public String confirmDelete(@PathVariable Long id, Model model) {
+		DeletionPreviewDto preview = policyService.deletionPreview(id);
+		return DeleteConfirmation.show(preview, "/policies/" + id + "/delete", "/vehicles/" + preview.vehicleId(),
+				model);
+	}
+
+	@PostMapping("/policies/{id}/delete")
+	public String delete(@PathVariable Long id, RedirectAttributes redirect) {
+		Long vehicleId = policyService.delete(id);
+		redirect.addFlashAttribute("notice", "Το συμβόλαιο διαγράφηκε. Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
+		return "redirect:/vehicles/" + vehicleId;
 	}
 
 	private String form(PolicyFormDto policy, Long vehicleId, Model model) {

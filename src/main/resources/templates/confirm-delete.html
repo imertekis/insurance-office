@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Διαγραφή')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('')}"></nav>
+
+	<!-- Every delete passes through here (Task 11e): the ΔΙΑΧΕΙΡΙΣΤΗΣ sees
+	     exactly what goes before confirming. -->
+	<main class="container" th:with="p=${preview}" style="max-width: 48rem">
+		<h1 class="h3 mb-3">Διαγραφή</h1>
+		<p class="fs-5" th:text="${p.subject}">Ο πελάτης Αλεξίου Μαρία</p>
+
+		<div class="alert alert-warning" th:if="${p.blocked}">
+			<p class="fw-semibold mb-1">Δεν μπορεί να διαγραφεί ακόμη:</p>
+			<ul class="mb-0" id="blockers">
+				<li th:each="blocker : ${p.blockers}" th:text="${blocker}">Είναι τρέχων ιδιοκτήτης</li>
+			</ul>
+		</div>
+
+		<div th:unless="${p.blocked}">
+			<div th:unless="${p.alsoDeleted.isEmpty()}">
+				<p class="mb-1">Διαγράφονται μαζί:</p>
+				<ul id="also-deleted">
+					<li th:each="item : ${p.alsoDeleted}" th:text="${item}">Το συμβόλαιο 2100000001</li>
+				</ul>
+			</div>
+			<!-- DECISIONS §4: hard delete, recoverable from the audit log. -->
+			<p class="text-body-secondary">
+				Η διαγραφή είναι οριστική για την εφαρμογή. Ό,τι διαγράφεται καταγράφεται στο ιστορικό αλλαγών,
+				από όπου μπορεί να ανακτηθεί.
+			</p>
+		</div>
+
+		<form method="post" th:action="${action}" class="d-flex gap-2">
+			<button type="submit" class="btn btn-danger" th:unless="${p.blocked}">Οριστική διαγραφή</button>
+			<a class="btn btn-outline-secondary" th:href="${cancel}" th:text="${p.blocked} ? 'Επιστροφή' : 'Άκυρο'">Άκυρο</a>
+		</form>
+	</main>
+</body>
+</html>
