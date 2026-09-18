@@ -8,6 +8,10 @@
 		<h1 class="h3 mb-1" th:text="${v.plate}">ΑΒΕ-1234</h1>
 		<p class="text-body-secondary" th:text="|${v.brand} ${v.model}|">Volkswagen Golf</p>
 
+		<p>
+			<a class="btn btn-outline-primary btn-sm" th:href="@{/vehicles/{id}/edit(id=${v.id})}">Επεξεργασία</a>
+		</p>
+
 		<!-- The field codes (A, B, E, D.1…) are the ones printed on the licence
 		     document, so the clerk can check field by field (SPEC §7.2). -->
 		<section class="mb-4">
