@@ -21,6 +21,7 @@ import jakarta.persistence.PreRemove;
 import jakarta.persistence.PreUpdate;
 
 import gr.insuranceoffice.entity.AuditLog.Action;
+import gr.insuranceoffice.security.CurrentUser;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -45,7 +46,7 @@ public class AuditListener {
 
 	private static final String INSERT = """
 			INSERT INTO audit_log (user_id, action, entity_type, entity_id, old_values, new_values)
-			VALUES (NULL, ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb))
+			VALUES (?, ?, ?, ?, CAST(? AS jsonb), CAST(? AS jsonb))
 			""";
 
 	private final ObjectProvider<EntityManagerFactory> entityManagerFactory;
@@ -129,12 +130,13 @@ public class AuditListener {
 		return Objects.equals(before, after);
 	}
 
-	// user_id stays NULL until there is a logged-in user (Task 10).
+	// user_id is NULL for a change nobody is logged in for, such as the
+	// one-off Excel import.
 	private void write(Action action, Object entity, SharedSessionContractImplementor session,
 			Map<String, Object> oldValues, Map<String, Object> newValues) {
 		Object id = session.getEntityPersister(null, entity).getIdentifier(entity, session);
-		jdbcTemplate.getObject().update(INSERT, action.name(), Hibernate.getClass(entity).getSimpleName(), id,
-				json(oldValues), json(newValues));
+		jdbcTemplate.getObject().update(INSERT, CurrentUser.id().orElse(null), action.name(),
+				Hibernate.getClass(entity).getSimpleName(), id, json(oldValues), json(newValues));
 	}
 
 	private String json(Map<String, Object> values) {

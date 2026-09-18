@@ -91,10 +91,12 @@ implementing the task named.
   a re-import that overwrites app edits would also write values the app
   itself refuses.
 
-## Doc conflicts to settle
-
-- **Audit user: username or id (Task 10).** TASKS Task 10 says the
-  `SecurityContextHolder` feeds the **username** to the `AuditListener`,
-  but ARCHITECTURE §6 says the listener takes the **user ID**, and
-  `audit_log.user_id` is a `BIGINT` referencing `app_user`. Until then the
-  listener writes `user_id` as `NULL`. Settle before implementing Task 10.
+- **No user-management screen (Task 10).** Accounts are made and
+  passwords reset only with the `create-user` profile. Nothing lets the
+  ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk, deactivate one or change their own password
+  from the application, and SPEC §2 expects that. Worth a task of its own.
+- **Roles are not enforced yet (Task 10).** Every logged-in user may do
+  everything: the role only becomes an authority (`ROLE_ΥΠΑΛΛΗΛΟΣ`,
+  `ROLE_ΔΙΑΧΕΙΡΙΣΤΗΣ`). SPEC §2 reserves deletions, user management,
+  the audit log and exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ; wire that up when
+  Task 11 adds the actions those rules are about.

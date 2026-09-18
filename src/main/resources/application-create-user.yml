@@ -1,0 +1,5 @@
+# Profile "create-user": create or reset one account and exit (CreateUserRunner).
+# The database settings come from application.yml, as for the application.
+spring:
+  main:
+    web-application-type: none

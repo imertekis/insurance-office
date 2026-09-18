@@ -19,11 +19,15 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import gr.insuranceoffice.TestcontainersConfiguration;
+import gr.insuranceoffice.security.AppUserDetails;
 import gr.insuranceoffice.entity.Vehicle.FuelType;
 import gr.insuranceoffice.entity.Vehicle.UsageType;
+import gr.insuranceoffice.repository.AppUserRepository;
 import gr.insuranceoffice.repository.CustomerRepository;
 import gr.insuranceoffice.repository.IntermediaryRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
@@ -63,6 +67,9 @@ class AuditListenerTest {
 
 	@Autowired
 	private JsonMapper jsonMapper;
+
+	@Autowired
+	private AppUserRepository appUserRepository;
 
 	@BeforeEach
 	void startEmpty() {
@@ -266,6 +273,37 @@ class AuditListenerTest {
 		assertThat(log()).extracting(LogRow::action).containsOnly("CREATE");
 	}
 
+	// Task 10: the change is logged against whoever is logged in
+	// (ARCHITECTURE §6), by id, as audit_log.user_id is a FK to app_user.
+	@Test
+	void recordsWhichUserMadeTheChange() {
+		AppUser clerk = new AppUser();
+		clerk.setUsername("maria");
+		clerk.setPasswordHash("{noop}δοκιμή");
+		clerk.setFullName("Μαρία Δοκιμαστική");
+		clerk.setRole(AppUser.Role.ΥΠΑΛΛΗΛΟΣ);
+		appUserRepository.save(clerk);
+		AppUserDetails principal = new AppUserDetails(clerk);
+		SecurityContextHolder.getContext().setAuthentication(
+				new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+		try {
+			customerRepository.save(customer("Αλεξίου", "Μαρία", "900000080"));
+		} finally {
+			SecurityContextHolder.clearContext();
+		}
+
+		assertThat(jdbcTemplate.queryForObject("SELECT user_id FROM audit_log WHERE entity_type = 'Customer'",
+				Long.class)).isEqualTo(clerk.getId());
+	}
+
+	// Nobody is logged in during the Excel import or in a test like this one.
+	@Test
+	void leavesTheUserEmptyWhenNobodyIsLoggedIn() {
+		customerRepository.save(customer("Αλεξίου", "Μαρία", "900000080"));
+
+		assertThat(jdbcTemplate.queryForObject("SELECT user_id FROM audit_log", Long.class)).isNull();
+	}
+
 	@Test
 	void rollsBackAnInsertWithTheChange() {
 		transactionTemplate.executeWithoutResult(status -> {
@@ -441,8 +479,8 @@ class AuditListenerTest {
 	}
 
 	private void truncateTables() {
-		jdbcTemplate.execute(
-				"TRUNCATE audit_log, ownership, policy, vehicle, intermediary, customer RESTART IDENTITY CASCADE");
+		jdbcTemplate.execute("TRUNCATE audit_log, ownership, policy, vehicle, intermediary, customer, app_user "
+				+ "RESTART IDENTITY CASCADE");
 	}
 
 }

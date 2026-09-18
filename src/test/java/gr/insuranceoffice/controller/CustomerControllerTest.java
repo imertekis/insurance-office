@@ -19,6 +19,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 
@@ -37,6 +38,9 @@ import gr.insuranceoffice.repository.VehicleRepository;
 /** The customer card (SPEC §7.3). */
 @SpringBootTest
 @AutoConfigureMockMvc
+// Every page needs a logged-in user from Task 10 on; the login itself is in
+// LoginTest.
+@WithMockUser
 @Import(TestcontainersConfiguration.class)
 class CustomerControllerTest {
 

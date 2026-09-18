@@ -14,13 +14,20 @@
 						th:attrappend="aria-current=${active == 'Λήξεις'} ? 'page'">Λήξεις</a>
 				</li>
 			</ul>
-			<form class="d-flex" role="search" method="get" th:action="@{/search}">
+			<form class="d-flex me-3" role="search" method="get" th:action="@{/search}">
 				<label class="visually-hidden" for="q">Αναζήτηση</label>
 				<input class="form-control me-2" type="search" id="q" name="q" style="min-width: 22rem"
 					placeholder="Πινακίδα, ΑΦΜ, όνομα, VIN, τηλέφωνο, αρ. συμβολαίου"
 					th:value="${searchQuery}">
 				<button class="btn btn-outline-primary" type="submit">Αναζήτηση</button>
 			</form>
+			<!-- Who is logged in, and the way out (SPEC §2). -->
+			<div class="d-flex align-items-center" th:if="${currentUser != null}">
+				<span class="navbar-text me-2" th:text="${currentUser}">Χρήστης</span>
+				<form method="post" th:action="@{/logout}">
+					<button class="btn btn-sm btn-outline-secondary" type="submit">Αποσύνδεση</button>
+				</form>
+			</div>
 		</div>
 	</nav>
 </body>

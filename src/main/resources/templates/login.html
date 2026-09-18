@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Σύνδεση')}"></head>
+<body class="bg-body-tertiary">
+	<main class="container" style="max-width: 24rem">
+		<h1 class="h4 my-4 text-center">Ασφαλιστικό Γραφείο</h1>
+
+		<!-- The same message whichever half is wrong: the page must not
+		     confirm that a username exists. -->
+		<div class="alert alert-danger" th:if="${param.error}">Λάθος όνομα χρήστη ή κωδικός.</div>
+		<div class="alert alert-success" th:if="${param.logout}">Αποσυνδεθήκατε.</div>
+
+		<form method="post" th:action="@{/login}" class="card card-body">
+			<div class="mb-3">
+				<label class="form-label" for="username">Όνομα χρήστη</label>
+				<input class="form-control" type="text" id="username" name="username" autofocus required>
+			</div>
+			<div class="mb-3">
+				<label class="form-label" for="password">Κωδικός</label>
+				<input class="form-control" type="password" id="password" name="password" required>
+			</div>
+			<button class="btn btn-primary" type="submit">Σύνδεση</button>
+		</form>
+	</main>
+</body>
+</html>

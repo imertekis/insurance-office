@@ -147,7 +147,13 @@ These override any older wording in `docs/`.
    `ΑΒΓ-1234` ≠ `ABG-1234`. Standard plates only use the look-alikes; special
    plates (e.g. army `ΕΣ`) keep their Greek letters. The SPEC and DATA_MODEL
    examples use `ΑΒΕ-1234` = `ABE-1234`.
-6. **The expiry dashboard lists renewals still to do.** A policy counts
+6. **The audit log records the user by id.** TASKS Task 10 said
+   "username", ARCHITECTURE §6 said user ID, and `audit_log.user_id` is a
+   `BIGINT` FK to `app_user`: the id wins, and the TASKS wording was fixed.
+   The logged-in principal (`AppUserDetails`) carries the id, and
+   `CurrentUser.id()` hands it to `AuditListener`. A change with nobody
+   logged in, such as the Excel import, leaves `user_id` NULL.
+7. **The expiry dashboard lists renewals still to do.** A policy counts
    as renewed when its vehicle has a policy with a later `start_date`, and
    renewed policies are left out of every view. "Already expired" means
    not renewed, with `end_date` in the last 90 days (yesterday included).
@@ -163,6 +169,12 @@ None at the moment.
 docker compose up -d        # start PostgreSQL
 ./mvnw verify               # build + all tests (definition of done)
 ./mvnw spring-boot:run      # run the app
+
+# Create a user, or reset a password, then exit. There is no user
+# management screen; this is how the first ΔΙΑΧΕΙΡΙΣΤΗΣ is made.
+./mvnw spring-boot:run -Dspring-boot.run.profiles=create-user \
+  -Dspring-boot.run.arguments="--user.username=<όνομα> --user.password=<κωδικός> '--user.full-name=<ονοματεπώνυμο>' [--user.role=ΥΠΑΛΛΗΛΟΣ]"
+# The inner quotes matter: the plugin splits the arguments on spaces.
 
 # One-off Excel migration into the configured database, then exit.
 # Refuses a database that already has customers or vehicles unless

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -19,6 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import gr.insuranceoffice.TestcontainersConfiguration;
@@ -29,6 +31,9 @@ import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+// Every page needs a logged-in user from Task 10 on; the login itself is in
+// LoginTest.
+@WithMockUser
 @Import(TestcontainersConfiguration.class)
 class CustomerApiControllerTest {
 
@@ -56,7 +61,7 @@ class CustomerApiControllerTest {
 	@Test
 	void createsACustomerWithoutMobileOrTaxId() throws Exception {
 		// tax_id and mobile are nullable (DECISIONS §1, §2).
-		mockMvc.perform(post("/api/customers").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/customers").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(json(dto(null, null, null, null))))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.customer.taxId").value(nullValue()))
@@ -65,7 +70,7 @@ class CustomerApiControllerTest {
 
 	@Test
 	void createsACustomerWithoutTaxIdAndWarns() throws Exception {
-		mockMvc.perform(post("/api/customers").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/customers").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(json(dto(null, null, null, null))))
 				.andExpect(status().isCreated())
 				.andExpect(header().string("Location", startsWith("/api/customers/")))
@@ -75,7 +80,7 @@ class CustomerApiControllerTest {
 
 	@Test
 	void answers422WithTheInvalidFields() throws Exception {
-		mockMvc.perform(post("/api/customers").contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(post("/api/customers").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(json(dto(null, "900000081", "12345", null))))
 				.andExpect(status().isUnprocessableContent())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -87,12 +92,12 @@ class CustomerApiControllerTest {
 	void answers409WhenSomeoneElseSavedFirst() throws Exception {
 		Customer stored = customerRepository.save(customer("Αλεξίου", "Μαρία", "900000080", null));
 
-		mockMvc.perform(put("/api/customers/{id}", stored.getId()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(put("/api/customers/{id}", stored.getId()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(json(dto(stored.getId(), "900000080", "6900000001", 0L))))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.customer.version").value(1));
 
-		mockMvc.perform(put("/api/customers/{id}", stored.getId()).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(put("/api/customers/{id}", stored.getId()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(json(dto(stored.getId(), "900000080", "6900000002", 0L))))
 				.andExpect(status().isConflict())
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -104,7 +109,7 @@ class CustomerApiControllerTest {
 
 	@Test
 	void answers404ForACustomerThatNoLongerExists() throws Exception {
-		mockMvc.perform(put("/api/customers/{id}", 999).contentType(MediaType.APPLICATION_JSON)
+		mockMvc.perform(put("/api/customers/{id}", 999).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(json(dto(999L, null, null, 0L))))
 				.andExpect(status().isNotFound());
 	}
