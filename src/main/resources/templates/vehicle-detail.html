@@ -67,7 +67,9 @@
 		</section>
 
 		<section class="mb-4">
-			<h2 class="h5">Ιδιοκτήτες</h2>
+			<h2 class="h5">Ιδιοκτήτες
+				<a class="btn btn-outline-primary btn-sm ms-2" th:href="@{/vehicles/{id}/owners(id=${v.id})}">Επεξεργασία ιδιοκτητών</a>
+			</h2>
 			<div class="alert alert-light border" th:if="${#lists.isEmpty(detail.owners)}">
 				Το όχημα δεν έχει ιδιοκτήτες.
 			</div>

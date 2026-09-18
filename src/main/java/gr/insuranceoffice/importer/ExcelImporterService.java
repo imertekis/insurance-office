@@ -120,17 +120,15 @@ public class ExcelImporterService {
 	private final OwnershipRepository ownershipRepository;
 	private final PolicyRepository policyRepository;
 	private final IntermediaryRepository intermediaryRepository;
-	private final OwnershipService ownershipService;
 
 	public ExcelImporterService(CustomerRepository customerRepository, VehicleRepository vehicleRepository,
 			OwnershipRepository ownershipRepository, PolicyRepository policyRepository,
-			IntermediaryRepository intermediaryRepository, OwnershipService ownershipService) {
+			IntermediaryRepository intermediaryRepository) {
 		this.customerRepository = customerRepository;
 		this.vehicleRepository = vehicleRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
 		this.intermediaryRepository = intermediaryRepository;
-		this.ownershipService = ownershipService;
 	}
 
 	/**
@@ -330,7 +328,7 @@ public class ExcelImporterService {
 			if (hasCoOwner) {
 				shares.add(new Share(coOwnerShare, false));
 			}
-			ownershipService.checkCurrentOwners(shares).forEach(problem -> row.reject(OWNER_SHARE, problem));
+			OwnershipService.checkCurrentOwners(shares).forEach(problem -> row.reject(OWNER_SHARE, problem));
 		}
 		if (ownerTaxId != null && ownerTaxId.equals(coOwnerTaxId)) {
 			row.reject(CO_OWNER_TAX_ID, "ίδιος ΑΦΜ με τον κύριο ιδιοκτήτη");

@@ -15,7 +15,7 @@ import gr.insuranceoffice.service.NotFoundException;
 // Listed one by one: @RestController is itself a @Controller, and the JSON
 // endpoints must keep answering with problem details.
 @ControllerAdvice(assignableTypes = { DashboardController.class, SearchController.class, CustomerController.class,
-		VehicleController.class })
+		VehicleController.class, OwnershipController.class })
 public class ViewExceptionHandler {
 
 	@ExceptionHandler(NotFoundException.class)

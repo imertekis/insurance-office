@@ -23,6 +23,14 @@
   the file. Ownerships with transfer dates are left untouched and
   not counted, so once the app records transfers, a re-import
   could leave a vehicle with shares above 100%.
+- The importer and the ownership form (Task 11c) treat a departing
+  owner differently: the importer deletes the row, the form closes it
+  with `to_date`. And an owner the form closed who is still in the
+  Excel makes the re-import fail: the importer adds them back as a new
+  row with no `from_date`, which collides with the closed row on the
+  unique index `(vehicle_id, customer_id, from_date) NULLS NOT DISTINCT`.
+  One more reason the import must become insert-only, or learn about
+  transfers, before the office re-imports.
 
 ## Deferred review findings
 

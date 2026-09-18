@@ -39,6 +39,13 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 			""")
 	List<ExpiringPolicy> findNotRenewedEndingBetween(LocalDate from, LocalDate to, String insuranceCompany);
 
+	/** Whether the vehicle has a policy in force on the day (start and end included). */
+	@Query("""
+			select count(p) > 0 from Policy p
+			where p.vehicle.id = :vehicleId and p.startDate <= :day and p.endDate >= :day
+			""")
+	boolean isInsuredOn(Long vehicleId, LocalDate day);
+
 	/** A vehicle's policies with their intermediary, newest first. */
 	@Query("""
 			select p from Policy p left join fetch p.intermediary
