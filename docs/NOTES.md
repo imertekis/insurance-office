@@ -64,13 +64,11 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   known ΑΦΜ returns no results instead of falling back to free text.
   Decide in Task 9 whether the UI should explain this or the search
   should fall back.
-- **Mobile rule from the other side (Tasks 11c, 11d).** Task 7 checks the
-  rule when a customer is saved. Making a customer without a mobile the
-  primary owner (ownership form, Task 11c) or adding a current policy to
-  their vehicle (policy form, Task 11d) must be refused too, in
-  `OwnershipService` and `PolicyService`. `OwnershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle`
-  holds the definition: `is_primary`, `to_date IS NULL`, and a policy with
-  `start_date <= today <= end_date`.
+- **Mobile rule from the other side (Tasks 11c, 11d): done.** Task 7
+  checks the rule when a customer is saved; Task 11c refuses making a
+  customer without a mobile the primary owner of an insured vehicle, and
+  Task 11d refuses a policy that would be in force today for a vehicle
+  whose primary owner has none. Kept here because TASKS links to it.
 - **REVIEW-03 finding 1, extra SELECT per update.**
   `PostgreSQLVersionCheckingDialect` turns off `UPDATE ... RETURNING` so
   that a version conflict on Customer or Vehicle is reported as one
@@ -126,3 +124,9 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   the audit log and exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ. Task 11e wires up the
   deletions; user management, audit log viewing and exports have no task
   yet.
+- **A future policy shows as «Ενεργό» (Task 11d).** `PolicyStatus` looks
+  only at the end date, so a renewal entered before it starts is labelled
+  «Ενεργό» and emphasized on the vehicle card as if it were in force.
+  SPEC §7.3 names three states (ενεργό / λήγει σύντομα / ληγμένο); showing
+  it correctly needs a fourth, e.g. «Μελλοντικό». Decide before Task 12,
+  which makes entering renewals ahead of time the everyday case.

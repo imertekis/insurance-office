@@ -1,9 +1,5 @@
 package gr.insuranceoffice.controller;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -16,7 +12,6 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import gr.insuranceoffice.dto.CustomerDto;
 import gr.insuranceoffice.dto.SavedCustomerDto;
 import gr.insuranceoffice.service.BusinessException;
-import gr.insuranceoffice.service.BusinessException.Violation;
 import gr.insuranceoffice.service.CustomerService;
 
 /** The customer card (SPEC §7.3) and the form that fills it. */
@@ -81,16 +76,7 @@ public class CustomerController {
 	}
 
 	private String formWithErrors(CustomerDto customer, BusinessException exception, Model model) {
-		Map<String, String> errors = new LinkedHashMap<>();
-		List<String> problems = exception.getViolations().stream()
-				.filter(violation -> violation.field() == null)
-				.map(Violation::message)
-				.toList();
-		exception.getViolations().stream()
-				.filter(violation -> violation.field() != null)
-				.forEach(violation -> errors.putIfAbsent(violation.field(), violation.message()));
-		model.addAttribute("errors", errors);
-		model.addAttribute("problems", problems);
+		FormErrors.show(exception, model);
 		return formWithValues(customer, model);
 	}
 

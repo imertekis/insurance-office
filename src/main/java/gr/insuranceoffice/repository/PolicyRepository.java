@@ -46,6 +46,21 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 			""")
 	boolean isInsuredOn(Long vehicleId, LocalDate day);
 
+	/**
+	 * The vehicle's policies whose period overlaps the given one. Touching is
+	 * not overlapping: a policy may start the day the previous one ends, as
+	 * the office's renewals do (Task 11d).
+	 *
+	 * @param excludeId the policy being edited, or null for a new one
+	 */
+	@Query("""
+			select p from Policy p
+			where p.vehicle.id = :vehicleId and (:excludeId is null or p.id <> :excludeId)
+			and p.startDate < :endDate and p.endDate > :startDate
+			order by p.startDate
+			""")
+	List<Policy> findOverlapping(Long vehicleId, Long excludeId, LocalDate startDate, LocalDate endDate);
+
 	/** A vehicle's policies with their intermediary, newest first. */
 	@Query("""
 			select p from Policy p left join fetch p.intermediary

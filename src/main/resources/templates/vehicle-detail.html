@@ -108,7 +108,9 @@
 		</section>
 
 		<section>
-			<h2 class="h5">Συμβόλαια</h2>
+			<h2 class="h5">Συμβόλαια
+				<a class="btn btn-outline-primary btn-sm ms-2" th:href="@{/vehicles/{id}/policies/new(id=${v.id})}">Νέο συμβόλαιο</a>
+			</h2>
 			<div class="alert alert-light border" th:if="${#lists.isEmpty(detail.policies)}">
 				Το όχημα δεν έχει συμβόλαια.
 			</div>
@@ -123,6 +125,7 @@
 							<th scope="col">Έναρξη</th>
 							<th scope="col">Λήξη</th>
 							<th scope="col" class="text-end">Ασφάλιστρο</th>
+							<th scope="col"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -142,6 +145,10 @@
 							<td class="text-nowrap" th:text="${#temporals.format(policy.endDate, 'dd/MM/yyyy')}">01/03/2027</td>
 							<td class="text-end text-nowrap"
 								th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
+							<td class="text-end">
+								<a class="btn btn-sm btn-outline-secondary fw-normal"
+									th:href="@{/policies/{id}/edit(id=${policy.id})}">Επεξεργασία</a>
+							</td>
 						</tr>
 					</tbody>
 				</table>

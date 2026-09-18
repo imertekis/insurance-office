@@ -7,7 +7,7 @@ import gr.insuranceoffice.security.CurrentUser;
 
 /** Puts the logged-in user's name in the header of every page (SPEC §2). */
 @ControllerAdvice(assignableTypes = { DashboardController.class, SearchController.class, CustomerController.class,
-		VehicleController.class, OwnershipController.class })
+		VehicleController.class, OwnershipController.class, PolicyController.class })
 public class CurrentUserAdvice {
 
 	@ModelAttribute("currentUser")

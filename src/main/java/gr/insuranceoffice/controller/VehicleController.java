@@ -1,14 +1,9 @@
 package gr.insuranceoffice.controller;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +13,6 @@ import gr.insuranceoffice.dto.VehicleDto;
 import gr.insuranceoffice.entity.Vehicle.FuelType;
 import gr.insuranceoffice.entity.Vehicle.UsageType;
 import gr.insuranceoffice.service.BusinessException;
-import gr.insuranceoffice.service.BusinessException.Violation;
 import gr.insuranceoffice.service.VehicleService;
 
 /** The vehicle card (SPEC §7.2) and the form that fills it. */
@@ -52,7 +46,8 @@ public class VehicleController {
 	@PostMapping("/vehicles")
 	public String create(@ModelAttribute("vehicle") VehicleDto vehicle, BindingResult binding, Model model) {
 		if (binding.hasErrors()) {
-			return formWithErrors(vehicle, unreadableFields(binding), List.of(), model);
+			FormErrors.show(binding, model);
+			return form(vehicle, model);
 		}
 		try {
 			VehicleDto saved = vehicleService.create(vehicle);
@@ -66,7 +61,8 @@ public class VehicleController {
 	public String update(@PathVariable Long id, @ModelAttribute("vehicle") VehicleDto vehicle, BindingResult binding,
 			Model model) {
 		if (binding.hasErrors()) {
-			return formWithErrors(vehicle, unreadableFields(binding), List.of(), model);
+			FormErrors.show(binding, model);
+			return form(vehicle, model);
 		}
 		try {
 			vehicleService.update(id, vehicle);
@@ -81,35 +77,8 @@ public class VehicleController {
 		}
 	}
 
-	// A number field the browser let through as text, e.g. "χίλια": the value
-	// never reached the DTO, so the field is named rather than echoed back.
-	private static Map<String, String> unreadableFields(BindingResult binding) {
-		Map<String, String> errors = new LinkedHashMap<>();
-		binding.getFieldErrors().forEach(error -> errors.putIfAbsent(error.getField(),
-				numberField(error) ? "Συμπληρώστε αριθμό." : "Μη έγκυρη τιμή."));
-		return errors;
-	}
-
-	private static boolean numberField(FieldError error) {
-		return error.getRejectedValue() instanceof String text && !text.isBlank();
-	}
-
 	private String formWithProblems(VehicleDto vehicle, BusinessException exception, Model model) {
-		Map<String, String> errors = new LinkedHashMap<>();
-		exception.getViolations().stream()
-				.filter(violation -> violation.field() != null)
-				.forEach(violation -> errors.putIfAbsent(violation.field(), violation.message()));
-		List<String> problems = exception.getViolations().stream()
-				.filter(violation -> violation.field() == null)
-				.map(Violation::message)
-				.toList();
-		return formWithErrors(vehicle, errors, problems, model);
-	}
-
-	private String formWithErrors(VehicleDto vehicle, Map<String, String> errors, List<String> problems,
-			Model model) {
-		model.addAttribute("errors", errors);
-		model.addAttribute("problems", problems);
+		FormErrors.show(exception, model);
 		return form(vehicle, model);
 	}
 

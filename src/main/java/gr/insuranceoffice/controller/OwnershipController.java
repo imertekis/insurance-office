@@ -3,11 +3,8 @@ package gr.insuranceoffice.controller;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
@@ -22,7 +19,6 @@ import gr.insuranceoffice.dto.OwnersFormDto;
 import gr.insuranceoffice.dto.OwnersSubmissionDto;
 import gr.insuranceoffice.dto.SearchResultDto.CustomerHit;
 import gr.insuranceoffice.service.BusinessException;
-import gr.insuranceoffice.service.BusinessException.Violation;
 import gr.insuranceoffice.service.OwnershipService;
 import gr.insuranceoffice.service.SearchService;
 
@@ -67,7 +63,7 @@ public class OwnershipController {
 				ownershipService.saveOwners(id, submission);
 				return "redirect:/vehicles/" + id;
 			} catch (BusinessException exception) {
-				errors(exception, model);
+				FormErrors.show(exception, model);
 			} catch (ObjectOptimisticLockingFailureException exception) {
 				// SPEC §9: the other change is not overwritten silently.
 				model.addAttribute("conflict", "Οι ιδιοκτήτες ή το όχημα άλλαξαν από άλλον χρήστη ενώ τους "
@@ -96,19 +92,6 @@ public class OwnershipController {
 		return searchService.search(query).customers().stream()
 				.filter(hit -> !present.contains(hit.id()))
 				.toList();
-	}
-
-	private static void errors(BusinessException exception, Model model) {
-		Map<String, String> errors = new LinkedHashMap<>();
-		exception.getViolations().stream()
-				.filter(violation -> violation.field() != null)
-				.forEach(violation -> errors.putIfAbsent(violation.field(), violation.message()));
-		model.addAttribute("errors", errors);
-		model.addAttribute("problems", exception.getViolations().stream()
-				.filter(violation -> violation.field() == null)
-				.map(Violation::message)
-				.distinct()
-				.collect(Collectors.toList()));
 	}
 
 	// The first owner of a vehicle owns all of it until told otherwise.

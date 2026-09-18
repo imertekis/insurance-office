@@ -152,7 +152,11 @@ These override any older wording in `docs/`.
    The logged-in principal (`AppUserDetails`) carries the id, and
    `CurrentUser.id()` hands it to `AuditListener`. A change with nobody
    logged in, such as the Excel import, leaves `user_id` NULL.
-7. **The expiry dashboard lists renewals still to do.** A policy counts
+7. **Policies may touch but not overlap.** Two policies of one vehicle
+   overlap only if `start < other end AND other start < end`, so a renewal
+   may start on the day the previous policy ends, as the office's data
+   does (Task 11d). Task 12 prefills the new start with the current end.
+8. **The expiry dashboard lists renewals still to do.** A policy counts
    as renewed when its vehicle has a policy with a later `start_date`, and
    renewed policies are left out of every view. "Already expired" means
    not renewed, with `end_date` in the last 90 days (yesterday included).
