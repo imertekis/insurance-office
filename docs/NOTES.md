@@ -27,15 +27,16 @@
 ## Deferred review findings
 
 Not fixed yet. "Finding 2" and "Finding 4" are from `docs/REVIEW-02.md`,
-entries marked REVIEW-03 from `docs/REVIEW-03.md`; the rest came up while
-implementing the task named.
+entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
+`docs/REVIEW-04.md`; the rest came up while implementing the task named.
 
 - **Finding 2, JPA cascade/orphan mismatch.** Partly fixed in Task 6: the
   `@OneToMany` collections on `Customer` and `Vehicle` now have
   `cascade = REMOVE`, so a hard delete removes ownerships and policies
   through JPA and logs each one. Still open:
-  - No `orphanRemoval`. Decide in Task 11, when the ownership form edits
-    all owners of a vehicle together.
+  - No `orphanRemoval`. Decide in Task 11c, when the ownership form edits
+    all owners of a vehicle together; it hangs on that task's open
+    question, whether a removed owner is deleted or closed with `to_date`.
   - The collections are not kept in step on save (`Ownership.setVehicle`
     does not add to `Vehicle.ownerships`). A delete must start from an
     entity loaded from the database; deleting the copy `save()` returned
@@ -54,11 +55,11 @@ implementing the task named.
   known ΑΦΜ returns no results instead of falling back to free text.
   Decide in Task 9 whether the UI should explain this or the search
   should fall back.
-- **Mobile rule from the other side (Task 11).** Task 7 checks the rule
-  when a customer is saved. Making a customer without a mobile the primary
-  owner (ownership form) or adding a current policy to their vehicle
-  (policy form) must be refused too, in `OwnershipService` and
-  `PolicyService`. `OwnershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle`
+- **Mobile rule from the other side (Tasks 11c, 11d).** Task 7 checks the
+  rule when a customer is saved. Making a customer without a mobile the
+  primary owner (ownership form, Task 11c) or adding a current policy to
+  their vehicle (policy form, Task 11d) must be refused too, in
+  `OwnershipService` and `PolicyService`. `OwnershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle`
   holds the definition: `is_primary`, `to_date IS NULL`, and a policy with
   `start_date <= today <= end_date`.
 - **REVIEW-03 finding 1, extra SELECT per update.**
@@ -91,6 +92,18 @@ implementing the task named.
   a re-import that overwrites app edits would also write values the app
   itself refuses.
 
+- **REVIEW-04, unbounded queries behind the pages.** Nothing limits the
+  rows the dashboard and the cards load: `findNotRenewedEndingBetween`,
+  `findInsuranceCompanies`, and the ownership and policy lists of
+  `CustomerService.findDetail` and `VehicleService.findDetail`. Invisible
+  with the 8 vehicles of the sample, but a fleet customer or a full
+  archive would pull everything into memory. The dashboard is the first
+  place to add paging; the search already caps each group at 50 hits.
+- **REVIEW-04, session timeout left at the default.** Nothing sets
+  `server.servlet.session.timeout`, so the Spring Boot default applies
+  (30 minutes idle) and there is no "remember me". SPEC §2 implies a
+  clerk should not have to log in again and again during a working day.
+  Decide on a longer timeout before the office starts using the app.
 - **No user-management screen (Task 10).** Accounts are made and
   passwords reset only with the `create-user` profile. Nothing lets the
   ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk, deactivate one or change their own password
@@ -98,5 +111,6 @@ implementing the task named.
 - **Roles are not enforced yet (Task 10).** Every logged-in user may do
   everything: the role only becomes an authority (`ROLE_ΥΠΑΛΛΗΛΟΣ`,
   `ROLE_ΔΙΑΧΕΙΡΙΣΤΗΣ`). SPEC §2 reserves deletions, user management,
-  the audit log and exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ; wire that up when
-  Task 11 adds the actions those rules are about.
+  the audit log and exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ. Task 11e wires up the
+  deletions; user management, audit log viewing and exports have no task
+  yet.

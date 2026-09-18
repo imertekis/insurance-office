@@ -135,8 +135,8 @@ These override any older wording in `docs/`.
    proves the infrastructure. Thymeleaf replaces it: Task 8 removed
    `GET /api/customers` and Task 9 replaced `/api/search` with the `/search`
    page. What is left is `POST`/`PUT /api/customers` in
-   `CustomerApiController` (Task 7, the 409 over HTTP), until the Task 11
-   forms.
+   `CustomerApiController` (Task 7, the 409 over HTTP), until the Task 11a
+   form replaces it.
 3. **10 digits starting with `21` searches BOTH landline and policy
    number.** The clerk should not have to know the difference: run two
    queries and group the results by type.
