@@ -34,9 +34,10 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   `@OneToMany` collections on `Customer` and `Vehicle` now have
   `cascade = REMOVE`, so a hard delete removes ownerships and policies
   through JPA and logs each one. Still open:
-  - No `orphanRemoval`. Decide in Task 11c, when the ownership form edits
-    all owners of a vehicle together; it hangs on that task's open
-    question, whether a removed owner is deleted or closed with `to_date`.
+  - No `orphanRemoval`, and none is needed: Task 11c closes a removed
+    owner with `to_date` instead of deleting the row, so an ownership
+    never becomes an orphan. Revisit only if something starts removing
+    ownerships from a vehicle's collection.
   - The collections are not kept in step on save (`Ownership.setVehicle`
     does not add to `Vehicle.ownerships`). A delete must start from an
     entity loaded from the database; deleting the copy `save()` returned
@@ -104,10 +105,13 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   (30 minutes idle) and there is no "remember me". SPEC §2 implies a
   clerk should not have to log in again and again during a working day.
   Decide on a longer timeout before the office starts using the app.
-- **No user-management screen (Task 10).** Accounts are made and
-  passwords reset only with the `create-user` profile. Nothing lets the
-  ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk, deactivate one or change their own password
-  from the application, and SPEC §2 expects that. Worth a task of its own.
+- **No user-management screen (Task 10), and no intermediary screen.**
+  Accounts are made and passwords reset only with the `create-user`
+  profile. Nothing lets the ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk, deactivate one or
+  change their own password from the application, and SPEC §2 expects
+  that. Intermediaries are in the same position: the policy form of Task
+  11d only picks from existing ones, and today they are created only by
+  the import. Worth a task of its own, covering both.
 - **Roles are not enforced yet (Task 10).** Every logged-in user may do
   everything: the role only becomes an authority (`ROLE_ΥΠΑΛΛΗΛΟΣ`,
   `ROLE_ΔΙΑΧΕΙΡΙΣΤΗΣ`). SPEC §2 reserves deletions, user management,

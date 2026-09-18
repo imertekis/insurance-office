@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Πελάτης')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('')}"></nav>
+
+	<!-- One text field. The error comes from the service (Task 7), keyed by
+	     the DTO field name; what was typed stays in the input. -->
+	<div th:fragment="field(name, label, type, value)" class="col-md-6">
+		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
+		<input class="form-control" th:type="${type}" th:id="${name}" th:name="${name}" th:value="${value}"
+			th:classappend="${errors != null and errors.containsKey(name)} ? 'is-invalid'">
+		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
+			th:text="${errors.get(name)}">Μήνυμα</div>
+	</div>
+
+	<main class="container" th:with="c=${customer}, isNew=${customer.id == null}">
+		<h1 class="h3 mb-3" th:text="${isNew} ? 'Νέος πελάτης' : 'Επεξεργασία πελάτη'">Νέος πελάτης</h1>
+
+		<div class="alert alert-warning" th:if="${conflict != null}" th:text="${conflict}">Σύγκρουση</div>
+		<div class="alert alert-danger" th:if="${problems != null and !problems.isEmpty()}">
+			<p class="mb-0" th:each="problem : ${problems}" th:text="${problem}">Πρόβλημα</p>
+		</div>
+
+		<form method="post" th:action="${isNew} ? @{/customers} : @{/customers/{id}(id=${c.id})}" class="row g-3">
+			<!-- Optimistic locking (Task 7): the version the clerk started from. -->
+			<input type="hidden" name="version" th:value="${c.version}">
+			<input type="hidden" name="id" th:value="${c.id}">
+
+			<div th:replace="~{this :: field('lastName', 'Επώνυμο *', 'text', ${c.lastName})}"></div>
+			<div th:replace="~{this :: field('firstName', 'Όνομα', 'text', ${c.firstName})}"></div>
+
+			<div class="col-md-6">
+				<label class="form-label" for="entityType">Είδος προσώπου</label>
+				<select class="form-select" id="entityType" name="entityType"
+					th:classappend="${errors != null and errors.containsKey('entityType')} ? 'is-invalid'">
+					<option value="INDIVIDUAL" th:selected="${c.entityType != 'COMPANY'}">Φυσικό πρόσωπο</option>
+					<option value="COMPANY" th:selected="${c.entityType == 'COMPANY'}">Νομικό πρόσωπο</option>
+				</select>
+				<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('entityType')}"
+					th:text="${errors.get('entityType')}">Μήνυμα</div>
+			</div>
+			<div th:replace="~{this :: field('fatherName', 'Πατρώνυμο', 'text', ${c.fatherName})}"></div>
+
+			<div th:replace="~{this :: field('taxId', 'ΑΦΜ', 'text', ${c.taxId})}"></div>
+			<div th:replace="~{this :: field('taxOffice', 'Δ.Ο.Υ.', 'text', ${c.taxOffice})}"></div>
+
+			<div th:replace="~{this :: field('birthDate', 'Ημ. Γέννησης', 'date', ${c.birthDate})}"></div>
+			<div th:replace="~{this :: field('licenseDate', 'Ημ. Διπλώματος', 'date', ${c.licenseDate})}"></div>
+
+			<div th:replace="~{this :: field('street', 'Οδός', 'text', ${c.street})}"></div>
+			<div th:replace="~{this :: field('city', 'Πόλη', 'text', ${c.city})}"></div>
+			<div th:replace="~{this :: field('postalCode', 'Τ.Κ.', 'text', ${c.postalCode})}"></div>
+
+			<div th:replace="~{this :: field('mobile', 'Κινητό', 'text', ${c.mobile})}"></div>
+			<div th:replace="~{this :: field('phone', 'Σταθερό', 'text', ${c.phone})}"></div>
+			<div th:replace="~{this :: field('email', 'Email', 'text', ${c.email})}"></div>
+
+			<div class="col-12">
+				<label class="form-label" for="notes">Σημειώσεις</label>
+				<textarea class="form-control" id="notes" name="notes" rows="3" th:text="${c.notes}"></textarea>
+			</div>
+
+			<div class="col-12 d-flex gap-2">
+				<button class="btn btn-primary" type="submit">Αποθήκευση</button>
+				<a class="btn btn-outline-secondary" th:href="${isNew} ? @{/} : @{/customers/{id}(id=${c.id})}">Άκυρο</a>
+			</div>
+			<p class="text-body-secondary small mb-0">
+				Το ΑΦΜ δεν είναι υποχρεωτικό· αν λείπει, η εγγραφή αποθηκεύεται με προειδοποίηση.
+			</p>
+		</form>
+	</main>
+</body>
+</html>

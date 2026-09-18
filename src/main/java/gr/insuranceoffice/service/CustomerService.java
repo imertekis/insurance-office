@@ -60,6 +60,18 @@ public class CustomerService {
 	}
 
 	/**
+	 * The customer's own fields, for the edit form.
+	 *
+	 * @throws NotFoundException if the customer does not exist
+	 */
+	@Transactional(readOnly = true)
+	public CustomerDto find(Long id) {
+		return customerRepository.findById(id)
+				.map(customerMapper::toDto)
+				.orElseThrow(() -> new NotFoundException("Ο πελάτης δεν βρέθηκε."));
+	}
+
+	/**
 	 * The customer with the vehicles they own and the policies of all of them
 	 * (SPEC §7.3): three queries, whatever the number of rows.
 	 *

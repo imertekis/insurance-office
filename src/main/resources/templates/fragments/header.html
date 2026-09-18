@@ -13,6 +13,10 @@
 					<a class="nav-link" th:href="@{/}" th:classappend="${active == 'Λήξεις'} ? 'active'"
 						th:attrappend="aria-current=${active == 'Λήξεις'} ? 'page'">Λήξεις</a>
 				</li>
+				<li class="nav-item">
+					<a class="nav-link" th:href="@{/customers/new}"
+						th:classappend="${active == 'Νέος πελάτης'} ? 'active'">Νέος πελάτης</a>
+				</li>
 			</ul>
 			<form class="d-flex me-3" role="search" method="get" th:action="@{/search}">
 				<label class="visually-hidden" for="q">Αναζήτηση</label>
