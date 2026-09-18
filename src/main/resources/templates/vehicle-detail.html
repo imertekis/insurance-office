@@ -129,14 +129,14 @@
 						</tr>
 					</thead>
 					<tbody>
-						<!-- The current policy stands out, the history follows (SPEC §7.2). -->
+						<!-- What is in force stands out, the history is greyed (SPEC §7.2).
+						     On a renewal's first day two policies are in force; a policy
+						     recorded ahead is not yet, so it is not emphasized. -->
 						<tr th:each="policy : ${detail.policies}"
-							th:classappend="${policy.status.name() == 'EXPIRED'} ? 'text-body-secondary' : 'table-primary fw-semibold'">
+							th:classappend="${policy.status.inForce} ? 'table-primary fw-semibold'
+								: (${policy.status.name() == 'EXPIRED'} ? 'text-body-secondary')">
 							<td>
-								<span class="badge"
-									th:classappend="${policy.status.name() == 'EXPIRED'} ? 'text-bg-secondary'
-										: (${policy.status.name() == 'EXPIRING'} ? 'text-bg-warning' : 'text-bg-success')"
-									th:text="${policy.status.label}">Ενεργό</span>
+								<span th:replace="~{fragments/policy-status :: badge(${policy.status})}">Ενεργό</span>
 							</td>
 							<td th:text="${policy.policyNumber}">2100000001</td>
 							<td th:text="${policy.insuranceCompany}">Northwind</td>

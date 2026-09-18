@@ -141,6 +141,52 @@ class BoundaryDayTest {
 		assertThat(Pattern.compile("table-primary").matcher(html).results().count()).isEqualTo(2);
 	}
 
+	// SPEC §7.3: a renewal recorded ahead has no cover yet, so it is
+	// «Μελλοντικό», in its own colour, and not emphasized.
+	@Test
+	void aFurtherRenewalRecordedAheadOnTheBoundaryDayIsFuture() throws Exception {
+		Policy next = policy("2100000003", starting.getEndDate(), starting.getEndDate().plusYears(1));
+
+		assertThat(vehicleService.findDetail(vehicle.getId()).policies())
+				.extracting(PolicyViewDto::policyNumber, PolicyViewDto::status)
+				.containsExactly(
+						tuple(next.getPolicyNumber(), PolicyStatus.FUTURE),
+						tuple("2100000002", PolicyStatus.ACTIVE),
+						tuple("2100000001", PolicyStatus.EXPIRING));
+
+		String card = mockMvc.perform(get("/vehicles/{id}", vehicle.getId()))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+		// The two in force stand out; the one not yet started does not.
+		assertThat(Pattern.compile("table-primary").matcher(card).results().count()).isEqualTo(2);
+		assertThat(card).containsPattern("text-bg-info[^>]*>Μελλοντικό<");
+		assertThat(mockMvc.perform(get("/customers/{id}", maria.getId()))
+				.andReturn().getResponse().getContentAsString())
+				.containsPattern("text-bg-info[^>]*>Μελλοντικό<");
+		// Recording it ahead does not make the policy in force renewed work.
+		assertThat(ids(ExpiryPeriod.DAYS_90)).isEmpty();
+	}
+
+	// The day before a boundary: the renewal is recorded and waiting, and
+	// only the ending policy is in force.
+	@Test
+	void theDayBeforeTheRenewalOnlyTheEndingPolicyIsInForce() throws Exception {
+		Vehicle other = vehicle("ΚΜΝ-4321", "WVWZZZ1KZAW654321");
+		owns(other, maria);
+		Policy endsTomorrow = policy(other, "2100000011", TODAY.minusYears(1).plusDays(1), TODAY.plusDays(1));
+		Policy startsTomorrow = policy(other, "2100000012", TODAY.plusDays(1), TODAY.plusYears(1));
+
+		assertThat(vehicleService.findDetail(other.getId()).policies())
+				.extracting(PolicyViewDto::id, PolicyViewDto::status)
+				.containsExactly(
+						tuple(startsTomorrow.getId(), PolicyStatus.FUTURE),
+						tuple(endsTomorrow.getId(), PolicyStatus.EXPIRING));
+		String card = mockMvc.perform(get("/vehicles/{id}", other.getId()))
+				.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+		assertThat(Pattern.compile("table-primary").matcher(card).results().count()).isEqualTo(1);
+		// Already renewed, so not on the dashboard's list of work to do.
+		assertThat(ids(ExpiryPeriod.DAYS_7)).doesNotContain(endsTomorrow.getId());
+	}
+
 	@Test
 	void customerCardShowsBoth() throws Exception {
 		assertThat(customerService.findDetail(maria.getId()).policies())
@@ -225,9 +271,13 @@ class BoundaryDayTest {
 	}
 
 	private Vehicle vehicle() {
+		return vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456");
+	}
+
+	private Vehicle vehicle(String plate, String vin) {
 		Vehicle vehicle = new Vehicle();
-		vehicle.setVin("WVWZZZ1KZAW123456");
-		vehicle.setPlate("ΑΒΕ-1234");
+		vehicle.setVin(vin);
+		vehicle.setPlate(plate);
 		vehicle.setBrand("Volkswagen");
 		vehicle.setModel("Golf");
 		vehicle.setFirstRegistration(LocalDate.of(2012, 5, 14));
@@ -250,6 +300,10 @@ class BoundaryDayTest {
 	}
 
 	private Policy policy(String policyNumber, LocalDate startDate, LocalDate endDate) {
+		return policy(vehicle, policyNumber, startDate, endDate);
+	}
+
+	private Policy policy(Vehicle vehicle, String policyNumber, LocalDate startDate, LocalDate endDate) {
 		Policy policy = new Policy();
 		policy.setVehicle(vehicle);
 		policy.setPolicyNumber(policyNumber);

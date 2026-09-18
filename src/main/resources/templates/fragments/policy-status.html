@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- A policy's status as a coloured badge (SPEC §7.3). One colour per
+	     state, the same on every card: green in force, yellow ending within
+	     30 days, blue not yet started, grey over. Pages include it with
+	     <span th:replace="~{fragments/policy-status :: badge(${policy.status})}"></span> -->
+	<span th:fragment="badge(status)" class="badge"
+		th:classappend="${status.name() == 'FUTURE'} ? 'text-bg-info'
+			: (${status.name() == 'ACTIVE'} ? 'text-bg-success'
+			: (${status.name() == 'EXPIRING'} ? 'text-bg-warning' : 'text-bg-secondary'))"
+		th:text="${status.label}">Ενεργό</span>
+</body>
+</html>

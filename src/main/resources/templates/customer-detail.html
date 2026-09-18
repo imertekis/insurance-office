@@ -108,10 +108,7 @@
 					<tbody>
 						<tr th:each="policy : ${detail.policies}">
 							<td>
-								<span class="badge"
-									th:classappend="${policy.status.name() == 'EXPIRED'} ? 'text-bg-secondary'
-										: (${policy.status.name() == 'EXPIRING'} ? 'text-bg-warning' : 'text-bg-success')"
-									th:text="${policy.status.label}">Ενεργό</span>
+								<span th:replace="~{fragments/policy-status :: badge(${policy.status})}">Ενεργό</span>
 							</td>
 							<td class="text-nowrap">
 								<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ-1234</a>

@@ -87,7 +87,8 @@ public class CustomerService {
 	private List<PolicyViewDto> policyViews(List<Policy> policies) {
 		LocalDate today = LocalDate.now();
 		return policies.stream()
-				.map(policy -> policyMapper.toViewDto(policy, PolicyStatus.of(policy.getEndDate(), today)))
+				.map(policy -> policyMapper.toViewDto(policy,
+						PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today)))
 				.toList();
 	}
 

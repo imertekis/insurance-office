@@ -124,9 +124,3 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   the audit log and exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ. Task 11e wires up the
   deletions; user management, audit log viewing and exports have no task
   yet.
-- **A future policy shows as «Ενεργό» (Task 11d).** `PolicyStatus` looks
-  only at the end date, so a renewal entered before it starts is labelled
-  «Ενεργό» and emphasized on the vehicle card as if it were in force.
-  SPEC §7.3 names three states (ενεργό / λήγει σύντομα / ληγμένο); showing
-  it correctly needs a fourth, e.g. «Μελλοντικό». Decide before Task 12,
-  which makes entering renewals ahead of time the everyday case.
