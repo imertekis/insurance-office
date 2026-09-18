@@ -86,6 +86,23 @@ public class PolicyService {
 		return policyMapper.toFormDto(policy(id));
 	}
 
+	/**
+	 * A new policy prefilled from this one (Task 12): same vehicle, company,
+	 * intermediary, surcharge and premium, starting the day this one ends,
+	 * since touching is not overlapping (Task 11d). The number is left empty,
+	 * as it must be a new one, and so is the end: the duration is never
+	 * assumed. Saving it creates a policy; this one stays as history.
+	 *
+	 * @throws NotFoundException if the policy does not exist
+	 */
+	@Transactional(readOnly = true)
+	public PolicyFormDto renewal(Long id) {
+		PolicyFormDto current = policyMapper.toFormDto(policy(id));
+		return new PolicyFormDto(null, current.vehicleId(), null, current.insuranceCompany(),
+				current.intermediaryId(), current.endDate(), null, current.premium(), current.surcharge(),
+				current.surchargeType(), null);
+	}
+
 	/** The intermediaries the form offers (Task 11d: existing ones only). */
 	@Transactional(readOnly = true)
 	public List<IntermediaryDto> selectableIntermediaries(Long selectedId) {

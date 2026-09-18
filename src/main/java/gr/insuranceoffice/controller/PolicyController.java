@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import gr.insuranceoffice.dto.DeletionPreviewDto;
@@ -42,11 +43,23 @@ public class PolicyController {
 		return form(policy, policy.vehicleId(), model);
 	}
 
+	// Task 12: the everyday action. The Task 11d form, prefilled from the
+	// policy being renewed; saving goes through create, so the old policy is
+	// never touched and every 11d rule applies.
+	@GetMapping("/policies/{id}/renew")
+	public String renew(@PathVariable Long id, Model model) {
+		PolicyFormDto renewal = policyService.renewal(id);
+		model.addAttribute("renewalOf", policyService.find(id).policyNumber());
+		return form(renewal, renewal.vehicleId(), model);
+	}
+
 	// The rules live in PolicyService; here they only become messages next to
 	// the fields, with what the clerk typed still in the form.
 	@PostMapping("/vehicles/{vehicleId}/policies")
 	public String create(@PathVariable Long vehicleId, @ModelAttribute("policy") PolicyFormDto policy,
-			BindingResult binding, Model model) {
+			BindingResult binding, @RequestParam(required = false) String renewalOf, Model model) {
+		// Still a renewal when the form comes back with a mistake.
+		model.addAttribute("renewalOf", renewalOf);
 		if (binding.hasErrors()) {
 			FormErrors.show(binding, model);
 			return form(policy, vehicleId, model);

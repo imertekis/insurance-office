@@ -53,6 +53,7 @@
 						<th scope="col">Λήξη</th>
 						<th scope="col">Ασφαλιστική</th>
 						<th scope="col" class="text-end">Ασφάλιστρο</th>
+						<th scope="col"></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -74,6 +75,10 @@
 						<td th:text="${policy.insuranceCompany}">Northwind</td>
 						<td class="text-end text-nowrap"
 							th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
+						<!-- Task 12: the screen's purpose, one click from each row. -->
+						<td class="text-end">
+							<a class="btn btn-sm btn-primary" th:href="@{/policies/{id}/renew(id=${policy.policyId})}">Ανανέωση</a>
+						</td>
 					</tr>
 				</tbody>
 			</table>

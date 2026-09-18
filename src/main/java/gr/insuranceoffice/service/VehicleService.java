@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -74,9 +75,12 @@ public class VehicleService {
 	@Transactional(readOnly = true)
 	public VehicleDetailDto findDetail(Long id) {
 		return vehicleRepository.findById(id)
-				.map(vehicle -> new VehicleDetailDto(vehicleMapper.toDto(vehicle),
-						ownershipMapper.toOwnerDtoList(ownershipRepository.findByVehicleIdWithCustomer(id)),
-						policyViews(policyRepository.findByVehicleIdWithIntermediary(id))))
+				.map(vehicle -> {
+					List<Policy> policies = policyRepository.findByVehicleIdWithIntermediary(id);
+					return new VehicleDetailDto(vehicleMapper.toDto(vehicle),
+							ownershipMapper.toOwnerDtoList(ownershipRepository.findByVehicleIdWithCustomer(id)),
+							policyViews(policies), latest(policies));
+				})
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε."));
 	}
 
@@ -243,6 +247,15 @@ public class VehicleService {
 	private static <E extends Enum<E>> boolean isValid(String value, Class<E> type) {
 		return value != null && Arrays.stream(type.getEnumConstants()).anyMatch(constant -> constant.name()
 				.equals(value));
+	}
+
+	// The policy no later one follows: the dashboard's definition of "not
+	// renewed" (SPEC §7.1), which Task 12 renews.
+	private static Long latest(List<Policy> policies) {
+		return policies.stream()
+				.max(Comparator.comparing(Policy::getStartDate).thenComparing(Policy::getId))
+				.map(Policy::getId)
+				.orElse(null);
 	}
 
 	private List<PolicyViewDto> policyViews(List<Policy> policies) {

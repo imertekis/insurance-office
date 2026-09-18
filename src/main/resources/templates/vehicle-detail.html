@@ -158,6 +158,10 @@
 							<td class="text-end text-nowrap"
 								th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
 							<td class="text-end">
+								<!-- Task 12: on the latest policy only, the one no later policy
+								     follows; on a renewal's first day that is the newer one. -->
+								<a class="btn btn-sm btn-primary fw-normal" th:if="${policy.id == detail.renewablePolicyId}"
+									th:href="@{/policies/{id}/renew(id=${policy.id})}">Ανανέωση</a>
 								<a class="btn btn-sm btn-outline-secondary fw-normal"
 									th:href="@{/policies/{id}/edit(id=${policy.id})}">Επεξεργασία</a>
 								<a class="btn btn-sm btn-outline-danger fw-normal" th:if="${canDelete}"

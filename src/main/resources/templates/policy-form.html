@@ -15,9 +15,14 @@
 	</div>
 
 	<main class="container" th:with="p=${policy}, isNew=${policy.id == null}">
-		<h1 class="h3 mb-1" th:text="${isNew} ? 'Νέο συμβόλαιο' : 'Επεξεργασία συμβολαίου'">Νέο συμβόλαιο</h1>
+		<h1 class="h3 mb-1"
+			th:text="${renewalOf != null} ? 'Ανανέωση συμβολαίου' : (${isNew} ? 'Νέο συμβόλαιο' : 'Επεξεργασία συμβολαίου')">Νέο συμβόλαιο</h1>
 		<p class="mb-3">
 			<a th:href="@{/vehicles/{id}(id=${vehicleId})}" th:text="${plate}">ΑΒΕ-1234</a>
+			<!-- Task 12: prefilled from the policy being renewed, which stays as
+			     history. Only the dates, the number and the premium usually change. -->
+			<span th:if="${renewalOf != null}" class="text-body-secondary"
+				th:text="|· ανανέωση του ${renewalOf}. Συμπληρώστε νέο αριθμό, τη λήξη και ελέγξτε το ασφάλιστρο.|">· ανανέωση</span>
 		</p>
 
 		<div class="alert alert-warning" th:if="${conflict != null}" th:text="${conflict}">Σύγκρουση</div>
@@ -32,6 +37,7 @@
 			<input type="hidden" name="version" th:value="${p.version}">
 			<input type="hidden" name="id" th:value="${p.id}">
 			<input type="hidden" name="vehicleId" th:value="${vehicleId}">
+			<input type="hidden" name="renewalOf" th:if="${renewalOf != null}" th:value="${renewalOf}">
 
 			<div th:replace="~{this :: field('policyNumber', 'Αρ. Συμβολαίου *', 'text', ${p.policyNumber})}"></div>
 
