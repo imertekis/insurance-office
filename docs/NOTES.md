@@ -131,3 +131,13 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   Should a PostgreSQL upgrade bring a new ICU version, PostgreSQL warns
   about the collation version, and the index has to be rebuilt with
   `REINDEX INDEX idx_customer_name_sort` before the order can be trusted.
+- **REVIEW-05 finding 3, checked and not a bug.** The review said the
+  Excel importer can store plates with dashes, because
+  `ExcelImporterService` does not strip them and only
+  `VehicleService.cleaned()` does. But the importer sets the plate with
+  `Vehicle.setPlate`, and the stripping is in that setter (Task 14), so
+  every path that writes a plate goes through it, the import included.
+  `ExcelImporterServiceTest.storesAPlateWithoutItsDashOrSpaceAndKeepsItSoOnARerun`
+  imports a plate with a hyphen, a space and an en dash and asserts all
+  three are stored without one, and that a re-import leaves them so and
+  logs no vehicle change; it fails if the setter stops stripping.

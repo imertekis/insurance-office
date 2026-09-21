@@ -247,6 +247,36 @@ class ExcelImporterServiceTest {
 				.isEqualTo(new BigDecimal("199.90"));
 	}
 
+	// Task 14, REVIEW-05 finding 3: a plate is stored without dashes or spaces
+	// whichever way in, and the importer does not strip it itself; Vehicle's
+	// setter does, so this path cannot store one differently from the form.
+	@Test
+	void storesAPlateWithoutItsDashOrSpaceAndKeepsItSoOnARerun() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(0).put("Αρ. Κυκλοφορίας (A)", "ΑΒΕ-1001");
+		archive.get(1).put("Αρ. Κυκλοφορίας (A)", "TST 1002");
+		// What a spreadsheet's autocorrect makes of a hyphen.
+		archive.get(2).put("Αρ. Κυκλοφορίας (A)", "TST\u20131003");
+
+		importFiles(sampleCustomers(), archive);
+
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000001")).get().extracting(Vehicle::getPlate)
+				.isEqualTo("ΑΒΕ1001");
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000002")).get().extracting(Vehicle::getPlate)
+				.isEqualTo("TST1002");
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000003")).get().extracting(Vehicle::getPlate)
+				.isEqualTo("TST1003");
+		assertThat(storedPlates()).hasSize(8).allMatch(plate -> plate.matches("[^\\s\\p{Pd}]+"));
+
+		// The same file again finds the vehicles by VIN and sets the same
+		// plates: still without dashes, and no change for the audit log to record.
+		long updatesBefore = vehicleUpdatesLogged();
+		importFiles(sampleCustomers(), archive);
+
+		assertThat(storedPlates()).hasSize(8).allMatch(plate -> plate.matches("[^\\s\\p{Pd}]+"));
+		assertThat(vehicleUpdatesLogged()).isEqualTo(updatesBefore);
+	}
+
 	@Test
 	void rerunRemovesAnOwnerNoLongerInTheFile() {
 		importSample();
@@ -379,6 +409,15 @@ class ExcelImporterServiceTest {
 				ownershipRepository.count(), policyRepository.count()))
 				.as("intermediaries, customers, vehicles, ownerships, policies")
 				.containsExactly(intermediaries, customers, vehicles, ownerships, policies);
+	}
+
+	private List<String> storedPlates() {
+		return jdbcTemplate.queryForList("SELECT plate FROM vehicle ORDER BY vin", String.class);
+	}
+
+	private long vehicleUpdatesLogged() {
+		return jdbcTemplate.queryForObject(
+				"SELECT count(*) FROM audit_log WHERE entity_type = 'Vehicle' AND action = 'UPDATE'", Long.class);
 	}
 
 	private void truncateImportedTables() {
