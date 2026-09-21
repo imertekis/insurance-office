@@ -144,10 +144,79 @@ class VehicleControllerTest {
 
 		String html = html(get("/vehicles/{id}", vehicle.getId()));
 
-		assertThat(html).contains("2100000002", "Northwind", "Παπαδόπουλος Νίκος", "Ενεργό", "180,00 €",
-				"2100000001", "Ληγμένο");
+		// The intermediary is on the policy form, no longer in this table (Task 13).
+		assertThat(html).contains("2100000002", "Northwind", "Ενεργό", "180,00 €", "2100000001", "Ληγμένο")
+				.doesNotContain("Παπαδόπουλος Νίκος", "Διαμεσολαβών");
 		// Newest first.
 		assertThat(html.indexOf("2100000002")).isLessThan(html.indexOf("2100000001"));
+	}
+
+	@Test
+	void showsWhoHeldTheVehicleWhenEachPolicyStarted() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ1234", "WVWZZZ1KZAW123456");
+		Customer seller = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer buyer = customer("Βασιλείου", "Νίκος", "900000091");
+		LocalDate transfer = TODAY.minusMonths(8);
+		owns(vehicle, seller, "100", true, null, transfer);
+		owns(vehicle, buyer, "100", true, transfer, null);
+		policy(vehicle, "2100000001", TODAY.minusYears(2), TODAY.minusYears(1), null);
+		policy(vehicle, "2100000002", TODAY.minusMonths(6), TODAY.plusMonths(6), null);
+
+		String html = html(get("/vehicles/{id}", vehicle.getId()));
+		String older = row(html, "2100000001");
+		String newer = row(html, "2100000002");
+
+		assertThat(older).contains("href=\"/customers/" + seller.getId() + "\"", "Αλεξίου Μαρία")
+				.doesNotContain("Βασιλείου");
+		assertThat(newer).contains("href=\"/customers/" + buyer.getId() + "\"", "Βασιλείου Νίκος")
+				.doesNotContain("Αλεξίου");
+	}
+
+	@Test
+	void givesAPolicyStartingOnTheTransferDayToTheNewOwner() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ1234", "WVWZZZ1KZAW123456");
+		Customer seller = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer buyer = customer("Βασιλείου", "Νίκος", "900000091");
+		LocalDate transfer = TODAY.minusMonths(3);
+		owns(vehicle, seller, "100", true, null, transfer);
+		owns(vehicle, buyer, "100", true, transfer, null);
+		policy(vehicle, "2100000001", transfer, transfer.plusYears(1), null);
+
+		assertThat(row(html(get("/vehicles/{id}", vehicle.getId())), "2100000001"))
+				.contains("Βασιλείου Νίκος").doesNotContain("Αλεξίου");
+	}
+
+	@Test
+	void namesTheCurrentPrimaryOwnerWhenTheOwnershipHasNoDates() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ1234", "WVWZZZ1KZAW123456");
+		Customer primary = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer coOwner = customer("Βασιλείου", "Νίκος", "900000091");
+		owns(vehicle, primary, "60", true, null);
+		owns(vehicle, coOwner, "40", false, null);
+		policy(vehicle, "2100000001", TODAY.minusYears(3), TODAY.minusYears(2), null);
+
+		assertThat(row(html(get("/vehicles/{id}", vehicle.getId())), "2100000001"))
+				.contains("href=\"/customers/" + primary.getId() + "\"", "Αλεξίου Μαρία")
+				.doesNotContain("Βασιλείου");
+	}
+
+	@Test
+	void namesTheCurrentPrimaryOwnerWhenNoOwnershipCoversTheStart() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ1234", "WVWZZZ1KZAW123456");
+		Customer owner = customer("Αλεξίου", "Μαρία", "900000080");
+		// The first owner on record started after the policy did.
+		owns(vehicle, owner, "100", true, TODAY.minusMonths(1), null);
+		policy(vehicle, "2100000001", TODAY.minusYears(3), TODAY.minusYears(2), null);
+
+		assertThat(row(html(get("/vehicles/{id}", vehicle.getId())), "2100000001")).contains("Αλεξίου Μαρία");
+	}
+
+	@Test
+	void showsADashWhenTheVehicleHasNoPrimaryOwner() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ1234", "WVWZZZ1KZAW123456");
+		policy(vehicle, "2100000001", TODAY.minusMonths(6), TODAY.plusMonths(6), null);
+
+		assertThat(row(html(get("/vehicles/{id}", vehicle.getId())), "2100000001")).doesNotContain("/customers/");
 	}
 
 	@Test
@@ -175,6 +244,13 @@ class VehicleControllerTest {
 
 	private String html(RequestBuilder request) throws Exception {
 		return mockMvc.perform(request).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+	}
+
+	// The table row of one policy, so a name elsewhere on the page does not count.
+	private static String row(String html, String policyNumber) {
+		int number = html.indexOf(policyNumber);
+		assertThat(number).as("policy " + policyNumber).isPositive();
+		return html.substring(html.lastIndexOf("<tr", number), html.indexOf("</tr>", number));
 	}
 
 	private Customer customer(String lastName, String firstName, String taxId) {
@@ -208,11 +284,17 @@ class VehicleControllerTest {
 	}
 
 	private void owns(Vehicle vehicle, Customer customer, String percentage, boolean primary, LocalDate toDate) {
+		owns(vehicle, customer, percentage, primary, null, toDate);
+	}
+
+	private void owns(Vehicle vehicle, Customer customer, String percentage, boolean primary, LocalDate fromDate,
+			LocalDate toDate) {
 		Ownership ownership = new Ownership();
 		ownership.setVehicle(vehicle);
 		ownership.setCustomer(customer);
 		ownership.setPercentage(new BigDecimal(percentage));
 		ownership.setPrimary(primary);
+		ownership.setFromDate(fromDate);
 		ownership.setToDate(toDate);
 		ownershipRepository.save(ownership);
 	}

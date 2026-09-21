@@ -133,7 +133,7 @@
 							<th scope="col">Κατάσταση</th>
 							<th scope="col">Αρ. Συμβολαίου</th>
 							<th scope="col">Ασφαλιστική</th>
-							<th scope="col">Διαμεσολαβών</th>
+							<th scope="col">Πελάτης</th>
 							<th scope="col">Έναρξη</th>
 							<th scope="col">Λήξη</th>
 							<th scope="col" class="text-end">Ασφάλιστρο</th>
@@ -152,7 +152,12 @@
 							</td>
 							<td th:text="${policy.policyNumber}">2100000001</td>
 							<td th:text="${policy.insuranceCompany}">Northwind</td>
-							<td th:text="${policy.intermediaryName} ?: '—'">Παπαδόπουλος Νίκος</td>
+							<td>
+								<!-- The customer the vehicle belonged to when the policy started (Task 13). -->
+								<a th:if="${policy.customerId != null}" th:href="@{/customers/{id}(id=${policy.customerId})}"
+									th:text="${policy.customerName}">Αλεξίου Μαρία</a>
+								<span th:if="${policy.customerId == null}">—</span>
+							</td>
 							<td class="text-nowrap" th:text="${#temporals.format(policy.startDate, 'dd/MM/yyyy')}">01/03/2026</td>
 							<td class="text-nowrap" th:text="${#temporals.format(policy.endDate, 'dd/MM/yyyy')}">01/03/2027</td>
 							<td class="text-end text-nowrap"

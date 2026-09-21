@@ -77,9 +77,10 @@ public class VehicleService {
 		return vehicleRepository.findById(id)
 				.map(vehicle -> {
 					List<Policy> policies = policyRepository.findByVehicleIdWithIntermediary(id);
+					List<Ownership> ownerships = ownershipRepository.findByVehicleIdWithCustomer(id);
 					return new VehicleDetailDto(vehicleMapper.toDto(vehicle),
-							ownershipMapper.toOwnerDtoList(ownershipRepository.findByVehicleIdWithCustomer(id)),
-							policyViews(policies), latest(policies));
+							ownershipMapper.toOwnerDtoList(ownerships),
+							policyViews(policies, ownerships), latest(policies));
 				})
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε."));
 	}
@@ -258,12 +259,44 @@ public class VehicleService {
 				.orElse(null);
 	}
 
-	private List<PolicyViewDto> policyViews(List<Policy> policies) {
+	// Each policy carries the customer who held the vehicle when it started
+	// (Task 13), so the history shows who it was then, not who owns it today.
+	private List<PolicyViewDto> policyViews(List<Policy> policies, List<Ownership> ownerships) {
 		LocalDate today = LocalDate.now();
 		return policies.stream()
-				.map(policy -> policyMapper.toViewDto(policy,
-						PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today)))
+				.map(policy -> {
+					PolicyViewDto view = policyMapper.toViewDto(policy,
+							PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today));
+					Customer owner = primaryOwnerOn(ownerships, policy.getStartDate());
+					return owner == null ? view : view.withCustomer(owner.getId(),
+							owner.getFirstName() == null ? owner.getLastName()
+									: owner.getLastName() + " " + owner.getFirstName());
+				})
 				.toList();
+	}
+
+	/**
+	 * The primary owner on the given day. A transfer date closes the old
+	 * ownership and opens the new one (Task 11c), so an ownership covers the
+	 * day if it started on or before it and ended after it; an empty date is
+	 * open. Imported rows have no dates and so cover every day, which makes
+	 * the current primary owner the answer for them. If no ownership covers
+	 * the day, for instance the first owner on record started later, the
+	 * current primary owner is the fallback.
+	 *
+	 * @return null if the vehicle has no primary owner to name
+	 */
+	static Customer primaryOwnerOn(List<Ownership> ownerships, LocalDate day) {
+		List<Ownership> primaries = ownerships.stream().filter(Ownership::isPrimary).toList();
+		return primaries.stream()
+				.filter(ownership -> (ownership.getFromDate() == null || !ownership.getFromDate().isAfter(day))
+						&& (ownership.getToDate() == null || day.isBefore(ownership.getToDate())))
+				// Should two cover the day, the one that started last holds it.
+				.max(Comparator.comparing(Ownership::getFromDate, Comparator.nullsFirst(Comparator.naturalOrder()))
+						.thenComparing(Ownership::getId))
+				.or(() -> primaries.stream().filter(ownership -> ownership.getToDate() == null).findFirst())
+				.map(Ownership::getCustomer)
+				.orElse(null);
 	}
 
 }

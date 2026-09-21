@@ -23,10 +23,12 @@ public interface PolicyMapper {
 
 	List<PolicyDto> toDtoList(List<Policy> policies);
 
-	// The status is worked out by the service, which knows today's date.
+	// The status is worked out by the service, which knows today's date, and
+	// so is the customer, who comes from the ownerships, not from the policy.
 	@Mapping(target = "vehicleId", source = "policy.vehicle.id")
 	@Mapping(target = "plate", source = "policy.vehicle.plate")
-	@Mapping(target = "intermediaryName", source = "policy.intermediary.fullName")
+	@Mapping(target = "customerId", ignore = true)
+	@Mapping(target = "customerName", ignore = true)
 	PolicyViewDto toViewDto(Policy policy, PolicyStatus status);
 
 	// For the edit form: the premium as the clerk would type it, "180,00".
