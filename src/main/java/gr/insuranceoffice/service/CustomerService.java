@@ -5,8 +5,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -99,23 +101,40 @@ public class CustomerService {
 	}
 
 	/**
-	 * The customer with the vehicles they own and the policies of all of them
-	 * (SPEC §7.3): three queries, whatever the number of rows.
+	 * The customer with the vehicles they own and the policies of those that
+	 * started while they owned them (SPEC §7.3): three queries, whatever the
+	 * number of rows. A vehicle's later owner's policies are theirs, not this
+	 * customer's; see {@link #policyViews}.
 	 *
 	 * @throws NotFoundException if the customer does not exist
 	 */
 	@Transactional(readOnly = true)
 	public CustomerDetailDto findDetail(Long id) {
 		return customerRepository.findById(id)
-				.map(customer -> new CustomerDetailDto(customerMapper.toDto(customer),
-						ownershipMapper.toOwnedVehicleDtoList(ownershipRepository.findByCustomerIdWithVehicle(id)),
-						policyViews(policyRepository.findByOwnerWithVehicleAndIntermediary(id))))
+				.map(customer -> {
+					List<Ownership> ownerships = ownershipRepository.findByCustomerIdWithVehicle(id);
+					return new CustomerDetailDto(customerMapper.toDto(customer),
+							ownershipMapper.toOwnedVehicleDtoList(ownerships),
+							policyViews(policyRepository.findByOwnerWithVehicleAndIntermediary(id), ownerships));
+				})
 				.orElseThrow(() -> new NotFoundException("Ο πελάτης δεν βρέθηκε."));
 	}
 
-	private List<PolicyViewDto> policyViews(List<Policy> policies) {
+	/**
+	 * The policies that started within one of the customer's ownerships of
+	 * the vehicle, by the rule of Task 13: to_date excluded, an empty date
+	 * open. So a policy the next owner took out after a sale is not listed,
+	 * and one that starts on the transfer day is the buyer's. A co-owner has
+	 * an ownership too and sees the vehicle's policies. Any ownership will
+	 * do, as a vehicle can be sold and bought back.
+	 */
+	private List<PolicyViewDto> policyViews(List<Policy> policies, List<Ownership> ownerships) {
 		LocalDate today = LocalDate.now();
+		Map<Long, List<Ownership>> ownershipsByVehicle = ownerships.stream()
+				.collect(Collectors.groupingBy(ownership -> ownership.getVehicle().getId()));
 		return policies.stream()
+				.filter(policy -> ownershipsByVehicle.getOrDefault(policy.getVehicle().getId(), List.of()).stream()
+						.anyMatch(ownership -> PolicyCustomers.covers(ownership, policy.getStartDate())))
 				.map(policy -> policyMapper.toViewDto(policy,
 						PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today)))
 				.toList();

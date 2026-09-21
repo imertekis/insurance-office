@@ -6,7 +6,8 @@ import java.util.List;
 
 /**
  * The customer card (SPEC §7.3): their details, the vehicles they own with
- * their share, and the policies of all those vehicles together.
+ * their share, and the policies of those vehicles together, the ones that
+ * started while the customer owned the vehicle.
  */
 public record CustomerDetailDto(
 		CustomerDto customer,

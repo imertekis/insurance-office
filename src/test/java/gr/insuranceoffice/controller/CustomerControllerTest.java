@@ -148,6 +148,86 @@ class CustomerControllerTest {
 		assertThat(html.indexOf("2100000002")).isLessThan(html.indexOf("2100000001"));
 	}
 
+	// Only the policies that started while the customer owned the vehicle, by
+	// the rule of Task 13: a buyer's policies are not the seller's.
+	@Test
+	void doesNotShowTheFormerOwnerThePoliciesTheBuyerTookOut() throws Exception {
+		Customer seller = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer buyer = customer("Βασιλείου", "Νίκος", "900000091");
+		Vehicle golf = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456", "Golf");
+		LocalDate transfer = TODAY.minusMonths(8);
+		owns(golf, seller, "100", true, null, transfer);
+		owns(golf, buyer, "100", true, transfer, null);
+		policy(golf, "2100000001", TODAY.minusYears(2), TODAY.minusYears(1));
+		policy(golf, "2100000002", TODAY.minusMonths(6), TODAY.plusMonths(6));
+
+		String sellersCard = html(get("/customers/{id}", seller.getId()));
+		String buyersCard = html(get("/customers/{id}", buyer.getId()));
+
+		// The seller still has the vehicle on the card, as a former one, and
+		// the policy of their own time; not the buyer's.
+		assertThat(sellersCard).contains("href=\"/vehicles/" + golf.getId() + "\"", "Πρώην", "2100000001")
+				.doesNotContain("2100000002");
+		// Nor does the buyer get the policies from before they owned it.
+		assertThat(buyersCard).contains("2100000002").doesNotContain("2100000001");
+	}
+
+	// A transfer date closes the seller's ownership and opens the buyer's, so
+	// the day itself is the buyer's.
+	@Test
+	void givesAPolicyStartingOnTheTransferDayToTheBuyer() throws Exception {
+		Customer seller = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer buyer = customer("Βασιλείου", "Νίκος", "900000091");
+		Vehicle golf = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456", "Golf");
+		LocalDate transfer = TODAY.minusMonths(3);
+		owns(golf, seller, "100", true, null, transfer);
+		owns(golf, buyer, "100", true, transfer, null);
+		policy(golf, "2100000001", transfer.minusDays(1), transfer.plusMonths(6));
+		policy(golf, "2100000002", transfer, transfer.plusYears(1));
+
+		String sellersCard = html(get("/customers/{id}", seller.getId()));
+		String buyersCard = html(get("/customers/{id}", buyer.getId()));
+
+		assertThat(sellersCard).contains("2100000001").doesNotContain("2100000002");
+		assertThat(buyersCard).contains("2100000002").doesNotContain("2100000001");
+	}
+
+	@Test
+	void showsACoOwnerThePoliciesOfTheVehicle() throws Exception {
+		Customer primary = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer coOwner = customer("Βασιλείου", "Νίκος", "900000091");
+		Vehicle golf = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456", "Golf");
+		owns(golf, primary, "60", true, null, null);
+		owns(golf, coOwner, "40", false, TODAY.minusYears(3), null);
+		policy(golf, "2100000001", TODAY.minusYears(2), TODAY.minusYears(1));
+		policy(golf, "2100000002", TODAY.minusMonths(6), TODAY.plusMonths(6));
+
+		assertThat(html(get("/customers/{id}", coOwner.getId()))).contains("2100000001", "2100000002");
+		assertThat(html(get("/customers/{id}", primary.getId()))).contains("2100000001", "2100000002");
+	}
+
+	// Sold and bought back: the policies of both of their times, not the
+	// one in between.
+	@Test
+	void showsAnOwnerWhoBoughtTheVehicleBackThePoliciesOfBothTheirTimes() throws Exception {
+		Customer first = customer("Αλεξίου", "Μαρία", "900000080");
+		Customer other = customer("Βασιλείου", "Νίκος", "900000091");
+		Vehicle golf = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456", "Golf");
+		LocalDate sold = TODAY.minusMonths(18);
+		LocalDate boughtBack = TODAY.minusMonths(6);
+		owns(golf, first, "100", true, null, sold);
+		owns(golf, other, "100", true, sold, boughtBack);
+		owns(golf, first, "100", true, boughtBack, null);
+		policy(golf, "2100000001", sold.minusMonths(3), sold.plusMonths(9));
+		policy(golf, "2100000002", sold.plusMonths(1), sold.plusMonths(13));
+		policy(golf, "2100000003", boughtBack.plusMonths(1), boughtBack.plusMonths(13));
+
+		assertThat(html(get("/customers/{id}", first.getId()))).contains("2100000001", "2100000003")
+				.doesNotContain("2100000002");
+		assertThat(html(get("/customers/{id}", other.getId()))).contains("2100000002")
+				.doesNotContain("2100000001", "2100000003");
+	}
+
 	@Test
 	void saysSoWhenTheCustomerHasNoVehiclesOrPolicies() throws Exception {
 		Customer customer = customer("Αλεξίου", "Μαρία", "900000080");
@@ -191,11 +271,17 @@ class CustomerControllerTest {
 	}
 
 	private void owns(Vehicle vehicle, Customer customer, String percentage, boolean primary, LocalDate toDate) {
+		owns(vehicle, customer, percentage, primary, null, toDate);
+	}
+
+	private void owns(Vehicle vehicle, Customer customer, String percentage, boolean primary, LocalDate fromDate,
+			LocalDate toDate) {
 		Ownership ownership = new Ownership();
 		ownership.setVehicle(vehicle);
 		ownership.setCustomer(customer);
 		ownership.setPercentage(new BigDecimal(percentage));
 		ownership.setPrimary(primary);
+		ownership.setFromDate(fromDate);
 		ownership.setToDate(toDate);
 		ownershipRepository.save(ownership);
 	}

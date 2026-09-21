@@ -141,3 +141,13 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   imports a plate with a hyphen, a space and an en dash and asserts all
   three are stored without one, and that a re-import leaves them so and
   logs no vehicle change; it fails if the setter stops stripping.
+- **REVIEW-05 finding 5, a late co-owner does not see earlier policies
+  (accepted trade-off).** The customer card lists a policy only if it
+  started within one of the customer's ownerships of the vehicle, by the
+  rule of Task 13. A co-owner who joined after a policy started
+  therefore does not see that policy on their card, though it insures a
+  vehicle they own. The alternative, listing any policy that overlaps the
+  ownership period, would show the seller's still-running policy on the
+  buyer's card when a vehicle is sold in the middle of one. The gap
+  closes by itself at the next renewal, which starts inside the
+  co-owner's period. The vehicle card still lists every policy.
