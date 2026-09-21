@@ -79,7 +79,7 @@ class VehicleFormTest {
 				.andExpect(status().is3xxRedirection());
 
 		Vehicle stored = vehicleRepository.findByVin("WVWZZZ1KZAW123456").orElseThrow();
-		assertThat(stored.getPlate()).isEqualTo("ΑΒΕ-1234");
+		assertThat(stored.getPlate()).isEqualTo("ΑΒΕ1234");
 		// Filled by the entity's callback, not by the form (ARCHITECTURE §5).
 		assertThat(stored.getPlateNormalized()).isEqualTo("ABE1234");
 		assertThat(stored.getUsageType()).isEqualTo(UsageType.ΕΙΧ);
@@ -88,6 +88,30 @@ class VehicleFormTest {
 		assertThat(stored.getPowerKw()).isEqualByComparingTo("81");
 		assertThat(stored.getLicenseCity()).isEqualTo("Δοκιμοχώρι");
 		assertThat(stored.getVersion()).isZero();
+	}
+
+	// Task 14: no dash or space is stored, and the letters stay as typed.
+	@Test
+	void storesThePlateWithoutDashesOrSpaces() throws Exception {
+		MultiValueMap<String, String> values = valid();
+		values.set("plate", " ΝΚΝ - 7777 ");
+
+		mockMvc.perform(form("/vehicles", values)).andExpect(status().is3xxRedirection());
+
+		Vehicle stored = vehicleRepository.findByVin("WVWZZZ1KZAW123456").orElseThrow();
+		assertThat(stored.getPlate()).isEqualTo("ΝΚΝ7777");
+		assertThat(stored.getPlateNormalized()).isEqualTo("NKN7777");
+		assertThat(html(get("/vehicles/{id}", stored.getId()))).contains("ΝΚΝ7777").doesNotContain("ΝΚΝ-7777");
+		assertThat(html(get("/vehicles/{id}/edit", stored.getId()))).contains("value=\"ΝΚΝ7777\"");
+	}
+
+	@Test
+	void treatsADashAloneAsAMissingPlate() throws Exception {
+		MultiValueMap<String, String> values = valid();
+		values.set("plate", " - ");
+
+		assertThat(html(form("/vehicles", values))).contains("Ο αριθμός κυκλοφορίας είναι υποχρεωτικός.");
+		assertThat(vehicleRepository.count()).isZero();
 	}
 
 	@Test
@@ -193,7 +217,7 @@ class VehicleFormTest {
 		assertThat(html(get("/vehicles/{id}", stored.getId())))
 				.contains("href=\"/vehicles/" + stored.getId() + "/edit\"", "Επεξεργασία");
 		assertThat(html(get("/vehicles/{id}/edit", stored.getId())))
-				.contains("Επεξεργασία οχήματος", "value=\"WVWZZZ1KZAW123456\"", "value=\"ΑΒΕ-1234\"",
+				.contains("Επεξεργασία οχήματος", "value=\"WVWZZZ1KZAW123456\"", "value=\"ΑΒΕ1234\"",
 						"name=\"version\" value=\"0\"");
 
 		MultiValueMap<String, String> values = valid();

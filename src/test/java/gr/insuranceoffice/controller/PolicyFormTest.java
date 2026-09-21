@@ -99,7 +99,7 @@ class PolicyFormTest {
 				.contains("href=\"/vehicles/" + vehicle.getId() + "/policies/new\"", "Νέο συμβόλαιο");
 		String html = html(get("/vehicles/{id}/policies/new", vehicle.getId()));
 
-		assertThat(html).contains("Νέο συμβόλαιο", "ΑΒΕ-1234", "Αρ. Συμβολαίου", "Ασφαλιστική Εταιρεία",
+		assertThat(html).contains("Νέο συμβόλαιο", "ΑΒΕ1234", "Αρ. Συμβολαίου", "Ασφαλιστική Εταιρεία",
 				"Έναρξη Ασφάλειας", "Λήξη Ασφάλειας", "Ασφάλιστρο",
 				// Existing intermediaries only, never free text (Task 11d).
 				"<select class=\"form-select\" id=\"intermediaryId\" name=\"intermediaryId\"",

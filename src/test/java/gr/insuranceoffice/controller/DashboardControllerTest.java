@@ -99,7 +99,7 @@ class DashboardControllerTest {
 		assertThat(html).contains("<html lang=\"el\"", "Λήξεις συμβολαίων",
 				"<th scope=\"col\">Πινακίδα</th>", "<th scope=\"col\">Πελάτης</th>", "<th scope=\"col\">Κινητό</th>",
 				"<th scope=\"col\">Λήξη</th>", "<th scope=\"col\">Ασφαλιστική</th>", "Ασφάλιστρο</th>",
-				"ΑΒΕ-1234", "Αλεξίου Μαρία", "6900000001", TODAY.plusDays(12).format(GREEK_DATE), "Northwind",
+				"ΑΒΕ1234", "Αλεξίου Μαρία", "6900000001", TODAY.plusDays(12).format(GREEK_DATE), "Northwind",
 				// Greek number format.
 				"1.234,50 €");
 		assertThat(html).containsPattern("id=\"period-30\"[^>]*checked");
@@ -113,9 +113,9 @@ class DashboardControllerTest {
 
 		String html = mockMvc.perform(get("/")).andReturn().getResponse().getContentAsString();
 
-		assertThat(html.indexOf("ΚΜΝ-1000")).isPositive()
-				.isLessThan(html.indexOf("ΚΜΝ-3000"));
-		assertThat(html.indexOf("ΚΜΝ-3000")).isLessThan(html.indexOf("ΚΜΝ-2000"));
+		assertThat(html.indexOf("ΚΜΝ1000")).isPositive()
+				.isLessThan(html.indexOf("ΚΜΝ3000"));
+		assertThat(html.indexOf("ΚΜΝ3000")).isLessThan(html.indexOf("ΚΜΝ2000"));
 	}
 
 	@Test
@@ -125,17 +125,17 @@ class DashboardControllerTest {
 		policy(vehicle("ΚΜΝ-3000", "WVWZZZ1KZAW000003"), "2100000003", TODAY.minusDays(3), "ACME", "150.00");
 
 		String in30 = html(get("/"));
-		assertThat(in30).doesNotContain("ΚΜΝ-1000", "ΚΜΝ-2000", "ΚΜΝ-3000").contains("Κανένα συμβόλαιο");
+		assertThat(in30).doesNotContain("ΚΜΝ1000", "ΚΜΝ2000", "ΚΜΝ3000").contains("Κανένα συμβόλαιο");
 
 		String in60 = html(get("/").param("period", "60"));
-		assertThat(in60).contains("ΚΜΝ-1000", "ΚΜΝ-2000").doesNotContain("ΚΜΝ-3000");
+		assertThat(in60).contains("ΚΜΝ1000", "ΚΜΝ2000").doesNotContain("ΚΜΝ3000");
 
 		String acmeIn60 = html(get("/").param("period", "60").param("insuranceCompany", "ACME"));
-		assertThat(acmeIn60).contains("ΚΜΝ-1000").doesNotContain("ΚΜΝ-2000");
+		assertThat(acmeIn60).contains("ΚΜΝ1000").doesNotContain("ΚΜΝ2000");
 		assertThat(acmeIn60).containsPattern("<option value=\"ACME\"[^>]*selected");
 
 		String expired = html(get("/").param("period", "expired"));
-		assertThat(expired).contains("ΚΜΝ-3000", "Έληξαν από").doesNotContain("ΚΜΝ-1000");
+		assertThat(expired).contains("ΚΜΝ3000", "Έληξαν από").doesNotContain("ΚΜΝ1000");
 	}
 
 	@Test

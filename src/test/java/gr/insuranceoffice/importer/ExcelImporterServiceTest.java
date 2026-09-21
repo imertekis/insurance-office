@@ -126,7 +126,7 @@ class ExcelImporterServiceTest {
 						Vehicle::getLicenseIssueDate, Vehicle::getCategory, Vehicle::getUsageType, Vehicle::getColor,
 						Vehicle::getSeats, Vehicle::getEngineCc, Vehicle::getFuelType, Vehicle::getEngineNumber,
 						Vehicle::getCo2, Vehicle::getEmissionStandard, Vehicle::getWeightKg)
-				.containsExactly("ΑΒΕ-1001", "Volkswagen", "Golf", LocalDate.of(2012, 5, 14),
+				.containsExactly("ΑΒΕ1001", "Volkswagen", "Golf", LocalDate.of(2012, 5, 14),
 						LocalDate.of(2021, 11, 22), "M1", UsageType.ΕΙΧ, "Λευκό", (short) 5, 1598, FuelType.ΒΕΝΖΙΝΗ,
 						"ENG0001", 120, "Euro 6", 1250);
 		assertThat(vehicle.getPowerKw()).isEqualByComparingTo("81");
@@ -241,7 +241,7 @@ class ExcelImporterServiceTest {
 				.isEqualTo("6900000099");
 		assertThat(vehicleRepository.findByVin("SYNTHVH0000000001")).get()
 				.extracting(Vehicle::getPlate, Vehicle::getPlateNormalized)
-				.containsExactly("ΑΒΕ-9999", "ABE9999");
+				.containsExactly("ΑΒΕ9999", "ABE9999");
 		assertThat(policyRepository.findByPolicyNumber("2100000001")).get()
 				.extracting(Policy::getPremium)
 				.isEqualTo(new BigDecimal("199.90"));

@@ -95,7 +95,7 @@ class OwnershipFormTest {
 
 		String html = html(get("/vehicles/{id}/owners", vehicle.getId()));
 
-		assertThat(html).contains("ΑΒΕ-1234", "Αλεξίου Μαρία", "name=\"percentage\"", "value=\"100\"",
+		assertThat(html).contains("ΑΒΕ1234", "Αλεξίου Μαρία", "name=\"percentage\"", "value=\"100\"",
 				"value=\"" + TODAY + "\"")
 				.doesNotContain("Γεωργίου Άννα");
 		assertThat(html).containsPattern("value=\"" + maria.getId() + "\"[^>]*checked");

@@ -150,7 +150,7 @@ class SearchServiceTest {
 
 		assertThat(result.searchedAs()).containsExactly(VIN);
 		assertThat(result.customers()).isEmpty();
-		assertThat(result.vehicles()).containsExactly(new VehicleHit(vehicle.getId(), "ΑΒΕ-1234", "Volkswagen", "Golf",
+		assertThat(result.vehicles()).containsExactly(new VehicleHit(vehicle.getId(), "ΑΒΕ1234", "Volkswagen", "Golf",
 				owner.getId(), "Αλεξίου", "Κωνσταντίνος"));
 	}
 

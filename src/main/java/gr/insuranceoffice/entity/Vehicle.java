@@ -171,8 +171,11 @@ public class Vehicle {
 		return plate;
 	}
 
+	// Stored without dashes or spaces (Task 14). Done here rather than in the
+	// callback below so that every write path, the Excel import included,
+	// stores it that way, and the audit log sees the value that is stored.
 	public void setPlate(String plate) {
-		this.plate = plate;
+		this.plate = TextNormalizationUtils.stripPlateSeparators(plate);
 	}
 
 	public String getPlateNormalized() {

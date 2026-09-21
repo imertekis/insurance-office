@@ -76,7 +76,7 @@
 							th:classappend="${vehicle.current} ? '' : 'text-body-secondary'">
 							<td class="text-nowrap">
 								<!-- Every plate is a link to the vehicle card. -->
-								<a th:href="@{/vehicles/{id}(id=${vehicle.vehicleId})}" th:text="${vehicle.plate}">ΑΒΕ-1234</a>
+								<a th:href="@{/vehicles/{id}(id=${vehicle.vehicleId})}" th:text="${vehicle.plate}">ΑΒΕ1234</a>
 								<span th:if="${vehicle.primary}" class="badge text-bg-primary ms-1">Κύριος ιδιοκτήτης</span>
 								<span th:unless="${vehicle.current}" class="badge text-bg-light ms-1">Πρώην</span>
 							</td>
@@ -114,7 +114,7 @@
 								<span th:replace="~{fragments/policy-status :: badge(${policy.status})}">Ενεργό</span>
 							</td>
 							<td class="text-nowrap">
-								<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ-1234</a>
+								<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ1234</a>
 							</td>
 							<td th:text="${policy.policyNumber}">2100000001</td>
 							<td th:text="${policy.insuranceCompany}">Northwind</td>

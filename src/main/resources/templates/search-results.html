@@ -72,7 +72,7 @@
 							<tr th:each="vehicle : ${r.vehicles}">
 								<td><span class="badge text-bg-success">ΟΧΗΜΑ</span></td>
 								<td class="text-nowrap">
-									<a th:href="@{/vehicles/{id}(id=${vehicle.id})}" th:text="${vehicle.plate}">ΑΒΕ-1234</a>
+									<a th:href="@{/vehicles/{id}(id=${vehicle.id})}" th:text="${vehicle.plate}">ΑΒΕ1234</a>
 								</td>
 								<td th:text="|${vehicle.brand} ${vehicle.model}|">Volkswagen Golf</td>
 								<td>

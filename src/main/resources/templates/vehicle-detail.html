@@ -5,7 +5,7 @@
 	<nav th:replace="~{fragments/header :: header('')}"></nav>
 
 	<main class="container" th:with="v=${detail.vehicle}">
-		<h1 class="h3 mb-1" th:text="${v.plate}">ΑΒΕ-1234</h1>
+		<h1 class="h3 mb-1" th:text="${v.plate}">ΑΒΕ1234</h1>
 		<p class="text-body-secondary" th:text="|${v.brand} ${v.model}|">Volkswagen Golf</p>
 
 		<div class="alert alert-success" th:if="${notice != null}" th:text="${notice}">Διαγράφηκε.</div>
@@ -23,7 +23,7 @@
 			<h2 class="h5">Ταυτότητα</h2>
 			<dl class="row mb-0" id="identity">
 				<dt class="col-sm-3">Αρ. Κυκλοφορίας (A)</dt>
-				<dd class="col-sm-9" th:text="${v.plate}">ΑΒΕ-1234</dd>
+				<dd class="col-sm-9" th:text="${v.plate}">ΑΒΕ1234</dd>
 				<dt class="col-sm-3">Αρ. Πλαισίου / VIN (E)</dt>
 				<dd class="col-sm-9" th:text="${v.vin}">WVWZZZ1KZAW123456</dd>
 				<dt class="col-sm-3">Μάρκα (D.1)</dt>

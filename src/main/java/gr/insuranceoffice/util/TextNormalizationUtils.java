@@ -65,6 +65,26 @@ public final class TextNormalizationUtils {
 		return normalized.toString();
 	}
 
+	/**
+	 * The plate as it is stored and shown (Task 14): dashes and spaces
+	 * removed, the letters kept exactly as typed. "ΝΚΝ-7777" and "ΝΚΝ 7777"
+	 * become "ΝΚΝ7777"; Greek stays Greek and case is left alone, unlike
+	 * {@link #normalizePlate(String)}, which only feeds the search column.
+	 */
+	public static String stripPlateSeparators(String plate) {
+		if (plate == null) {
+			return null;
+		}
+		StringBuilder stripped = new StringBuilder(plate.length());
+		for (int i = 0; i < plate.length(); i++) {
+			char c = plate.charAt(i);
+			if (!isSeparator(c)) {
+				stripped.append(c);
+			}
+		}
+		return stripped.toString();
+	}
+
 	private static boolean isSeparator(char c) {
 		return Character.isWhitespace(c)
 				|| Character.isSpaceChar(c)

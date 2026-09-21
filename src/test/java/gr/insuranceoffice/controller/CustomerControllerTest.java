@@ -121,11 +121,11 @@ class CustomerControllerTest {
 		String html = html(get("/customers/{id}", customer.getId()));
 
 		assertThat(html).contains(
-				"href=\"/vehicles/" + golf.getId() + "\"", "ΑΒΕ-1234", "Volkswagen Golf", "60%",
-				"href=\"/vehicles/" + clio.getId() + "\"", "ΚΜΝ-4321", "100%",
+				"href=\"/vehicles/" + golf.getId() + "\"", "ΑΒΕ1234", "Volkswagen Golf", "60%",
+				"href=\"/vehicles/" + clio.getId() + "\"", "ΚΜΝ4321", "100%",
 				"href=\"/vehicles/" + sold.getId() + "\"", "Πρώην");
 		// Vehicles still owned come first.
-		assertThat(html.indexOf("ΑΒΕ-1234")).isLessThan(html.indexOf("ΖΗΡ-9999"));
+		assertThat(html.indexOf("ΑΒΕ1234")).isLessThan(html.indexOf("ΖΗΡ9999"));
 	}
 
 	// SPEC §7.3: the policies of all their vehicles together, with a status.

@@ -85,7 +85,7 @@ class FullSchemaTest {
 		// The other direction: customer -> ownership -> vehicle (SPEC §7.3).
 		Customer reloadedCustomer = customerRepository.findById(first.getId()).orElseThrow();
 		assertThat(reloadedCustomer.getOwnerships()).hasSize(1);
-		assertThat(reloadedCustomer.getOwnerships().get(0).getVehicle().getPlate()).isEqualTo("ΑΒΕ-1234");
+		assertThat(reloadedCustomer.getOwnerships().get(0).getVehicle().getPlate()).isEqualTo("ΑΒΕ1234");
 	}
 
 	@Test

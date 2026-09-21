@@ -177,12 +177,15 @@ public class VehicleService {
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε.")));
 	}
 
-	// A VIN is written in capitals, whatever the clerk typed. The plate keeps
-	// the form it was typed in (DATA_MODEL); only plate_normalized is folded.
+	// A VIN is written in capitals, whatever the clerk typed. The plate loses
+	// its dashes and spaces and keeps its letters as typed (Task 14); only
+	// plate_normalized is folded. Done before validation, which so sees
+	// exactly what will be stored, and "-" alone counts as empty.
 	private VehicleDto cleaned(VehicleDto dto) {
 		VehicleDto values = vehicleMapper.withBlanksAsNull(dto);
-		return values.vin() == null ? values : new VehicleDto(values.id(), values.vin().toUpperCase(Locale.ROOT),
-				values.plate(), values.brand(), values.model(), values.firstRegistration(),
+		String plate = vehicleMapper.blankToNull(TextNormalizationUtils.stripPlateSeparators(values.plate()));
+		return new VehicleDto(values.id(), values.vin() == null ? null : values.vin().toUpperCase(Locale.ROOT),
+				plate, values.brand(), values.model(), values.firstRegistration(),
 				values.licenseIssueDate(), values.category(), values.usageType(), values.color(), values.seats(),
 				values.engineCc(), values.powerKw(), values.fuelType(), values.engineNumber(), values.co2(),
 				values.emissionStandard(), values.weightKg(), values.licenseStreet(), values.licenseCity(),
@@ -201,7 +204,7 @@ public class VehicleService {
 
 		violations.required("plate", values.plate(), "Ο αριθμός κυκλοφορίας είναι υποχρεωτικός.");
 		if (values.plate() != null) {
-			// ΑΒΕ-1234 and ABE-1234 are the same plate (CLAUDE.md §5).
+			// ΑΒΕ1234 and ABE1234 are the same plate (CLAUDE.md §5).
 			violations.addIf(vehicleRepository.findByPlateNormalized(TextNormalizationUtils
 					.normalizePlate(values.plate())).filter(other -> !other.getId().equals(id)).isPresent(),
 					"plate", "Υπάρχει ήδη όχημα με αυτή την πινακίδα· "

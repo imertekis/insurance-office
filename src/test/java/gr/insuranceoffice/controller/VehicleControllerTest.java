@@ -90,7 +90,7 @@ class VehicleControllerTest {
 				.andExpect(view().name("vehicle-detail"));
 
 		assertThat(html(get("/vehicles/{id}", vehicle.getId()))).contains(
-				"Αρ. Κυκλοφορίας (A)", "ΑΒΕ-1234",
+				"Αρ. Κυκλοφορίας (A)", "ΑΒΕ1234",
 				"Αρ. Πλαισίου / VIN (E)", "WVWZZZ1KZAW123456",
 				"Μάρκα (D.1)", "Volkswagen", "Μοντέλο (D.3)", "Golf",
 				"1η Άδεια (B)", "14/05/2012",

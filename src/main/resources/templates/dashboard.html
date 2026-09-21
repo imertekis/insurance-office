@@ -59,7 +59,7 @@
 				<tbody>
 					<tr th:each="policy : ${d.policies}">
 						<td class="text-nowrap">
-							<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ-1234</a>
+							<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ1234</a>
 						</td>
 						<td>
 							<a th:if="${policy.customerId != null}" th:href="@{/customers/{id}(id=${policy.customerId})}"

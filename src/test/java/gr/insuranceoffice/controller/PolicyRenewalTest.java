@@ -145,7 +145,7 @@ class PolicyRenewalTest {
 	void opensThePolicyFormPrefilledFromTheCurrentPolicy() throws Exception {
 		String form = html(get("/policies/{id}/renew", current.getId()));
 
-		assertThat(form).contains("Ανανέωση συμβολαίου", "ανανέωση του 2100000002", "ΑΒΕ-1234",
+		assertThat(form).contains("Ανανέωση συμβολαίου", "ανανέωση του 2100000002", "ΑΒΕ1234",
 				// The Task 11d form, posting a new policy for the same vehicle.
 				"action=\"/vehicles/" + vehicle.getId() + "/policies\"",
 				"value=\"Northwind\"", "value=\"180,50\"",

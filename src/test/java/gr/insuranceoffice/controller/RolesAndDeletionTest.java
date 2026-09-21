@@ -173,7 +173,7 @@ class RolesAndDeletionTest {
 		@Test
 		void deletesAVehicleWithItsPoliciesAndOwnersAfterConfirming() throws Exception {
 			assertThat(html(get("/vehicles/{id}/delete", vehicle.getId())))
-					.contains("Το όχημα ΑΒΕ-1234 (Volkswagen Golf)", "Διαγράφονται μαζί:",
+					.contains("Το όχημα ΑΒΕ1234 (Volkswagen Golf)", "Διαγράφονται μαζί:",
 							"Το συμβόλαιο 2100000001", "Η ιδιοκτησία του Αλεξίου Μαρία (100%)",
 							"Η παλιά ιδιοκτησία του Γεωργίου Γιώργος", "Οριστική διαγραφή");
 
@@ -193,7 +193,7 @@ class RolesAndDeletionTest {
 		@Test
 		void deletesAPolicyAndReturnsToTheCard() throws Exception {
 			assertThat(html(get("/policies/{id}/delete", policy.getId())))
-					.contains("Το συμβόλαιο 2100000001 του οχήματος ΑΒΕ-1234");
+					.contains("Το συμβόλαιο 2100000001 του οχήματος ΑΒΕ1234");
 
 			mockMvc.perform(post("/policies/{id}/delete", policy.getId()).with(csrf()))
 					.andExpect(redirectedUrl("/vehicles/" + vehicle.getId()));
@@ -222,11 +222,11 @@ class RolesAndDeletionTest {
 		@Test
 		void refusesToDeleteACustomerWhoStillOwnsAVehicle() throws Exception {
 			assertThat(html(get("/customers/{id}/delete", maria.getId())))
-					.contains("Ο πελάτης Αλεξίου Μαρία", "Είναι τρέχων ιδιοκτήτης του οχήματος ΑΒΕ-1234")
+					.contains("Ο πελάτης Αλεξίου Μαρία", "Είναι τρέχων ιδιοκτήτης του οχήματος ΑΒΕ1234")
 					.doesNotContain("Οριστική διαγραφή");
 
 			assertThat(html(post("/customers/{id}/delete", maria.getId()).with(csrf())))
-					.contains("Είναι τρέχων ιδιοκτήτης του οχήματος ΑΒΕ-1234");
+					.contains("Είναι τρέχων ιδιοκτήτης του οχήματος ΑΒΕ1234");
 			assertThat(customerRepository.findById(maria.getId())).isPresent();
 			assertThat(deleted()).isEmpty();
 		}
@@ -234,7 +234,7 @@ class RolesAndDeletionTest {
 		@Test
 		void deletesACustomerWithOnlyFormerOwnerships() throws Exception {
 			assertThat(html(get("/customers/{id}/delete", george.getId())))
-					.contains("Ο πελάτης Γεωργίου Γιώργος", "Η παλιά ιδιοκτησία του οχήματος ΑΒΕ-1234");
+					.contains("Ο πελάτης Γεωργίου Γιώργος", "Η παλιά ιδιοκτησία του οχήματος ΑΒΕ1234");
 
 			mockMvc.perform(post("/customers/{id}/delete", george.getId()).with(csrf()))
 					.andExpect(redirectedUrl("/"));

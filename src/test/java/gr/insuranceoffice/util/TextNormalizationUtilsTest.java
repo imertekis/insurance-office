@@ -127,4 +127,29 @@ class TextNormalizationUtilsTest {
 
 	}
 
+	@Nested
+	class StripPlateSeparators {
+
+		@ParameterizedTest
+		@ValueSource(strings = { "ΝΚΝ-7777", "ΝΚΝ 7777", " ΝΚΝ - 7777 ", "ΝΚΝ–7777", "ΝΚΝ\u00a07777", "ΝΚΝ7777" })
+		void removesDashesAndSpaces(String input) {
+			assertThat(TextNormalizationUtils.stripPlateSeparators(input)).isEqualTo("ΝΚΝ7777");
+		}
+
+		// Unlike normalizePlate, which only feeds the search column.
+		@Test
+		void keepsTheLettersAsTyped() {
+			assertThat(TextNormalizationUtils.stripPlateSeparators("ΝΚΝ-7777")).isEqualTo("ΝΚΝ7777");
+			assertThat(TextNormalizationUtils.stripPlateSeparators("nza-8812")).isEqualTo("nza8812");
+			assertThat(TextNormalizationUtils.stripPlateSeparators("ΑΒΓ-1234")).isEqualTo("ΑΒΓ1234");
+			assertThat(TextNormalizationUtils.stripPlateSeparators("ΕΣ-12345")).isEqualTo("ΕΣ12345");
+		}
+
+		@Test
+		void returnsNullForNull() {
+			assertThat(TextNormalizationUtils.stripPlateSeparators(null)).isNull();
+		}
+
+	}
+
 }

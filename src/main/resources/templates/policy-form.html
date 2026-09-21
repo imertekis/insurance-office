@@ -18,7 +18,7 @@
 		<h1 class="h3 mb-1"
 			th:text="${renewalOf != null} ? 'Ανανέωση συμβολαίου' : (${isNew} ? 'Νέο συμβόλαιο' : 'Επεξεργασία συμβολαίου')">Νέο συμβόλαιο</h1>
 		<p class="mb-3">
-			<a th:href="@{/vehicles/{id}(id=${vehicleId})}" th:text="${plate}">ΑΒΕ-1234</a>
+			<a th:href="@{/vehicles/{id}(id=${vehicleId})}" th:text="${plate}">ΑΒΕ1234</a>
 			<!-- Task 12: prefilled from the policy being renewed, which stays as
 			     history. Only the dates, the number and the premium usually change. -->
 			<span th:if="${renewalOf != null}" class="text-body-secondary"

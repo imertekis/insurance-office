@@ -54,7 +54,7 @@ public record SearchResultDto(
 	}
 
 	/**
-	 * «NZA-8812 — Opel Astra J — Αλεξίου Κωνσταντίνος». The owner fields are
+	 * «NZA8812 — Opel Astra J — Αλεξίου Κωνσταντίνος». The owner fields are
 	 * null when the vehicle has no current primary owner.
 	 */
 	public record VehicleHit(

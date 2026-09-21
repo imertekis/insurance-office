@@ -72,7 +72,7 @@ class MapperTest {
 		VehicleDto dto = vehicleMapper.toDto(vehicle);
 
 		assertThat(dto.id()).isEqualTo(2L);
-		assertThat(dto.plate()).isEqualTo("ΝΖΑ-8812");
+		assertThat(dto.plate()).isEqualTo("ΝΖΑ8812");
 		assertThat(dto.fuelType()).isEqualTo("ΗΛΕΚΤΡΙΣΜΟΣ");
 		assertThat(dto.usageType()).isEqualTo("ΕΙΧ");
 		assertThat(dto.engineCc()).isNull();

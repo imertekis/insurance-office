@@ -123,13 +123,13 @@ class AuditListenerTest {
 		List<LogRow> log = log();
 		assertThat(log).extracting(LogRow::action).containsExactly("CREATE", "UPDATE", "DELETE");
 		assertThat(log).extracting(LogRow::entityType).containsOnly("Vehicle");
-		assertThat(log.get(0).newValues()).contains(entry("vin", "WVWZZZ1KZAW123456"), entry("plate", "ΑΒΕ-1234"),
+		assertThat(log.get(0).newValues()).contains(entry("vin", "WVWZZZ1KZAW123456"), entry("plate", "ΑΒΕ1234"),
 				entry("plate_normalized", "ABE1234"), entry("first_registration", "2012-05-14"),
 				entry("fuel_type", "ΒΕΝΖΙΝΗ"));
-		assertThat(log.get(1).oldValues()).contains(entry("plate", "ΑΒΕ-1234"), entry("color", "Λευκό"))
+		assertThat(log.get(1).oldValues()).contains(entry("plate", "ΑΒΕ1234"), entry("color", "Λευκό"))
 				.doesNotContainKeys("vin", "brand");
-		assertThat(log.get(1).newValues()).contains(entry("plate", "ΑΒΕ-5678"), entry("color", "Μαύρο"));
-		assertThat(log.get(2).oldValues()).contains(entry("plate", "ΑΒΕ-5678"), entry("plate_normalized", "ABE5678"));
+		assertThat(log.get(1).newValues()).contains(entry("plate", "ΑΒΕ5678"), entry("color", "Μαύρο"));
+		assertThat(log.get(2).oldValues()).contains(entry("plate", "ΑΒΕ5678"), entry("plate_normalized", "ABE5678"));
 	}
 
 	@Test
