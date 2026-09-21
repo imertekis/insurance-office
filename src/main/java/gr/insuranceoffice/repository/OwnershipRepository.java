@@ -45,6 +45,17 @@ public interface OwnershipRepository extends JpaRepository<Ownership, Long> {
 			""")
 	List<Ownership> findCurrentPrimaryOwners(Collection<Long> vehicleIds);
 
+	/**
+	 * The primary ownerships of the vehicles, current and former, with their
+	 * customer, in one query for all of them: what it takes to say who held
+	 * each vehicle at any date.
+	 */
+	@Query("""
+			select o from Ownership o join fetch o.customer
+			where o.vehicle.id in :vehicleIds and o.primary = true
+			""")
+	List<Ownership> findPrimaryByVehicleIdsWithCustomer(Collection<Long> vehicleIds);
+
 	/** How many vehicles each customer currently owns, in one query for all of them. */
 	@Query("""
 			select o.customer.id as customerId, count(distinct o.vehicle.id) as vehicleCount

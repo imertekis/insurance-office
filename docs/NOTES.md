@@ -104,8 +104,9 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   `findInsuranceCompanies`, and the ownership and policy lists of
   `CustomerService.findDetail` and `VehicleService.findDetail`. Invisible
   with the 8 vehicles of the sample, but a fleet customer or a full
-  archive would pull everything into memory. The dashboard is the first
-  place to add paging; the search already caps each group at 50 hits.
+  archive would pull everything into memory. The search caps each group
+  at 50 hits, and the three list pages of Task 15 are paged (50 rows).
+  The dashboard and the cards are still to do.
 - **REVIEW-04, session timeout left at the default.** Nothing sets
   `server.servlet.session.timeout`, so the Spring Boot default applies
   (30 minutes idle) and there is no "remember me". SPEC §2 implies a
@@ -124,3 +125,9 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   exports for the ΔΙΑΧΕΙΡΙΣΤΗΣ; none of them exists yet, and each will
   need the same guard when it does. Recovering a deleted record from
   `audit_log` (DECISIONS §4) is still done by hand in SQL.
+- **Task 15, the sort key depends on ICU.** `customer.name_sort` and its
+  index use the `el-GR-x-icu` collation. V5 fails at once on a PostgreSQL
+  built without ICU, as the official image and the EDB installers are not.
+  Should a PostgreSQL upgrade bring a new ICU version, PostgreSQL warns
+  about the collation version, and the index has to be rebuilt with
+  `REINDEX INDEX idx_customer_name_sort` before the order can be trusted.

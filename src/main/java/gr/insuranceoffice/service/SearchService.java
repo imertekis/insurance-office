@@ -2,9 +2,7 @@ package gr.insuranceoffice.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Limit;
 import org.springframework.data.domain.Sort;
@@ -17,16 +15,10 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 
 import gr.insuranceoffice.dto.SearchResultDto;
-import gr.insuranceoffice.dto.SearchResultDto.CustomerHit;
 import gr.insuranceoffice.dto.SearchResultDto.SearchType;
-import gr.insuranceoffice.dto.SearchResultDto.VehicleHit;
 import gr.insuranceoffice.entity.Customer;
-import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Vehicle;
-import gr.insuranceoffice.mapper.SearchResultMapper;
 import gr.insuranceoffice.repository.CustomerRepository;
-import gr.insuranceoffice.repository.OwnershipRepository;
-import gr.insuranceoffice.repository.OwnershipRepository.VehicleCount;
 import gr.insuranceoffice.repository.VehicleRepository;
 import gr.insuranceoffice.util.TextNormalizationUtils;
 
@@ -73,22 +65,22 @@ public class SearchService {
 	private static final Pattern LIKE_WILDCARDS = Pattern.compile("[\\\\%_]");
 	private static final char LIKE_ESCAPE = '\\';
 
-	private static final Sort CUSTOMERS_BY_NAME = Sort.by("lastName", "firstName", "id");
+	// The customer list's order (Task 15): Greek alphabetical, from the name_sort
+	// column, whatever collation the database was created with.
+	private static final Sort CUSTOMERS_BY_NAME = Sort.by("nameSort", "id");
 	private static final Sort VEHICLES_BY_PLATE = Sort.by("plateNormalized", "id");
 	// One more than shown, to tell whether there are more.
 	private static final Limit FETCH_LIMIT = Limit.of(MAX_HITS + 1);
 
 	private final CustomerRepository customerRepository;
 	private final VehicleRepository vehicleRepository;
-	private final OwnershipRepository ownershipRepository;
-	private final SearchResultMapper searchResultMapper;
+	private final HitAssembler hitAssembler;
 
 	public SearchService(CustomerRepository customerRepository, VehicleRepository vehicleRepository,
-			OwnershipRepository ownershipRepository, SearchResultMapper searchResultMapper) {
+			HitAssembler hitAssembler) {
 		this.customerRepository = customerRepository;
 		this.vehicleRepository = vehicleRepository;
-		this.ownershipRepository = ownershipRepository;
-		this.searchResultMapper = searchResultMapper;
+		this.hitAssembler = hitAssembler;
 	}
 
 	/**
@@ -119,8 +111,8 @@ public class SearchService {
 			}
 		}
 		boolean truncated = customers.size() > MAX_HITS || vehicles.size() > MAX_HITS;
-		return new SearchResultDto(query, types, customerHits(firstHits(customers)), vehicleHits(firstHits(vehicles)),
-				truncated);
+		return new SearchResultDto(query, types, hitAssembler.customerHits(firstHits(customers)),
+				hitAssembler.vehicleHits(firstHits(vehicles)), truncated);
 	}
 
 	// Cut by code point, so a character outside the BMP is never split in two.
@@ -195,34 +187,6 @@ public class SearchService {
 
 	private static <T> List<T> firstHits(List<T> hits) {
 		return hits.size() > MAX_HITS ? hits.subList(0, MAX_HITS) : hits;
-	}
-
-	private List<CustomerHit> customerHits(List<Customer> customers) {
-		if (customers.isEmpty()) {
-			return List.of();
-		}
-		Map<Long, Long> vehicleCounts = ownershipRepository
-				.countCurrentVehicles(customers.stream().map(Customer::getId).toList()).stream()
-				.collect(Collectors.toMap(VehicleCount::getCustomerId, VehicleCount::getVehicleCount));
-		return customers.stream()
-				.map(customer -> searchResultMapper.toCustomerHit(customer,
-						vehicleCounts.getOrDefault(customer.getId(), 0L)))
-				.toList();
-	}
-
-	private List<VehicleHit> vehicleHits(List<Vehicle> vehicles) {
-		if (vehicles.isEmpty()) {
-			return List.of();
-		}
-		Map<Long, Customer> primaryOwners = ownershipRepository
-				.findCurrentPrimaryOwners(vehicles.stream().map(Vehicle::getId).toList()).stream()
-				// The ownership rule allows one primary owner; a search never
-				// fails over data that breaks it.
-				.collect(Collectors.toMap(ownership -> ownership.getVehicle().getId(), Ownership::getCustomer,
-						(first, second) -> first));
-		return vehicles.stream()
-				.map(vehicle -> searchResultMapper.toVehicleHit(vehicle, primaryOwners.get(vehicle.getId())))
-				.toList();
 	}
 
 }

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- What the list pages of Task 15 share. Every link is a plain GET with
+	     its page, order and filter in the URL, so a list can be bookmarked and
+	     the back button works. Pages include them with
+	     <a th:replace="~{fragments/pagination :: sort('Πινακίδα', ${list}, '/vehicles', null, 'Α-Ω', 'Ω-Α')}"></a>
+	     <div th:replace="~{fragments/pagination :: pager(${list}, '/vehicles', null)}"></div>
+	     where the list is a PageDto, the path is the list's own, and the company
+	     is the insurance company filter to keep, or null. The links are built as
+	     text: a link parameter that is null would still come out as "name=". The
+	     parts that read the order are worked out in th:with, as Thymeleaf refuses
+	     the word "param" in the expression of a link. -->
+
+	<!-- The column heading that turns the order round, with the order it has now. -->
+	<a th:fragment="sort(label, pg, path, company, ascending, descending)"
+		class="link-body-emphasis text-decoration-none text-nowrap"
+		th:with="turned=${pg.direction.reversed().param},
+			filter=${company == null} ? '' : '&amp;insuranceCompany=' + ${#uris.escapeQueryParam(company)}"
+		th:href="@{${path + '?dir=' + turned + filter}}"
+		th:title="|Αλλαγή σε ${pg.direction.ascending ? descending : ascending}|">
+		<span th:text="${label}">Ονοματεπώνυμο</span>
+		<span class="text-body-secondary fw-normal small"
+			th:text="|${pg.direction.ascending ? '▲' : '▼'} ${pg.direction.ascending ? ascending : descending}|">▲ Α-Ω</span>
+	</a>
+
+	<!-- Which rows are shown, and the way to the other pages. -->
+	<div th:fragment="pager(pg, path, company)"
+		class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"
+		th:with="query='&amp;dir=' + ${pg.direction.param} + (${company == null} ? '' : '&amp;insuranceCompany=' + ${#uris.escapeQueryParam(company)})">
+		<span class="text-body-secondary" th:if="${pg.totalItems > 0}"
+			th:text="|${pg.firstItem}–${pg.lastItem} από ${pg.totalItems}|">1–50 από 312</span>
+		<nav aria-label="Σελίδες" th:if="${pg.totalPages > 1}">
+			<ul class="pagination mb-0">
+				<li class="page-item" th:classappend="${pg.first} ? 'disabled'">
+					<a class="page-link" th:if="${!pg.first}"
+						th:href="@{${path + '?page=' + (pg.page - 1) + query}}">Προηγούμενη</a>
+					<span class="page-link" th:if="${pg.first}">Προηγούμενη</span>
+				</li>
+				<li class="page-item" th:if="${pg.windowStart > 1}">
+					<a class="page-link"
+						th:href="@{${path + '?page=' + 1 + query}}">1</a>
+				</li>
+				<li class="page-item disabled" th:if="${pg.windowStart > 2}"><span class="page-link">…</span></li>
+				<li class="page-item" th:each="n : ${#numbers.sequence(pg.windowStart, pg.windowEnd)}"
+					th:classappend="${n == pg.page} ? 'active'">
+					<a class="page-link" th:text="${n}" th:attrappend="aria-current=${n == pg.page} ? 'page'"
+						th:href="@{${path + '?page=' + n + query}}">1</a>
+				</li>
+				<li class="page-item disabled" th:if="${pg.windowEnd < pg.totalPages - 1}"><span class="page-link">…</span></li>
+				<li class="page-item" th:if="${pg.windowEnd < pg.totalPages}">
+					<a class="page-link" th:text="${pg.totalPages}"
+						th:href="@{${path + '?page=' + pg.totalPages + query}}">20</a>
+				</li>
+				<li class="page-item" th:classappend="${pg.last} ? 'disabled'">
+					<a class="page-link" th:if="${!pg.last}"
+						th:href="@{${path + '?page=' + (pg.page + 1) + query}}">Επόμενη</a>
+					<span class="page-link" th:if="${pg.last}">Επόμενη</span>
+				</li>
+			</ul>
+		</nav>
+	</div>
+</body>
+</html>

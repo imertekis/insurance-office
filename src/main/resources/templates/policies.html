@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Συμβόλαια')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('Συμβόλαια')}"></nav>
+
+	<main class="container" th:with="l=${list}, pg=${list.policies}">
+		<h1 class="h3 mb-3">Συμβόλαια</h1>
+
+		<!-- The filter of the expiry screen, a plain GET form. Changing it starts
+		     again from the first page and keeps the order. -->
+		<form method="get" th:action="@{/policies}" class="d-flex flex-wrap gap-3 align-items-end mb-3">
+			<input type="hidden" name="dir" th:value="${pg.direction.param}">
+			<div th:replace="~{fragments/insurance-company-select :: select(${l.insuranceCompanies}, ${l.insuranceCompany})}"></div>
+			<noscript><button type="submit" class="btn btn-primary">Εφαρμογή</button></noscript>
+		</form>
+
+		<div class="alert alert-light border" th:if="${pg.totalItems == 0}">
+			Κανένα συμβόλαιο.
+		</div>
+
+		<th:block th:unless="${pg.totalItems == 0}">
+			<div th:replace="~{fragments/pagination :: pager(${pg}, '/policies', ${l.insuranceCompany})}"></div>
+
+			<div class="table-responsive">
+				<table class="table table-hover align-middle" id="policies">
+					<thead>
+						<tr>
+							<th scope="col">Κατάσταση</th>
+							<th scope="col">Αρ. Συμβολαίου</th>
+							<th scope="col">Πινακίδα</th>
+							<th scope="col">Πελάτης</th>
+							<th scope="col">Ασφαλιστική</th>
+							<th scope="col">Έναρξη</th>
+							<th scope="col" th:attr="aria-sort=${pg.direction.ascending} ? 'ascending' : 'descending'">
+								<a th:replace="~{fragments/pagination :: sort('Λήξη', ${pg}, '/policies', ${l.insuranceCompany}, 'παλαιότερα πρώτα', 'νεότερα πρώτα')}"></a>
+							</th>
+							<th scope="col" class="text-end">Ασφάλιστρο</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="policy : ${pg.items}">
+							<td>
+								<span th:replace="~{fragments/policy-status :: badge(${policy.status})}">Ενεργό</span>
+							</td>
+							<td th:text="${policy.policyNumber}">2100000001</td>
+							<td class="text-nowrap">
+								<a th:href="@{/vehicles/{id}(id=${policy.vehicleId})}" th:text="${policy.plate}">ΑΒΕ1234</a>
+							</td>
+							<td>
+								<!-- The customer the vehicle belonged to when the policy started (Task 13). -->
+								<a th:if="${policy.customerId != null}" th:href="@{/customers/{id}(id=${policy.customerId})}"
+									th:text="${policy.customerName}">Αλεξίου Μαρία</a>
+								<span th:if="${policy.customerId == null}">—</span>
+							</td>
+							<td th:text="${policy.insuranceCompany}">Northwind</td>
+							<td class="text-nowrap" th:text="${#temporals.format(policy.startDate, 'dd/MM/yyyy')}">01/03/2026</td>
+							<td class="text-nowrap" th:text="${#temporals.format(policy.endDate, 'dd/MM/yyyy')}">01/03/2027</td>
+							<td class="text-end text-nowrap"
+								th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div th:replace="~{fragments/pagination :: pager(${pg}, '/policies', ${l.insuranceCompany})}"></div>
+		</th:block>
+	</main>
+</body>
+</html>

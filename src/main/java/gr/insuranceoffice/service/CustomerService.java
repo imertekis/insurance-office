@@ -16,9 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 import gr.insuranceoffice.dto.CustomerDetailDto;
 import gr.insuranceoffice.dto.CustomerDto;
 import gr.insuranceoffice.dto.DeletionPreviewDto;
+import gr.insuranceoffice.dto.PageDto;
 import gr.insuranceoffice.dto.PolicyStatus;
 import gr.insuranceoffice.dto.PolicyViewDto;
 import gr.insuranceoffice.dto.SavedCustomerDto;
+import gr.insuranceoffice.dto.SearchResultDto.CustomerHit;
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.entity.Customer;
 import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
@@ -55,15 +58,32 @@ public class CustomerService {
 
 	private final PolicyMapper policyMapper;
 
+	private final HitAssembler hitAssembler;
+
 	public CustomerService(CustomerRepository customerRepository, OwnershipRepository ownershipRepository,
 			PolicyRepository policyRepository, CustomerMapper customerMapper, OwnershipMapper ownershipMapper,
-			PolicyMapper policyMapper) {
+			PolicyMapper policyMapper, HitAssembler hitAssembler) {
 		this.customerRepository = customerRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
 		this.customerMapper = customerMapper;
 		this.ownershipMapper = ownershipMapper;
 		this.policyMapper = policyMapper;
+		this.hitAssembler = hitAssembler;
+	}
+
+	/**
+	 * A page of the customer list (Task 15), by name in Greek alphabetical
+	 * order: last name first, accents and case not counting, so «Άγγελος»
+	 * sorts with Α. The order is the database's, from the {@code name_sort}
+	 * column of V5.
+	 *
+	 * @param page from 1; a page past the end gives the last one
+	 */
+	@Transactional(readOnly = true)
+	public PageDto<CustomerHit> list(SortDirection direction, int page) {
+		return Paging.page(page, direction, List.of("nameSort", "id"),
+				pageable -> customerRepository.findAll(pageable), hitAssembler::customerHits);
 	}
 
 	/**

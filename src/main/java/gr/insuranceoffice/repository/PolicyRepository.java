@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -76,6 +78,21 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
 			order by p.endDate desc, p.id desc
 			""")
 	List<Policy> findByOwnerWithVehicleAndIntermediary(Long customerId);
+
+	/**
+	 * A page of the policy list (Task 15) with its vehicle, so the rows show
+	 * the plate without a query each. The order comes from the pageable.
+	 *
+	 * @param insuranceCompany exact name, or null for every company
+	 */
+	@Query(value = """
+			select p from Policy p join fetch p.vehicle
+			where (:insuranceCompany is null or p.insuranceCompany = :insuranceCompany)
+			""", countQuery = """
+			select count(p) from Policy p
+			where (:insuranceCompany is null or p.insuranceCompany = :insuranceCompany)
+			""")
+	Page<Policy> findPage(String insuranceCompany, Pageable pageable);
 
 	@Query("select distinct p.insuranceCompany from Policy p order by p.insuranceCompany")
 	List<String> findInsuranceCompanies();

@@ -41,6 +41,7 @@ import gr.insuranceoffice.dto.SearchResultDto;
 import gr.insuranceoffice.dto.SearchResultDto.CustomerHit;
 import gr.insuranceoffice.dto.SearchResultDto.SearchType;
 import gr.insuranceoffice.dto.SearchResultDto.VehicleHit;
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.entity.Customer;
 import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
@@ -65,6 +66,9 @@ class SearchServiceTest {
 
 	@Autowired
 	private SearchService searchService;
+
+	@Autowired
+	private CustomerService customerService;
 
 	@Autowired
 	private CustomerRepository customerRepository;
@@ -239,6 +243,31 @@ class SearchServiceTest {
 		assertThat(result.searchedAs()).containsExactly(TEXT);
 		assertThat(result.customers()).extracting(CustomerHit::id)
 				.containsExactly(konstantinos.getId(), maria.getId());
+	}
+
+	// Task 15: the search sorts names as the customer list does, in Greek
+	// alphabetical order. Accented capitals sit among their letters, so
+	// «Άγγελος» comes after «Αβραμίδης» and before «Αλεξίου» (a code point
+	// order puts it before every Α), and Greek names come before Latin ones
+	// (the database default would put «Smith» first). All three ways of
+	// finding several customers at once sort the same.
+	@ParameterizedTest
+	@ValueSource(strings = { "example", "6900000001", "2990000000" })
+	void sortsCustomersInGreekAlphabeticalOrderAsTheCustomerListDoes(String input) {
+		for (String lastName : List.of("Smith", "Αλεξίου", "Βασιλείου", "Άγγελος", "Αβραμίδης", "αθανασίου")) {
+			Customer customer = new Customer();
+			customer.setLastName(lastName);
+			customer.setMobile("6900000001");
+			customer.setPhone("2990000000");
+			customer.setEmail("office@example.gr");
+			customerRepository.save(customer);
+		}
+		List<String> inGreekOrder = List.of("Αβραμίδης", "Άγγελος", "αθανασίου", "Αλεξίου", "Βασιλείου", "Smith");
+
+		assertThat(searchService.search(input).customers()).extracting(CustomerHit::lastName)
+				.containsExactlyElementsOf(inGreekOrder);
+		assertThat(customerService.list(SortDirection.ASC, 1).items()).extracting(CustomerHit::lastName)
+				.containsExactlyElementsOf(inGreekOrder);
 	}
 
 	@ParameterizedTest

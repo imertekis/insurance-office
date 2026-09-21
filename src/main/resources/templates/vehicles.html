@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Οχήματα')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('Οχήματα')}"></nav>
+
+	<main class="container" th:with="pg=${list}">
+		<h1 class="h3 mb-3">Οχήματα</h1>
+
+		<div class="alert alert-light border" th:if="${pg.totalItems == 0}">
+			Δεν υπάρχουν οχήματα.
+		</div>
+
+		<th:block th:unless="${pg.totalItems == 0}">
+			<div th:replace="~{fragments/pagination :: pager(${pg}, '/vehicles', null)}"></div>
+
+			<div class="table-responsive">
+				<table class="table table-hover align-middle" id="vehicles">
+					<thead>
+						<tr>
+							<th scope="col" th:attr="aria-sort=${pg.direction.ascending} ? 'ascending' : 'descending'">
+								<a th:replace="~{fragments/pagination :: sort('Πινακίδα', ${pg}, '/vehicles', null, 'Α-Ω', 'Ω-Α')}"></a>
+							</th>
+							<th scope="col">Όχημα</th>
+							<th scope="col">Κύριος ιδιοκτήτης</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="vehicle : ${pg.items}">
+							<td class="text-nowrap">
+								<a th:href="@{/vehicles/{id}(id=${vehicle.id})}" th:text="${vehicle.plate}">ΑΒΕ1234</a>
+							</td>
+							<td th:text="|${vehicle.brand} ${vehicle.model}|">Volkswagen Golf</td>
+							<td>
+								<a th:if="${vehicle.primaryOwnerId != null}" th:href="@{/customers/{id}(id=${vehicle.primaryOwnerId})}"
+									th:text="${vehicle.primaryOwnerFirstName == null} ? ${vehicle.primaryOwnerLastName} : |${vehicle.primaryOwnerLastName} ${vehicle.primaryOwnerFirstName}|">Αλεξίου Μαρία</a>
+								<span th:if="${vehicle.primaryOwnerId == null}" class="text-body-secondary">Χωρίς κύριο ιδιοκτήτη</span>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div th:replace="~{fragments/pagination :: pager(${pg}, '/vehicles', null)}"></div>
+		</th:block>
+	</main>
+</body>
+</html>

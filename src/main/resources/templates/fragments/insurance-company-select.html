@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- The insurance company filter of the expiry screen (SPEC §7.1) and of the
+	     policy list (Task 15): every company on file, and "all". It submits
+	     its form on change, so the page is one GET away from the filter in the
+	     URL. Pages include it inside their filter form with
+	     <div th:replace="~{fragments/insurance-company-select :: select(${companies}, ${chosen})}"></div> -->
+	<div th:fragment="select(companies, chosen)">
+		<label for="insuranceCompany" class="form-label mb-1">Ασφαλιστική</label>
+		<select id="insuranceCompany" name="insuranceCompany" class="form-select" onchange="this.form.submit()">
+			<option value="">Όλες</option>
+			<option th:each="company : ${companies}" th:value="${company}" th:text="${company}"
+				th:selected="${company == chosen}">Northwind</option>
+		</select>
+	</div>
+</body>
+</html>

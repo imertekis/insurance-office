@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Πελάτες')}"></head>
+<body>
+	<nav th:replace="~{fragments/header :: header('Πελάτες')}"></nav>
+
+	<main class="container" th:with="pg=${list}">
+		<h1 class="h3 mb-3">Πελάτες</h1>
+
+		<div class="alert alert-light border" th:if="${pg.totalItems == 0}">
+			Δεν υπάρχουν πελάτες.
+		</div>
+
+		<th:block th:unless="${pg.totalItems == 0}">
+			<div th:replace="~{fragments/pagination :: pager(${pg}, '/customers', null)}"></div>
+
+			<div class="table-responsive">
+				<table class="table table-hover align-middle" id="customers">
+					<thead>
+						<tr>
+							<th scope="col" th:attr="aria-sort=${pg.direction.ascending} ? 'ascending' : 'descending'">
+								<a th:replace="~{fragments/pagination :: sort('Ονοματεπώνυμο', ${pg}, '/customers', null, 'Α-Ω', 'Ω-Α')}"></a>
+							</th>
+							<th scope="col">ΑΦΜ</th>
+							<th scope="col">Οχήματα</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr th:each="customer : ${pg.items}">
+							<td>
+								<a th:href="@{/customers/{id}(id=${customer.id})}"
+									th:text="${customer.firstName == null} ? ${customer.lastName} : |${customer.lastName} ${customer.firstName}|">Αλεξίου Μαρία</a>
+							</td>
+							<td th:text="${customer.taxId} ?: '—'">900000080</td>
+							<td th:text="${customer.vehicleCount}">2</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div th:replace="~{fragments/pagination :: pager(${pg}, '/customers', null)}"></div>
+		</th:block>
+	</main>
+</body>
+</html>

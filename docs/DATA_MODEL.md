@@ -40,11 +40,17 @@ PostgreSQL. Ονόματα πινάκων/στηλών στα αγγλικά (σ
 | `phone` | VARCHAR(10) | NULL, αρχή `2` | Σταθερό Τηλέφωνο |
 | `email` | VARCHAR(255) | NULL | Email |
 | `search_normalized` | TEXT | generated, βλ. §Αναζήτηση | — |
+| `name_sort` | TEXT | generated, collation `el-GR-x-icu` (Task 15) | — |
 | `notes` | TEXT | NULL | — |
 | `version` | BIGINT | optimistic locking | — |
 | `created_at` / `updated_at` | TIMESTAMP | NOT NULL | — |
 
 `entity_type`: `INDIVIDUAL` | `COMPANY`
+
+`name_sort` = `last_name || coalesce(' ' || first_name, '')` με ICU collation
+`el-GR-x-icu`, για τη λίστα πελατών και την αναζήτηση: ελληνική αλφαβητική σειρά, όπου οι τόνοι
+και η διάκριση πεζών/κεφαλαίων δεν μετράνε, ώστε το «Άγγελος» να μπαίνει με το
+Α. Δεν εξαρτάται από το collation της βάσης. Χρειάζεται PostgreSQL με ICU.
 
 ---
 

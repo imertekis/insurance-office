@@ -89,6 +89,13 @@ public class Customer {
 	@Column(name = "search_normalized", insertable = false, updatable = false)
 	private String searchNormalized;
 
+	// Generated column computed by PostgreSQL (V5 migration): the name in Greek
+	// alphabetical order, for the customer list and the search to sort by. Never written from
+	// Java and not re-read after a write, since nothing reads it: queries only
+	// order by it, so it is not worth a SELECT after every save.
+	@Column(name = "name_sort", insertable = false, updatable = false)
+	private String nameSort;
+
 	// REMOVE, so that a hard delete removes the ownerships through JPA and
 	// each one is written to audit_log (DECISIONS §4). The database's ON
 	// DELETE CASCADE alone would drop them without a trace. Delete a customer

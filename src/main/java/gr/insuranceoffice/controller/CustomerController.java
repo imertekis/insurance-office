@@ -7,10 +7,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import gr.insuranceoffice.dto.CustomerDto;
 import gr.insuranceoffice.dto.SavedCustomerDto;
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.service.BusinessException;
 import gr.insuranceoffice.service.CustomerService;
 
@@ -22,6 +24,15 @@ public class CustomerController {
 
 	public CustomerController(CustomerService customerService) {
 		this.customerService = customerService;
+	}
+
+	// Task 15: by name, Α-Ω unless the clerk turns it round. A page number
+	// out of range is put right by the service.
+	@GetMapping("/customers")
+	public String list(@RequestParam(required = false) String dir, @RequestParam(defaultValue = "1") int page,
+			Model model) {
+		model.addAttribute("list", customerService.list(SortDirection.fromParam(dir, SortDirection.ASC), page));
+		return "customers";
 	}
 
 	@GetMapping("/customers/{id}")

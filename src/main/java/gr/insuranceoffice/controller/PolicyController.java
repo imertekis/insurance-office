@@ -14,6 +14,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.PolicyDto;
 import gr.insuranceoffice.dto.PolicyFormDto;
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.entity.Policy.SurchargeType;
 import gr.insuranceoffice.service.BusinessException;
 import gr.insuranceoffice.service.PolicyService;
@@ -30,6 +31,16 @@ public class PolicyController {
 	public PolicyController(PolicyService policyService, VehicleService vehicleService) {
 		this.policyService = policyService;
 		this.vehicleService = vehicleService;
+	}
+
+	// Task 15: latest end date first, since the recent policies are the ones
+	// looked for; the insurance company filter is the expiry screen's.
+	@GetMapping("/policies")
+	public String list(@RequestParam(required = false) String insuranceCompany,
+			@RequestParam(required = false) String dir, @RequestParam(defaultValue = "1") int page, Model model) {
+		model.addAttribute("list",
+				policyService.list(insuranceCompany, SortDirection.fromParam(dir, SortDirection.DESC), page));
+		return "policies";
 	}
 
 	@GetMapping("/vehicles/{vehicleId}/policies/new")

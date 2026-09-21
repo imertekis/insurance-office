@@ -13,6 +13,19 @@
 					<a class="nav-link" th:href="@{/}" th:classappend="${active == 'Λήξεις'} ? 'active'"
 						th:attrappend="aria-current=${active == 'Λήξεις'} ? 'page'">Λήξεις</a>
 				</li>
+				<!-- Task 15: the lists, to browse instead of search. -->
+				<li class="nav-item">
+					<a class="nav-link" th:href="@{/customers}" th:classappend="${active == 'Πελάτες'} ? 'active'"
+						th:attrappend="aria-current=${active == 'Πελάτες'} ? 'page'">Πελάτες</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" th:href="@{/vehicles}" th:classappend="${active == 'Οχήματα'} ? 'active'"
+						th:attrappend="aria-current=${active == 'Οχήματα'} ? 'page'">Οχήματα</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link" th:href="@{/policies}" th:classappend="${active == 'Συμβόλαια'} ? 'active'"
+						th:attrappend="aria-current=${active == 'Συμβόλαια'} ? 'page'">Συμβόλαια</a>
+				</li>
 				<li class="nav-item">
 					<a class="nav-link" th:href="@{/customers/new}"
 						th:classappend="${active == 'Νέος πελάτης'} ? 'active'">Νέος πελάτης</a>

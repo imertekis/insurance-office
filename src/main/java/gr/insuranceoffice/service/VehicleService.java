@@ -16,8 +16,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import gr.insuranceoffice.dto.DeletionPreviewDto;
+import gr.insuranceoffice.dto.PageDto;
 import gr.insuranceoffice.dto.PolicyStatus;
 import gr.insuranceoffice.dto.PolicyViewDto;
+import gr.insuranceoffice.dto.SearchResultDto.VehicleHit;
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.dto.VehicleDetailDto;
 import gr.insuranceoffice.dto.VehicleDto;
 import gr.insuranceoffice.entity.Customer;
@@ -49,6 +52,8 @@ public class VehicleService {
 
 	private final PolicyMapper policyMapper;
 
+	private final HitAssembler hitAssembler;
+
 	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	// SPEC §8: I, O and Q never appear in a VIN.
@@ -57,13 +62,28 @@ public class VehicleService {
 
 	public VehicleService(VehicleRepository vehicleRepository, OwnershipRepository ownershipRepository,
 			PolicyRepository policyRepository, VehicleMapper vehicleMapper, OwnershipMapper ownershipMapper,
-			PolicyMapper policyMapper) {
+			PolicyMapper policyMapper, HitAssembler hitAssembler) {
 		this.vehicleRepository = vehicleRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
 		this.vehicleMapper = vehicleMapper;
 		this.ownershipMapper = ownershipMapper;
 		this.policyMapper = policyMapper;
+		this.hitAssembler = hitAssembler;
+	}
+
+	/**
+	 * A page of the vehicle list (Task 15), by plate. The order is that of
+	 * {@code plate_normalized}, the form plates are compared in everywhere, so
+	 * a plate typed with Greek letters and one typed with Latin ones stay
+	 * together; it is unique, which keeps the pages from overlapping.
+	 *
+	 * @param page from 1; a page past the end gives the last one
+	 */
+	@Transactional(readOnly = true)
+	public PageDto<VehicleHit> list(SortDirection direction, int page) {
+		return Paging.page(page, direction, List.of("plateNormalized"),
+				pageable -> vehicleRepository.findAll(pageable), hitAssembler::vehicleHits);
 	}
 
 	/**
@@ -267,39 +287,9 @@ public class VehicleService {
 	private List<PolicyViewDto> policyViews(List<Policy> policies, List<Ownership> ownerships) {
 		LocalDate today = LocalDate.now();
 		return policies.stream()
-				.map(policy -> {
-					PolicyViewDto view = policyMapper.toViewDto(policy,
-							PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today));
-					Customer owner = primaryOwnerOn(ownerships, policy.getStartDate());
-					return owner == null ? view : view.withCustomer(owner.getId(),
-							owner.getFirstName() == null ? owner.getLastName()
-									: owner.getLastName() + " " + owner.getFirstName());
-				})
+				.map(policy -> PolicyCustomers.attach(policyMapper.toViewDto(policy,
+						PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today)), ownerships))
 				.toList();
-	}
-
-	/**
-	 * The primary owner on the given day. A transfer date closes the old
-	 * ownership and opens the new one (Task 11c), so an ownership covers the
-	 * day if it started on or before it and ended after it; an empty date is
-	 * open. Imported rows have no dates and so cover every day, which makes
-	 * the current primary owner the answer for them. If no ownership covers
-	 * the day, for instance the first owner on record started later, the
-	 * current primary owner is the fallback.
-	 *
-	 * @return null if the vehicle has no primary owner to name
-	 */
-	static Customer primaryOwnerOn(List<Ownership> ownerships, LocalDate day) {
-		List<Ownership> primaries = ownerships.stream().filter(Ownership::isPrimary).toList();
-		return primaries.stream()
-				.filter(ownership -> (ownership.getFromDate() == null || !ownership.getFromDate().isAfter(day))
-						&& (ownership.getToDate() == null || day.isBefore(ownership.getToDate())))
-				// Should two cover the day, the one that started last holds it.
-				.max(Comparator.comparing(Ownership::getFromDate, Comparator.nullsFirst(Comparator.naturalOrder()))
-						.thenComparing(Ownership::getId))
-				.or(() -> primaries.stream().filter(ownership -> ownership.getToDate() == null).findFirst())
-				.map(Ownership::getCustomer)
-				.orElse(null);
 	}
 
 }

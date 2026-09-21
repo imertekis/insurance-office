@@ -20,14 +20,7 @@
 					<label class="btn btn-outline-primary" th:for="|period-${p.param}|" th:text="${p.label}">30 ημέρες</label>
 				</th:block>
 			</div>
-			<div>
-				<label for="insuranceCompany" class="form-label mb-1">Ασφαλιστική</label>
-				<select id="insuranceCompany" name="insuranceCompany" class="form-select" onchange="this.form.submit()">
-					<option value="">Όλες</option>
-					<option th:each="company : ${d.insuranceCompanies}" th:value="${company}" th:text="${company}"
-						th:selected="${company == d.insuranceCompany}">Northwind</option>
-				</select>
-			</div>
+			<div th:replace="~{fragments/insurance-company-select :: select(${d.insuranceCompanies}, ${d.insuranceCompany})}"></div>
 			<noscript><button type="submit" class="btn btn-primary">Εφαρμογή</button></noscript>
 		</form>
 

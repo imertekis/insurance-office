@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.dto.VehicleDto;
 import gr.insuranceoffice.entity.Vehicle.FuelType;
 import gr.insuranceoffice.entity.Vehicle.UsageType;
@@ -24,6 +26,14 @@ public class VehicleController {
 
 	public VehicleController(VehicleService vehicleService) {
 		this.vehicleService = vehicleService;
+	}
+
+	// Task 15: by plate, Α-Ω unless the clerk turns it round.
+	@GetMapping("/vehicles")
+	public String list(@RequestParam(required = false) String dir, @RequestParam(defaultValue = "1") int page,
+			Model model) {
+		model.addAttribute("list", vehicleService.list(SortDirection.fromParam(dir, SortDirection.ASC), page));
+		return "vehicles";
 	}
 
 	@GetMapping("/vehicles/{id}")

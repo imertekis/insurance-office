@@ -5,7 +5,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,8 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import gr.insuranceoffice.dto.DeletionPreviewDto;
 import gr.insuranceoffice.dto.IntermediaryDto;
+import gr.insuranceoffice.dto.PageDto;
 import gr.insuranceoffice.dto.PolicyDto;
 import gr.insuranceoffice.dto.PolicyFormDto;
+import gr.insuranceoffice.dto.PolicyListDto;
+import gr.insuranceoffice.dto.PolicyStatus;
+import gr.insuranceoffice.dto.PolicyViewDto;
+import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.entity.Customer;
 import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
@@ -107,6 +114,38 @@ public class PolicyService {
 	@Transactional(readOnly = true)
 	public List<IntermediaryDto> selectableIntermediaries(Long selectedId) {
 		return intermediaryMapper.toDtoList(intermediaryRepository.findSelectable(selectedId));
+	}
+
+	/**
+	 * A page of the policy list (Task 15), by end date, for one insurance
+	 * company or for all. Every row carries its customer, as on the vehicle
+	 * card (Task 13), found for the whole page in one query.
+	 *
+	 * @param insuranceCompany exact name; null or blank for every company
+	 * @param page             from 1; a page past the end gives the last one
+	 */
+	@Transactional(readOnly = true)
+	public PolicyListDto list(String insuranceCompany, SortDirection direction, int page) {
+		String company = insuranceCompany == null || insuranceCompany.isBlank() ? null : insuranceCompany;
+		PageDto<PolicyViewDto> policies = Paging.page(page, direction, List.of("endDate", "id"),
+				pageable -> policyRepository.findPage(company, pageable), this::policyRows);
+		return new PolicyListDto(policies, company, policyRepository.findInsuranceCompanies());
+	}
+
+	private List<PolicyViewDto> policyRows(List<Policy> policies) {
+		if (policies.isEmpty()) {
+			return List.of();
+		}
+		LocalDate today = LocalDate.now();
+		Map<Long, List<Ownership>> ownerships = ownershipRepository
+				.findPrimaryByVehicleIdsWithCustomer(
+						policies.stream().map(policy -> policy.getVehicle().getId()).distinct().toList())
+				.stream().collect(Collectors.groupingBy(ownership -> ownership.getVehicle().getId()));
+		return policies.stream()
+				.map(policy -> PolicyCustomers.attach(
+						policyMapper.toViewDto(policy, PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today)),
+						ownerships.getOrDefault(policy.getVehicle().getId(), List.of())))
+				.toList();
 	}
 
 	/** The companies already on file, offered as suggestions so one is not spelled three ways. */
