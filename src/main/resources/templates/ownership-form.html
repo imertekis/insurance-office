@@ -75,7 +75,7 @@
 			<div class="row g-3 align-items-end mb-4">
 				<div class="col-md-4">
 					<label class="form-label" for="transferDate">Ημερομηνία μεταβίβασης</label>
-					<input class="form-control" type="date" id="transferDate" name="transferDate"
+					<input class="form-control js-date" type="text" id="transferDate" name="transferDate"
 						th:value="${o.transferDate}"
 						th:classappend="${errors != null and errors.containsKey('transferDate')} ? 'is-invalid'">
 					<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('transferDate')}"
@@ -121,5 +121,6 @@
 			</div>
 		</form>
 	</main>
+	<div th:replace="~{layout :: dateScripts}"></div>
 </body>
 </html>

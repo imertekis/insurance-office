@@ -6,10 +6,20 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title th:text="|${title} · Ασφαλιστικό Γραφείο|">Ασφαλιστικό Γραφείο</title>
-	<!-- Served from the Bootstrap webjar: the office LAN may be offline. -->
+	<!-- Served from webjars: the office LAN may be offline. -->
 	<link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+	<link rel="stylesheet" th:href="@{/webjars/flatpickr/dist/flatpickr.min.css}">
 </head>
 <body>
 	<!-- The navbar with the search box lives in fragments/header.html. -->
+
+	<!-- Task 16a: the dd/MM/yyyy date picker, included at the end of <body>
+	     by every form with a date field (customer, vehicle, policy,
+	     ownership). Served from the flatpickr webjar, no CDN. -->
+	<th:block th:fragment="dateScripts">
+		<script th:src="@{/webjars/flatpickr/dist/flatpickr.min.js}"></script>
+		<script th:src="@{/webjars/flatpickr/dist/l10n/gr.js}"></script>
+		<script th:src="@{/js/date-picker.js}"></script>
+	</th:block>
 </body>
 </html>

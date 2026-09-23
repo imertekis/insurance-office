@@ -23,6 +23,9 @@
 		<!-- Not managed by Spring Boot. Served locally: the office LAN may
 		     have no internet access, so no CDN. -->
 		<bootstrap.version>5.3.8</bootstrap.version>
+		<!-- Not managed by Spring Boot. Served locally, same reason as Bootstrap
+		     (Task 16a: dd/MM/yyyy date inputs, no native browser locale). -->
+		<flatpickr.version>4.6.13</flatpickr.version>
 	</properties>
 
 	<dependencies>
@@ -43,6 +46,11 @@
 		<dependency>
 			<groupId>org.webjars</groupId>
 			<artifactId>webjars-locator-lite</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.webjars.npm</groupId>
+			<artifactId>flatpickr</artifactId>
+			<version>${flatpickr.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

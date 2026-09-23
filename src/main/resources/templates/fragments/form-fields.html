@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- One field, shared by the customer, vehicle and policy forms (Tasks
+	     11a/11b/11d). Lives in its own file, not local to a form template, so
+	     it is only ever rendered where it is called with th:replace, never a
+	     second time in place of the page that declares it (Task 16a). The
+	     error comes from the service, keyed by the DTO field name; what was
+	     typed stays in the input. A 'date' field renders as plain text and
+	     is picked up by the flatpickr date picker (static/js/date-picker.js)
+	     through the "js-date" class: the display becomes dd/MM/yyyy but the
+	     value submitted to the server stays ISO, unchanged. -->
+	<div th:fragment="field(name, label, type, value, colClass)" th:class="${colClass}">
+		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
+		<input class="form-control" th:type="${type == 'date'} ? 'text' : ${type}" th:id="${name}" th:name="${name}" th:value="${value}"
+			th:step="${type == 'number'} ? 'any'"
+			th:classappend="${(type == 'date' ? 'js-date ' : '') + (errors != null and errors.containsKey(name) ? 'is-invalid' : '')}">
+		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
+			th:text="${errors.get(name)}">Μήνυμα</div>
+	</div>
+
+	<!-- One dropdown of Greek enum values (DATA_MODEL), shared the same way. -->
+	<div th:fragment="choice(name, label, values, selected, colClass)" th:class="${colClass}">
+		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
+		<select class="form-select" th:id="${name}" th:name="${name}"
+			th:classappend="${errors != null and errors.containsKey(name)} ? 'is-invalid'">
+			<option value="">—</option>
+			<option th:each="value : ${values}" th:value="${value}" th:text="${value}"
+				th:selected="${value.name() == selected}">ΕΙΧ</option>
+		</select>
+		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
+			th:text="${errors.get(name)}">Μήνυμα</div>
+	</div>
+</body>
+</html>

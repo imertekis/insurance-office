@@ -4,16 +4,6 @@
 <body>
 	<nav th:replace="~{fragments/header :: header('')}"></nav>
 
-	<!-- One field. The error comes from PolicyService, keyed by the DTO field
-	     name; what was typed stays in the input. -->
-	<div th:fragment="field(name, label, type, value)" class="col-md-4">
-		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
-		<input class="form-control" th:type="${type}" th:id="${name}" th:name="${name}" th:value="${value}"
-			th:classappend="${errors != null and errors.containsKey(name)} ? 'is-invalid'">
-		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
-			th:text="${errors.get(name)}">Μήνυμα</div>
-	</div>
-
 	<main class="container" th:with="p=${policy}, isNew=${policy.id == null}">
 		<h1 class="h3 mb-1"
 			th:text="${renewalOf != null} ? 'Ανανέωση συμβολαίου' : (${isNew} ? 'Νέο συμβόλαιο' : 'Επεξεργασία συμβολαίου')">Νέο συμβόλαιο</h1>
@@ -39,7 +29,7 @@
 			<input type="hidden" name="vehicleId" th:value="${vehicleId}">
 			<input type="hidden" name="renewalOf" th:if="${renewalOf != null}" th:value="${renewalOf}">
 
-			<div th:replace="~{this :: field('policyNumber', 'Αρ. Συμβολαίου *', 'text', ${p.policyNumber})}"></div>
+			<div th:replace="~{fragments/form-fields :: field('policyNumber', 'Αρ. Συμβολαίου *', 'text', ${p.policyNumber}, 'col-md-4')}"></div>
 
 			<!-- Suggestions from the companies on file, so one company is not
 			     spelled three ways; a new one can still be typed. -->
@@ -68,8 +58,8 @@
 					th:text="${errors.get('intermediaryId')}">Μήνυμα</div>
 			</div>
 
-			<div th:replace="~{this :: field('startDate', 'Έναρξη Ασφάλειας *', 'date', ${p.startDate})}"></div>
-			<div th:replace="~{this :: field('endDate', 'Λήξη Ασφάλειας *', 'date', ${p.endDate})}"></div>
+			<div th:replace="~{fragments/form-fields :: field('startDate', 'Έναρξη Ασφάλειας *', 'date', ${p.startDate}, 'col-md-4')}"></div>
+			<div th:replace="~{fragments/form-fields :: field('endDate', 'Λήξη Ασφάλειας *', 'date', ${p.endDate}, 'col-md-4')}"></div>
 			<div class="col-md-4">
 				<label class="form-label" for="premium">Ασφάλιστρο (€) *</label>
 				<input class="form-control" type="text" inputmode="decimal" id="premium" name="premium"
@@ -108,5 +98,6 @@
 			</div>
 		</form>
 	</main>
+	<div th:replace="~{layout :: dateScripts}"></div>
 </body>
 </html>
