@@ -32,6 +32,27 @@
   One more reason the import must become insert-only, or learn about
   transfers, before the office re-imports.
 
+## Open questions
+
+- **Which alphabet should a plate's look-alike letters be stored in?**
+  Task 17 uppercases plates and strips accents on save but keeps the
+  alphabet as typed (DECISIONS §5), so today it depends on the source:
+  - the import stores what the Excel has (all 8 plates of the sample
+    are Latin-only);
+  - the form stores what the keyboard typed (usually Greek).
+
+  On screen «ΝΚΝ7777» and «NKN7777» look identical, and search,
+  duplicate checks and sorting treat them as one plate
+  (`plate_normalized`). The difference only shows when a plate is
+  copied into another system (an insurer's portal) or exported.
+
+  Converting look-alikes to Greek is out of scope. It would have to
+  recognise the standard Greek format (three of the 14 look-alike
+  letters and four digits) and leave everything else alone: foreign
+  and diplomatic plates are legitimately Latin, and special plates keep
+  Greek-only letters (CLAUDE.md, resolved conflict 5). Decide before
+  exports exist, or as soon as a portal is found to reject one alphabet.
+
 ## Deferred review findings
 
 Not fixed yet. "Finding 2" and "Finding 4" are from `docs/REVIEW-02.md`,
