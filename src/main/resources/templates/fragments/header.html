@@ -85,6 +85,13 @@
 								class="d-inline-block text-truncate align-bottom" style="max-width: 12rem"
 								th:text="${currentUser}">Χρήστης</span></a>
 						<ul class="dropdown-menu dropdown-menu-end">
+							<!-- Task 16c: kept in this browser, not in the database;
+							     static/js/theme.js marks the current one. -->
+							<li><h6 class="dropdown-header">Θέμα</h6></li>
+							<li><button class="dropdown-item" type="button" data-theme-choice="auto">Αυτόματο</button></li>
+							<li><button class="dropdown-item" type="button" data-theme-choice="light">Φωτεινό</button></li>
+							<li><button class="dropdown-item" type="button" data-theme-choice="dark">Σκούρο</button></li>
+							<li><hr class="dropdown-divider"></li>
 							<li>
 								<form method="post" th:action="@{/logout}">
 									<button class="dropdown-item" type="submit">Αποσύνδεση</button>

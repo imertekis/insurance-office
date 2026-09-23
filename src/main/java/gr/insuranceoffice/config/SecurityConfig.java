@@ -30,8 +30,9 @@ public class SecurityConfig {
 	SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		return http
 				.authorizeHttpRequests(requests -> requests
-						// The stylesheet is needed to render the login page itself.
-						.requestMatchers("/webjars/**").permitAll()
+						// The login page itself needs the stylesheet, and the theme
+						// script (Task 16c) to follow the OS while it is open.
+						.requestMatchers("/webjars/**", "/js/**").permitAll()
 						.anyRequest().authenticated())
 				.formLogin(login -> login
 						.loginPage("/login")

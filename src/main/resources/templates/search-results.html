@@ -30,7 +30,7 @@
 			</div>
 
 			<section th:unless="${#lists.isEmpty(r.customers)}" class="mb-4">
-				<h2 class="h5">Πελάτες <span class="badge text-bg-light" th:text="${#lists.size(r.customers)}">1</span></h2>
+				<h2 class="h5">Πελάτες <span class="badge bg-body-secondary text-body" th:text="${#lists.size(r.customers)}">1</span></h2>
 				<div class="table-responsive">
 					<table class="table table-hover align-middle" id="customers">
 						<thead>
@@ -57,7 +57,7 @@
 			</section>
 
 			<section th:unless="${#lists.isEmpty(r.vehicles)}">
-				<h2 class="h5">Οχήματα <span class="badge text-bg-light" th:text="${#lists.size(r.vehicles)}">1</span></h2>
+				<h2 class="h5">Οχήματα <span class="badge bg-body-secondary text-body" th:text="${#lists.size(r.vehicles)}">1</span></h2>
 				<div class="table-responsive">
 					<table class="table table-hover align-middle" id="vehicles">
 						<thead>
