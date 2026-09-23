@@ -163,19 +163,21 @@ public class Vehicle {
 		return vin;
 	}
 
+	// In capitals on every write path, the Excel import included (Task 17).
 	public void setVin(String vin) {
-		this.vin = vin;
+		this.vin = TextNormalizationUtils.storedVin(vin);
 	}
 
 	public String getPlate() {
 		return plate;
 	}
 
-	// Stored without dashes or spaces (Task 14). Done here rather than in the
-	// callback below so that every write path, the Excel import included,
-	// stores it that way, and the audit log sees the value that is stored.
+	// Stored without dashes or spaces, in capitals and without accents (Tasks
+	// 14, 17). Done here rather than in the callback below so that every write
+	// path, the Excel import included, stores it that way, and the audit log
+	// sees the value that is stored.
 	public void setPlate(String plate) {
-		this.plate = TextNormalizationUtils.stripPlateSeparators(plate);
+		this.plate = TextNormalizationUtils.storedPlate(plate);
 	}
 
 	public String getPlateNormalized() {

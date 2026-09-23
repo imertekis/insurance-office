@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -90,7 +91,7 @@ class VehicleFormTest {
 		assertThat(stored.getVersion()).isZero();
 	}
 
-	// Task 14: no dash or space is stored, and the letters stay as typed.
+	// Task 14: no dash or space is stored.
 	@Test
 	void storesThePlateWithoutDashesOrSpaces() throws Exception {
 		MultiValueMap<String, String> values = valid();
@@ -150,6 +151,38 @@ class VehicleFormTest {
 		latin.set("plate", "ABE 1234");
 
 		assertThat(html(form("/vehicles", latin))).contains("Υπάρχει ήδη όχημα με αυτή την πινακίδα");
+		assertThat(vehicleRepository.count()).isEqualTo(1);
+	}
+
+	// Task 17: capitals and no accents, in the alphabet it was typed in.
+	@Test
+	void storesThePlateInCapitalsWithoutAccentsInItsOwnAlphabet() throws Exception {
+		Map<String, String> typedToStored = Map.of(
+				"νκν-1234", "ΝΚΝ1234",
+				"άβε5678", "ΑΒΕ" + "5678",
+				"abe9876", "ABE" + "9876");
+		int n = 0;
+		for (Map.Entry<String, String> plate : typedToStored.entrySet()) {
+			String vin = "WVWZZZ1KZAW00000" + ++n;
+			MultiValueMap<String, String> values = valid();
+			values.set("vin", vin);
+			values.set("plate", plate.getKey());
+			mockMvc.perform(form("/vehicles", values)).andExpect(status().is3xxRedirection());
+
+			assertThat(vehicleRepository.findByVin(vin).orElseThrow().getPlate()).as(plate.getKey())
+					.isEqualTo(plate.getValue());
+		}
+	}
+
+	@Test
+	void refusesTheSamePlateWrittenInSmallLetters() throws Exception {
+		mockMvc.perform(form("/vehicles", valid())).andExpect(status().is3xxRedirection());
+
+		MultiValueMap<String, String> small = valid();
+		small.set("vin", "WVWZZZ1KZAW654321");
+		small.set("plate", "αβε1234");
+
+		assertThat(html(form("/vehicles", small))).contains("Υπάρχει ήδη όχημα με αυτή την πινακίδα");
 		assertThat(vehicleRepository.count()).isEqualTo(1);
 	}
 

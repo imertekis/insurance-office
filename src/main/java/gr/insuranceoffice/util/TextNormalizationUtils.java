@@ -66,12 +66,13 @@ public final class TextNormalizationUtils {
 	}
 
 	/**
-	 * The plate as it is stored and shown (Task 14): dashes and spaces
-	 * removed, the letters kept exactly as typed. "ΝΚΝ-7777" and "ΝΚΝ 7777"
-	 * become "ΝΚΝ7777"; Greek stays Greek and case is left alone, unlike
+	 * The plate as it is stored and shown (Tasks 14, 17): dashes and spaces
+	 * removed, accents removed and upper-cased like {@link #normalizeText}, the
+	 * alphabet kept as typed. "νκν-7777" becomes "ΝΚΝ7777" and "abe 1234"
+	 * becomes "ABE1234": Greek stays Greek and Latin stays Latin, unlike
 	 * {@link #normalizePlate(String)}, which only feeds the search column.
 	 */
-	public static String stripPlateSeparators(String plate) {
+	public static String storedPlate(String plate) {
 		if (plate == null) {
 			return null;
 		}
@@ -82,7 +83,12 @@ public final class TextNormalizationUtils {
 				stripped.append(c);
 			}
 		}
-		return stripped.toString();
+		return normalizeText(stripped.toString());
+	}
+
+	/** The VIN as it is stored (Task 17): in capitals, however it was typed or imported. */
+	public static String storedVin(String vin) {
+		return vin == null ? null : vin.toUpperCase(Locale.ROOT);
 	}
 
 	private static boolean isSeparator(char c) {

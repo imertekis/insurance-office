@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -197,14 +196,22 @@ public class VehicleService {
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε.")));
 	}
 
-	// A VIN is written in capitals, whatever the clerk typed. The plate loses
-	// its dashes and spaces and keeps its letters as typed (Task 14); only
-	// plate_normalized is folded. Done before validation, which so sees
+	/**
+	 * The VIN rule, shared with the Excel import (Task 17). The VIN is given
+	 * as stored, in capitals.
+	 */
+	public static boolean isVin(String vin) {
+		return vin != null && VIN.matcher(vin).matches();
+	}
+
+	// The values as Vehicle will store them (Tasks 14, 17): the VIN in
+	// capitals, the plate without dashes or spaces, in capitals and without
+	// accents, its alphabet as typed. Done before validation, which so sees
 	// exactly what will be stored, and "-" alone counts as empty.
 	private VehicleDto cleaned(VehicleDto dto) {
 		VehicleDto values = vehicleMapper.withBlanksAsNull(dto);
-		String plate = vehicleMapper.blankToNull(TextNormalizationUtils.stripPlateSeparators(values.plate()));
-		return new VehicleDto(values.id(), values.vin() == null ? null : values.vin().toUpperCase(Locale.ROOT),
+		String plate = vehicleMapper.blankToNull(TextNormalizationUtils.storedPlate(values.plate()));
+		return new VehicleDto(values.id(), TextNormalizationUtils.storedVin(values.vin()),
 				plate, values.brand(), values.model(), values.firstRegistration(),
 				values.licenseIssueDate(), values.category(), values.usageType(), values.color(), values.seats(),
 				values.engineCc(), values.powerKw(), values.fuelType(), values.engineNumber(), values.co2(),
@@ -216,7 +223,7 @@ public class VehicleService {
 		Violations violations = new Violations();
 		violations.required("vin", values.vin(), "Ο αριθμός πλαισίου (VIN) είναι υποχρεωτικός.");
 		violations.format("vin", values.vin(), VIN, "Το VIN έχει 17 χαρακτήρες, χωρίς τα γράμματα I, O και Q.");
-		if (values.vin() != null && VIN.matcher(values.vin()).matches()) {
+		if (isVin(values.vin())) {
 			violations.addIf(vehicleRepository.findByVin(values.vin())
 					.filter(other -> !other.getId().equals(id)).isPresent(),
 					"vin", "Υπάρχει ήδη όχημα με αυτό το VIN.");

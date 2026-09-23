@@ -35,6 +35,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import gr.insuranceoffice.TestcontainersConfiguration;
+import gr.insuranceoffice.dto.SearchResultDto.VehicleHit;
 import gr.insuranceoffice.entity.Customer;
 import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
@@ -48,6 +49,7 @@ import gr.insuranceoffice.repository.IntermediaryRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.service.SearchService;
 
 /**
  * Imports synthetic workbooks shaped like the office's files into PostgreSQL.
@@ -58,8 +60,15 @@ import gr.insuranceoffice.repository.VehicleRepository;
 @Import(TestcontainersConfiguration.class)
 class ExcelImporterServiceTest {
 
+	private static final String VIN = "Αρ. Πλαισίου / VIN (E)";
+
+	private static final String PLATE = "Αρ. Κυκλοφορίας (A)";
+
 	@Autowired
 	private ExcelImporterService importer;
+
+	@Autowired
+	private SearchService searchService;
 
 	@Autowired
 	private CustomerRepository customerRepository;
@@ -275,6 +284,64 @@ class ExcelImporterServiceTest {
 
 		assertThat(storedPlates()).hasSize(8).allMatch(plate -> plate.matches("[^\\s\\p{Pd}]+"));
 		assertThat(vehicleUpdatesLogged()).isEqualTo(updatesBefore);
+	}
+
+	// Task 17: in capitals whichever way in. Before, a VIN imported in small
+	// letters was stored so, and the VIN search, which upper-cases what is
+	// typed and compares exactly, could not find it.
+	@Test
+	void storesPlateAndVinInCapitalsSoTheVinSearchFindsThem() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(0).put(VIN, "synthvh0000000001");
+		archive.get(0).put(PLATE, "άβε-1001");
+		archive.get(1).put(PLATE, "tst 1002");
+
+		importFiles(sampleCustomers(), archive);
+
+		Vehicle stored = vehicleRepository.findByVin("SYNTHVH0000000001").orElseThrow();
+		assertThat(stored.getPlate()).isEqualTo("ΑΒΕ1001");
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000002")).get().extracting(Vehicle::getPlate)
+				.isEqualTo("TST1002");
+		assertThat(searchService.search("synthvh0000000001").vehicles()).extracting(VehicleHit::id)
+				.containsExactly(stored.getId());
+
+		// The same file again finds its vehicle by VIN, whatever the case.
+		importFiles(sampleCustomers(), archive);
+		assertThat(vehicleRepository.count()).isEqualTo(8);
+	}
+
+	@Test
+	void refusesAVinOfTheWrongShapeAndAPlateRepeatedInTheFile() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(1).put(VIN, "SYNTHVH00000000I2");
+		// The same plate as row 4, in Latin small letters: one plate all the same.
+		archive.get(2).put(PLATE, "ΤΚΤ-7777");
+		archive.get(3).put(PLATE, "tkt7777");
+
+		assertThatThrownBy(() -> importFiles(sampleCustomers(), archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.extracting(ImportError::file, ImportError::row, ImportError::column, ImportError::message)
+						.containsExactly(
+								tuple(ARCHIVE_FILE, 3, VIN, "το VIN έχει 17 χαρακτήρες, χωρίς τα γράμματα I, O και Q"),
+								tuple(ARCHIVE_FILE, 5, PLATE, "η ίδια πινακίδα υπάρχει σε προηγούμενη γραμμή")));
+		assertRowCounts(0, 0, 0, 0, 0);
+	}
+
+	// Instead of the database's unique-index error.
+	@Test
+	void refusesAPlateAnotherVehicleAlreadyHas() {
+		importSample();
+		// The first vehicle stays in the database but is not in this file.
+		List<Map<String, Object>> archive = new ArrayList<>(sampleArchive().subList(1, 8));
+		archive.get(0).put(PLATE, "αβε1001");
+
+		assertThatThrownBy(() -> importFiles(sampleCustomers(), archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.extracting(ImportError::file, ImportError::row, ImportError::column, ImportError::message)
+						.containsExactly(tuple(ARCHIVE_FILE, 2, PLATE,
+								"η πινακίδα ανήκει ήδη σε άλλο όχημα (VIN SYNTHVH0000000001)")));
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000002")).get().extracting(Vehicle::getPlate)
+				.isEqualTo("TST1002");
 	}
 
 	@Test

@@ -32,6 +32,8 @@ import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
 import gr.insuranceoffice.service.OwnershipService;
 import gr.insuranceoffice.service.OwnershipService.Share;
+import gr.insuranceoffice.service.VehicleService;
+import gr.insuranceoffice.util.TextNormalizationUtils;
 
 /**
  * Imports the office's two Excel files (SPEC §10): the customer details, and
@@ -43,11 +45,12 @@ import gr.insuranceoffice.service.OwnershipService.Share;
  * than duplicates: rows are matched by natural key (ΑΦΜ, VIN, policy number,
  * intermediary name) and overwritten from the file.
  * <p>
- * No normalization or business rule is repeated here. Plates are normalized
- * by {@link Vehicle}'s callbacks and search columns by the database, the
- * ownership rule is checked by {@link OwnershipService}, and a rule the
- * database enforces, such as a policy ending after it starts, is reported as
- * a refused row.
+ * No normalization or business rule is repeated here. Plates and VINs are
+ * normalized by {@link Vehicle}'s setters and callbacks through
+ * {@link TextNormalizationUtils}, search columns by the database, the VIN
+ * format is {@link VehicleService#isVin}, the ownership rule is checked by
+ * {@link OwnershipService}, and a rule the database enforces, such as a policy
+ * ending after it starts, is reported as a refused row.
  */
 @Service
 public class ExcelImporterService {
@@ -218,14 +221,33 @@ public class ExcelImporterService {
 	}
 
 	private void importArchiveRow(ExcelRow row, Run run) {
-		String vin = row.requiredText(VIN);
+		// As Vehicle stores it, so that "wvw…" and "WVW…" are one VIN, here and
+		// against the database (Task 17).
+		String vin = TextNormalizationUtils.storedVin(row.requiredText(VIN));
+		String plate = row.requiredText(PLATE);
 		String policyNumber = row.requiredText(POLICY_NUMBER);
-		Consumer<Vehicle> vehicleFields = readVehicleFields(row, vin);
+		Consumer<Vehicle> vehicleFields = readVehicleFields(row, vin, plate);
 		Consumer<Policy> policyFields = readPolicyFields(row, policyNumber);
 		List<Owner> owners = readOwners(row, run);
 		String intermediaryName = row.text(INTERMEDIARY);
+		if (vin != null && !VehicleService.isVin(vin)) {
+			row.reject(VIN, "το VIN έχει 17 χαρακτήρες, χωρίς τα γράμματα I, O και Q");
+		}
 		if (vin != null && !run.vins.add(vin)) {
 			row.reject(VIN, "το ίδιο VIN υπάρχει σε προηγούμενη γραμμή");
+		}
+		// Compared as the unique index compares them: ΑΒΕ1234, abe1234 and
+		// ABE1234 are one plate. A re-import finds its own vehicle, by VIN.
+		if (plate != null) {
+			String plateKey = TextNormalizationUtils.normalizePlate(plate);
+			if (!run.plates.add(plateKey)) {
+				row.reject(PLATE, "η ίδια πινακίδα υπάρχει σε προηγούμενη γραμμή");
+			} else {
+				vehicleRepository.findByPlateNormalized(plateKey)
+						.filter(other -> !other.getVin().equals(vin))
+						.ifPresent(other -> row.reject(PLATE,
+								"η πινακίδα ανήκει ήδη σε άλλο όχημα (VIN " + other.getVin() + ")"));
+			}
 		}
 		if (policyNumber != null && !run.policyNumbers.add(policyNumber)) {
 			row.reject(POLICY_NUMBER, "ο ίδιος αριθμός συμβολαίου υπάρχει σε προηγούμενη γραμμή");
@@ -246,8 +268,7 @@ public class ExcelImporterService {
 		policyRepository.save(policy);
 	}
 
-	private static Consumer<Vehicle> readVehicleFields(ExcelRow row, String vin) {
-		String plate = row.requiredText(PLATE);
+	private static Consumer<Vehicle> readVehicleFields(ExcelRow row, String vin, String plate) {
 		String brand = row.requiredText(BRAND);
 		String model = row.requiredText(MODEL);
 		LocalDate firstRegistration = row.requiredDate(FIRST_REGISTRATION);
@@ -426,6 +447,8 @@ public class ExcelImporterService {
 		// Natural keys seen in the files, to catch a key repeated on a later row.
 		final Set<String> customerTaxIds = new HashSet<>();
 		final Set<String> vins = new HashSet<>();
+		// As plate_normalized.
+		final Set<String> plates = new HashSet<>();
 		final Set<String> policyNumbers = new HashSet<>();
 
 		final Map<String, Customer> customersByTaxId = new HashMap<>();

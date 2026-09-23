@@ -128,26 +128,51 @@ class TextNormalizationUtilsTest {
 	}
 
 	@Nested
-	class StripPlateSeparators {
+	class StoredPlate {
 
 		@ParameterizedTest
 		@ValueSource(strings = { "ΝΚΝ-7777", "ΝΚΝ 7777", " ΝΚΝ - 7777 ", "ΝΚΝ–7777", "ΝΚΝ\u00a07777", "ΝΚΝ7777" })
 		void removesDashesAndSpaces(String input) {
-			assertThat(TextNormalizationUtils.stripPlateSeparators(input)).isEqualTo("ΝΚΝ7777");
+			assertThat(TextNormalizationUtils.storedPlate(input)).isEqualTo("ΝΚΝ7777");
 		}
 
-		// Unlike normalizePlate, which only feeds the search column.
+		// Task 17: capitals and no accents, as normalizeText gives them.
 		@Test
-		void keepsTheLettersAsTyped() {
-			assertThat(TextNormalizationUtils.stripPlateSeparators("ΝΚΝ-7777")).isEqualTo("ΝΚΝ7777");
-			assertThat(TextNormalizationUtils.stripPlateSeparators("nza-8812")).isEqualTo("nza8812");
-			assertThat(TextNormalizationUtils.stripPlateSeparators("ΑΒΓ-1234")).isEqualTo("ΑΒΓ1234");
-			assertThat(TextNormalizationUtils.stripPlateSeparators("ΕΣ-12345")).isEqualTo("ΕΣ12345");
+		void upperCasesAndRemovesAccents() {
+			assertThat(TextNormalizationUtils.storedPlate("νκν-1234")).isEqualTo("ΝΚΝ1234");
+			assertThat(TextNormalizationUtils.storedPlate("άβε1234")).isEqualTo("ΑΒΕ1234");
+			assertThat(TextNormalizationUtils.storedPlate("nza-8812")).isEqualTo("NZA8812");
+		}
+
+		// Unlike normalizePlate, which only feeds the search column: Greek
+		// stays Greek, Latin stays Latin, Greek-only letters stay.
+		@Test
+		void keepsTheAlphabetAsTyped() {
+			assertThat(TextNormalizationUtils.storedPlate("abe1234")).isEqualTo("\u0041\u0042\u0045" + "1234");
+			assertThat(TextNormalizationUtils.storedPlate("αβε1234")).isEqualTo("\u0391\u0392\u0395" + "1234");
+			assertThat(TextNormalizationUtils.storedPlate("ΑΒΓ-1234")).isEqualTo("ΑΒΓ1234");
+			assertThat(TextNormalizationUtils.storedPlate("ΕΣ-12345")).isEqualTo("ΕΣ12345");
 		}
 
 		@Test
 		void returnsNullForNull() {
-			assertThat(TextNormalizationUtils.stripPlateSeparators(null)).isNull();
+			assertThat(TextNormalizationUtils.storedPlate(null)).isNull();
+		}
+
+	}
+
+	@Nested
+	class StoredVin {
+
+		@Test
+		void upperCases() {
+			assertThat(TextNormalizationUtils.storedVin("wvwzzz1kzaw000001")).isEqualTo("WVWZZZ1KZAW000001");
+			assertThat(TextNormalizationUtils.storedVin("WVWZZZ1KZAW000001")).isEqualTo("WVWZZZ1KZAW000001");
+		}
+
+		@Test
+		void returnsNullForNull() {
+			assertThat(TextNormalizationUtils.storedVin(null)).isNull();
 		}
 
 	}

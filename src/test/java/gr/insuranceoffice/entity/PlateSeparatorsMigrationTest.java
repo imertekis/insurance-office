@@ -38,7 +38,8 @@ class PlateSeparatorsMigrationTest {
 			insert(jdbc, "WVWZZZ1KZAW000005", "ΕΣ-12345"); // Greek-only letters stay
 			insert(jdbc, "WVWZZZ1KZAW000006", "nza-8812"); // case stays
 
-			flyway(dataSource, "latest").migrate();
+			// V4 only: V6 (Task 17) upper-cases the plates on top.
+			flyway(dataSource, "4").migrate();
 
 			List<String> plates = jdbc.queryForList("SELECT plate FROM vehicle ORDER BY vin", String.class);
 			assertThat(plates).containsExactly("ΝΚΝ7777", "ΑΒΕ1234", "ΚΜΝ4321", "ΗΚΝ9012", "ΕΣ12345", "nza8812");
