@@ -327,6 +327,21 @@ class ExcelImporterServiceTest {
 		assertRowCounts(0, 0, 0, 0, 0);
 	}
 
+	// REVIEW-07 finding 4. In small letters, so it also shows the VIN is
+	// compared as stored, in capitals.
+	@Test
+	void refusesAVinRepeatedInTheFile() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(1).put(VIN, "synthvh0000000001");
+
+		assertThatThrownBy(() -> importFiles(sampleCustomers(), archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.extracting(ImportError::file, ImportError::row, ImportError::column, ImportError::message)
+						.containsExactly(
+								tuple(ARCHIVE_FILE, 3, VIN, "το ίδιο VIN υπάρχει σε προηγούμενη γραμμή")));
+		assertRowCounts(0, 0, 0, 0, 0);
+	}
+
 	// Instead of the database's unique-index error.
 	@Test
 	void refusesAPlateAnotherVehicleAlreadyHas() {

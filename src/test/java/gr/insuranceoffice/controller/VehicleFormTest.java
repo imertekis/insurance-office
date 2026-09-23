@@ -141,6 +141,19 @@ class VehicleFormTest {
 		assertThat(vehicleRepository.count()).isEqualTo(1);
 	}
 
+	// REVIEW-07 finding 4: the check sees the VIN as it would be stored.
+	@Test
+	void refusesAVinAlreadyUsedTypedInSmallLetters() throws Exception {
+		mockMvc.perform(form("/vehicles", valid())).andExpect(status().is3xxRedirection());
+
+		MultiValueMap<String, String> sameVinSmall = valid();
+		sameVinSmall.set("vin", "wvwzzz1kzaw123456");
+		sameVinSmall.set("plate", "ΚΜΝ-4321");
+
+		assertThat(html(form("/vehicles", sameVinSmall))).contains("Υπάρχει ήδη όχημα με αυτό το VIN.");
+		assertThat(vehicleRepository.count()).isEqualTo(1);
+	}
+
 	// CLAUDE.md §5: ΑΒΕ-1234 and ABE-1234 are the same plate.
 	@Test
 	void refusesTheSamePlateWrittenInLatinLetters() throws Exception {
