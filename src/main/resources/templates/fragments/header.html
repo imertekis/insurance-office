@@ -4,50 +4,95 @@
 	<!-- The single search box (SPEC §6, DECISIONS §3): one input, no type
 	     dropdown. On every page, so a search always starts from where the
 	     clerk is. Pages include it with
-	     <nav th:replace="~{fragments/header :: header('Λήξεις')}"></nav> -->
-	<nav th:fragment="header(active)" class="navbar navbar-expand bg-body-tertiary border-bottom mb-4">
+	     <nav th:replace="~{fragments/header :: header('Λήξεις')}"></nav>
+
+	     Task 16b: one row from xl up. Below it, two rows by design: brand and
+	     hamburger, then the search at full width, always visible; the menus
+	     and the user fold behind the hamburger. The two .header-collapse
+	     parts sit either side of the search on desktop, and after it (order-1)
+	     on narrower screens. -->
+	<nav th:fragment="header(active)" class="navbar navbar-expand-xl bg-body-tertiary border-bottom mb-4"
+		th:with="expired=${active == 'Λήξεις' and dashboard != null and dashboard.period.expired}">
 		<div class="container">
 			<a class="navbar-brand" th:href="@{/}">Ασφαλιστικό Γραφείο</a>
-			<ul class="navbar-nav me-auto">
-				<li class="nav-item">
-					<a class="nav-link" th:href="@{/}" th:classappend="${active == 'Λήξεις'} ? 'active'"
-						th:attrappend="aria-current=${active == 'Λήξεις'} ? 'page'">Λήξεις</a>
-				</li>
-				<!-- Task 15: the lists, to browse instead of search. -->
-				<li class="nav-item">
-					<a class="nav-link" th:href="@{/customers}" th:classappend="${active == 'Πελάτες'} ? 'active'"
-						th:attrappend="aria-current=${active == 'Πελάτες'} ? 'page'">Πελάτες</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" th:href="@{/vehicles}" th:classappend="${active == 'Οχήματα'} ? 'active'"
-						th:attrappend="aria-current=${active == 'Οχήματα'} ? 'page'">Οχήματα</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" th:href="@{/policies}" th:classappend="${active == 'Συμβόλαια'} ? 'active'"
-						th:attrappend="aria-current=${active == 'Συμβόλαια'} ? 'page'">Συμβόλαια</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" th:href="@{/customers/new}"
-						th:classappend="${active == 'Νέος πελάτης'} ? 'active'">Νέος πελάτης</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link" th:href="@{/vehicles/new}"
-						th:classappend="${active == 'Νέο όχημα'} ? 'active'">Νέο όχημα</a>
-				</li>
-			</ul>
-			<form class="d-flex me-3" role="search" method="get" th:action="@{/search}">
+			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".header-collapse"
+				aria-controls="header-menus header-user" aria-expanded="false" aria-label="Μενού">
+				<span class="navbar-toggler-icon"></span>
+			</button>
+
+			<div class="collapse navbar-collapse header-collapse flex-grow-0 order-1 order-xl-0" id="header-menus">
+				<ul class="navbar-nav">
+					<!-- The home screen (Task 8) is the renewals to do, 30 days by default. -->
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+							aria-expanded="false"
+							th:classappend="${active == 'Λήξεις' or active == 'Συμβόλαια'} ? 'active'">Συμβόλαια</a>
+						<ul class="dropdown-menu">
+							<li><a class="dropdown-item" th:href="@{/}"
+								th:classappend="${active == 'Λήξεις' and !expired} ? 'active'"
+								th:attrappend="aria-current=${active == 'Λήξεις' and !expired} ? 'page'">Προς ανανέωση</a></li>
+							<li><a class="dropdown-item" th:href="@{/(period='expired')}"
+								th:classappend="${expired} ? 'active'"
+								th:attrappend="aria-current=${expired} ? 'page'">Ληγμένα</a></li>
+							<li><a class="dropdown-item" th:href="@{/policies}"
+								th:classappend="${active == 'Συμβόλαια'} ? 'active'"
+								th:attrappend="aria-current=${active == 'Συμβόλαια'} ? 'page'">Όλα τα συμβόλαια</a></li>
+						</ul>
+					</li>
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+							aria-expanded="false"
+							th:classappend="${active == 'Πελάτες' or active == 'Νέος πελάτης'} ? 'active'">Πελάτες</a>
+						<ul class="dropdown-menu">
+							<li><a class="dropdown-item" th:href="@{/customers}"
+								th:classappend="${active == 'Πελάτες'} ? 'active'"
+								th:attrappend="aria-current=${active == 'Πελάτες'} ? 'page'">Όλοι</a></li>
+							<li><a class="dropdown-item" th:href="@{/customers/new}"
+								th:classappend="${active == 'Νέος πελάτης'} ? 'active'">Νέος</a></li>
+						</ul>
+					</li>
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+							aria-expanded="false"
+							th:classappend="${active == 'Οχήματα' or active == 'Νέο όχημα'} ? 'active'">Οχήματα</a>
+						<ul class="dropdown-menu">
+							<li><a class="dropdown-item" th:href="@{/vehicles}"
+								th:classappend="${active == 'Οχήματα'} ? 'active'"
+								th:attrappend="aria-current=${active == 'Οχήματα'} ? 'page'">Όλα</a></li>
+							<li><a class="dropdown-item" th:href="@{/vehicles/new}"
+								th:classappend="${active == 'Νέο όχημα'} ? 'active'">Νέο</a></li>
+						</ul>
+					</li>
+				</ul>
+			</div>
+
+			<form class="d-flex col-12 col-xl mt-2 mt-xl-0 mx-xl-3" role="search" method="get" th:action="@{/search}">
 				<label class="visually-hidden" for="q">Αναζήτηση</label>
-				<input class="form-control me-2" type="search" id="q" name="q" style="min-width: 22rem"
+				<input class="form-control me-2" type="search" id="q" name="q"
 					placeholder="Πινακίδα, ΑΦΜ, όνομα, VIN, τηλέφωνο, αρ. συμβολαίου"
 					th:value="${searchQuery}">
-				<button class="btn btn-outline-primary" type="submit">Αναζήτηση</button>
+				<button class="btn btn-outline-primary text-nowrap" type="submit">Αναζήτηση</button>
 			</form>
-			<!-- Who is logged in, and the way out (SPEC §2). -->
-			<div class="d-flex align-items-center" th:if="${currentUser != null}">
-				<span class="navbar-text me-2" th:text="${currentUser}">Χρήστης</span>
-				<form method="post" th:action="@{/logout}">
-					<button class="btn btn-sm btn-outline-secondary" type="submit">Αποσύνδεση</button>
-				</form>
+
+			<!-- Who is logged in, and the way out (SPEC §2). A long name is cut
+			     short rather than pushing the header onto a second line. -->
+			<div class="collapse navbar-collapse header-collapse flex-grow-0 order-1 order-xl-0" id="header-user"
+				th:if="${currentUser != null}">
+				<ul class="navbar-nav">
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+							aria-expanded="false" th:title="${currentUser}"><span
+								class="d-inline-block text-truncate align-bottom" style="max-width: 12rem"
+								th:text="${currentUser}">Χρήστης</span></a>
+						<ul class="dropdown-menu dropdown-menu-end">
+							<li>
+								<form method="post" th:action="@{/logout}">
+									<button class="dropdown-item" type="submit">Αποσύνδεση</button>
+								</form>
+							</li>
+						</ul>
+					</li>
+				</ul>
 			</div>
 		</div>
 	</nav>

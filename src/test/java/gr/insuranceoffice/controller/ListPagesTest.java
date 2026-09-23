@@ -444,10 +444,28 @@ class ListPagesTest {
 
 		@Test
 		void marksTheListTheClerkIsOn() throws Exception {
-			assertThat(html("/customers")).contains("<a class=\"nav-link active\" href=\"/customers\"")
-					.doesNotContain("<a class=\"nav-link active\" href=\"/vehicles\"");
-			assertThat(html("/vehicles")).contains("<a class=\"nav-link active\" href=\"/vehicles\"");
-			assertThat(html("/policies")).contains("<a class=\"nav-link active\" href=\"/policies\"");
+			assertThat(html("/customers")).contains("<a class=\"dropdown-item active\" href=\"/customers\"")
+					.doesNotContain("<a class=\"dropdown-item active\" href=\"/vehicles\"");
+			assertThat(html("/vehicles")).contains("<a class=\"dropdown-item active\" href=\"/vehicles\"");
+			assertThat(html("/policies")).contains("<a class=\"dropdown-item active\" href=\"/policies\"");
+		}
+
+		// Task 16b: the links grouped under Συμβόλαια, Πελάτες and Οχήματα.
+		@Test
+		void groupsTheLinksInDropdownMenus() throws Exception {
+			assertThat(html("/customers")).contains(">Συμβόλαια</a>", ">Πελάτες</a>", ">Οχήματα</a>",
+					"href=\"/\"", "href=\"/?period=expired\"", "href=\"/policies\"", "href=\"/customers\"",
+					"href=\"/customers/new\"", "href=\"/vehicles\"", "href=\"/vehicles/new\"",
+					"data-bs-toggle=\"dropdown\"", "bootstrap.bundle.min.js");
+		}
+
+		@Test
+		void tellsTheExpiredViewFromTheRenewalsToDo() throws Exception {
+			assertThat(html("/?period=expired"))
+					.contains("<a class=\"dropdown-item active\" href=\"/?period=expired\"")
+					.doesNotContain("<a class=\"dropdown-item active\" href=\"/\"");
+			assertThat(html("/")).contains("<a class=\"dropdown-item active\" href=\"/\"")
+					.doesNotContain("<a class=\"dropdown-item active\" href=\"/?period=expired\"");
 		}
 
 	}

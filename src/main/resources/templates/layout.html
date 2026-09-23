@@ -9,6 +9,9 @@
 	<!-- Served from webjars: the office LAN may be offline. -->
 	<link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
 	<link rel="stylesheet" th:href="@{/webjars/flatpickr/dist/flatpickr.min.css}">
+	<!-- The header's dropdowns and hamburger (Task 16b). With Popper, for
+	     the dropdowns; deferred, so it runs once the page is parsed. -->
+	<script defer th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 </head>
 <body>
 	<!-- The navbar with the search box lives in fragments/header.html. -->
