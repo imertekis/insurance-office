@@ -10,11 +10,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -254,6 +259,57 @@ class VehicleFormTest {
 		assertThat(vehicleRepository.count()).isZero();
 	}
 
+	// Task 16d-1: every number the same way, a text field with the phone's
+	// number keypad, no spinner arrows; dates show what to type.
+	@Test
+	void showsNumbersAsTextWithTheNumberKeypadAndDatesWithAPlaceholder() throws Exception {
+		String html = html(get("/vehicles/new"));
+
+		assertThat(html).doesNotContain("type=\"number\"");
+		for (String integer : List.of("seats", "engineCc", "co2", "weightKg")) {
+			assertThat(input(html, integer)).as(integer).contains("type=\"text\"", "inputmode=\"numeric\"");
+		}
+		assertThat(input(html, "powerKw")).contains("type=\"text\"", "inputmode=\"decimal\"");
+		assertThat(input(html, "brand")).doesNotContain("inputmode");
+		for (String date : List.of("firstRegistration", "licenseIssueDate")) {
+			assertThat(input(html, date)).as(date).contains("js-date", "placeholder=\"ηη/μμ/εεεε\"");
+		}
+		// Shown in capitals while typed, as they are stored (Task 17).
+		assertThat(input(html, "plate")).contains("text-uppercase");
+		assertThat(input(html, "vin")).contains("text-uppercase");
+		assertThat(input(html, "brand")).doesNotContain("text-uppercase");
+	}
+
+	// The Greek number keypad of a phone types a comma.
+	@ParameterizedTest
+	@ValueSource(strings = { "12,5", "12.5", " 12,50 " })
+	void readsThePowerWithACommaOrAPoint(String typed) throws Exception {
+		MultiValueMap<String, String> values = valid();
+		values.set("powerKw", typed);
+
+		mockMvc.perform(form("/vehicles", values)).andExpect(status().is3xxRedirection());
+
+		assertThat(vehicleRepository.findByVin("WVWZZZ1KZAW123456").orElseThrow().getPowerKw())
+				.isEqualTo(new BigDecimal("12.50"));
+	}
+
+	// The browser no longer stops a word in a number field; the message is
+	// beside that field.
+	@ParameterizedTest
+	@ValueSource(strings = { "seats", "engineCc", "powerKw", "co2", "weightKg" })
+	void asksForANumberBesideTheFieldThatHasAWord(String field) throws Exception {
+		MultiValueMap<String, String> values = valid();
+		values.set(field, "χίλια");
+
+		String html = html(form("/vehicles", values));
+
+		assertThat(input(html, field)).contains("is-invalid");
+		assertThat(html).containsPattern(
+				"id=\"" + field + "\"[^>]*>\\s*<div class=\"invalid-feedback\">Συμπληρώστε αριθμό\\.</div>");
+		assertThat(input(html, "brand")).doesNotContain("is-invalid");
+		assertThat(vehicleRepository.count()).isZero();
+	}
+
 	@Test
 	void editsAnExistingVehicle() throws Exception {
 		mockMvc.perform(form("/vehicles", valid())).andExpect(status().is3xxRedirection());
@@ -350,6 +406,13 @@ class VehicleFormTest {
 
 	private static MockHttpServletRequestBuilder form(String url, MultiValueMap<String, String> values) {
 		return post(url).with(csrf()).params(values);
+	}
+
+	/** The input tag of one field, as rendered. */
+	private static String input(String html, String name) {
+		Matcher input = Pattern.compile("<input[^>]*name=\"" + name + "\"[^>]*>").matcher(html);
+		assertThat(input.find()).as(name).isTrue();
+		return input.group();
 	}
 
 	private String html(MockHttpServletRequestBuilder request) throws Exception {

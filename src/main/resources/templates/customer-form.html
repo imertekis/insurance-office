@@ -12,52 +12,77 @@
 			<p class="mb-0" th:each="problem : ${problems}" th:text="${problem}">Πρόβλημα</p>
 		</div>
 
-		<form method="post" th:action="${isNew} ? @{/customers} : @{/customers/{id}(id=${c.id})}" class="row g-3">
+		<form method="post" th:action="${isNew} ? @{/customers} : @{/customers/{id}(id=${c.id})}">
 			<!-- Optimistic locking (Task 7): the version the clerk started from. -->
 			<input type="hidden" name="version" th:value="${c.version}">
 			<input type="hidden" name="id" th:value="${c.id}">
 
-			<div th:replace="~{fragments/form-fields :: field('lastName', 'Επώνυμο *', 'text', ${c.lastName}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('firstName', 'Όνομα', 'text', ${c.firstName}, 'col-md-6')}"></div>
+			<!-- The sections of the card (SPEC §7.3), each in a card of its own
+			     (Task 16d-1). -->
+			<section class="card form-section">
+				<div class="card-header"><h2>Στοιχεία</h2></div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div th:replace="~{fragments/form-fields :: field('lastName', 'Επώνυμο *', 'text', ${c.lastName}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('firstName', 'Όνομα', 'text', ${c.firstName}, 'col-md-6')}"></div>
 
-			<div class="col-md-6">
-				<label class="form-label" for="entityType">Είδος προσώπου</label>
-				<select class="form-select" id="entityType" name="entityType"
-					th:classappend="${errors != null and errors.containsKey('entityType')} ? 'is-invalid'">
-					<option value="INDIVIDUAL" th:selected="${c.entityType != 'COMPANY'}">Φυσικό πρόσωπο</option>
-					<option value="COMPANY" th:selected="${c.entityType == 'COMPANY'}">Νομικό πρόσωπο</option>
-				</select>
-				<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('entityType')}"
-					th:text="${errors.get('entityType')}">Μήνυμα</div>
-			</div>
-			<div th:replace="~{fragments/form-fields :: field('fatherName', 'Πατρώνυμο', 'text', ${c.fatherName}, 'col-md-6')}"></div>
+						<div class="col-md-6">
+							<label class="form-label" for="entityType">Είδος προσώπου</label>
+							<select class="form-select" id="entityType" name="entityType"
+								th:classappend="${errors != null and errors.containsKey('entityType')} ? 'is-invalid'">
+								<option value="INDIVIDUAL" th:selected="${c.entityType != 'COMPANY'}">Φυσικό πρόσωπο</option>
+								<option value="COMPANY" th:selected="${c.entityType == 'COMPANY'}">Νομικό πρόσωπο</option>
+							</select>
+							<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('entityType')}"
+								th:text="${errors.get('entityType')}">Μήνυμα</div>
+						</div>
+						<div th:replace="~{fragments/form-fields :: field('fatherName', 'Πατρώνυμο', 'text', ${c.fatherName}, 'col-md-6')}"></div>
 
-			<div th:replace="~{fragments/form-fields :: field('taxId', 'ΑΦΜ', 'text', ${c.taxId}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('taxOffice', 'Δ.Ο.Υ.', 'text', ${c.taxOffice}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('taxId', 'ΑΦΜ', 'text', ${c.taxId}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('taxOffice', 'Δ.Ο.Υ.', 'text', ${c.taxOffice}, 'col-md-6')}"></div>
 
-			<div th:replace="~{fragments/form-fields :: field('birthDate', 'Ημ. Γέννησης', 'date', ${c.birthDate}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('licenseDate', 'Ημ. Διπλώματος', 'date', ${c.licenseDate}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('birthDate', 'Ημ. Γέννησης', 'date', ${c.birthDate}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('licenseDate', 'Ημ. Διπλώματος', 'date', ${c.licenseDate}, 'col-md-6')}"></div>
+						<p class="text-body-secondary small mb-0">
+							Το ΑΦΜ δεν είναι υποχρεωτικό· αν λείπει, η εγγραφή αποθηκεύεται με προειδοποίηση.
+						</p>
+					</div>
+				</div>
+			</section>
 
-			<div th:replace="~{fragments/form-fields :: field('street', 'Οδός', 'text', ${c.street}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('city', 'Πόλη', 'text', ${c.city}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('postalCode', 'Τ.Κ.', 'text', ${c.postalCode}, 'col-md-6')}"></div>
+			<section class="card form-section">
+				<div class="card-header"><h2>Διεύθυνση</h2></div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div th:replace="~{fragments/form-fields :: field('street', 'Οδός', 'text', ${c.street}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('city', 'Πόλη', 'text', ${c.city}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('postalCode', 'Τ.Κ.', 'text', ${c.postalCode}, 'col-md-6')}"></div>
+					</div>
+				</div>
+			</section>
 
-			<div th:replace="~{fragments/form-fields :: field('mobile', 'Κινητό', 'text', ${c.mobile}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('phone', 'Σταθερό', 'text', ${c.phone}, 'col-md-6')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('email', 'Email', 'text', ${c.email}, 'col-md-6')}"></div>
+			<section class="card form-section">
+				<div class="card-header"><h2>Επικοινωνία</h2></div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div th:replace="~{fragments/form-fields :: field('mobile', 'Κινητό', 'text', ${c.mobile}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('phone', 'Σταθερό', 'text', ${c.phone}, 'col-md-6')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('email', 'Email', 'text', ${c.email}, 'col-md-6')}"></div>
+					</div>
+				</div>
+			</section>
 
-			<div class="col-12">
-				<label class="form-label" for="notes">Σημειώσεις</label>
-				<textarea class="form-control" id="notes" name="notes" rows="3" th:text="${c.notes}"></textarea>
-			</div>
+			<section class="card form-section">
+				<div class="card-header"><h2><label for="notes">Σημειώσεις</label></h2></div>
+				<div class="card-body">
+					<textarea class="form-control" id="notes" name="notes" rows="3" th:text="${c.notes}"></textarea>
+				</div>
+			</section>
 
-			<div class="col-12 d-flex gap-2">
+			<div class="d-flex gap-2">
 				<button class="btn btn-primary" type="submit">Αποθήκευση</button>
 				<a class="btn btn-outline-secondary" th:href="${isNew} ? @{/} : @{/customers/{id}(id=${c.id})}">Άκυρο</a>
 			</div>
-			<p class="text-body-secondary small mb-0">
-				Το ΑΦΜ δεν είναι υποχρεωτικό· αν λείπει, η εγγραφή αποθηκεύεται με προειδοποίηση.
-			</p>
 		</form>
 	</main>
 	<div th:replace="~{layout :: dateScripts}"></div>

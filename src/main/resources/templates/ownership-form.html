@@ -24,96 +24,106 @@
 				aria-hidden="true">Ανανέωση</button>
 			<input type="hidden" name="vehicleVersion" th:value="${o.vehicleVersion}">
 
-			<div class="alert alert-light border" th:if="${o.rows.isEmpty()}">
-				Το όχημα δεν έχει τρέχοντες ιδιοκτήτες. Προσθέστε έναν με την αναζήτηση παρακάτω.
-			</div>
+			<!-- Each section in a card of its own (Task 16d-1). -->
+			<section class="card form-section">
+				<div class="card-header"><h2>Τρέχοντες ιδιοκτήτες</h2></div>
+				<div class="card-body">
+					<div class="alert alert-light border" th:if="${o.rows.isEmpty()}">
+						Το όχημα δεν έχει τρέχοντες ιδιοκτήτες. Προσθέστε έναν με την αναζήτηση παρακάτω.
+					</div>
 
-			<div class="table-responsive" th:unless="${o.rows.isEmpty()}">
-				<table class="table align-middle" id="owners">
-					<thead>
-						<tr>
-							<th scope="col">Ονοματεπώνυμο</th>
-							<th scope="col">ΑΦΜ</th>
-							<th scope="col">Κινητό</th>
-							<th scope="col" style="width: 10rem">Ποσοστό %</th>
-							<th scope="col">Κύριος</th>
-							<th scope="col"></th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr th:each="row, iter : ${o.rows}"
-							th:with="field=|percentages[${iter.index}]|, error=${errors != null ? errors.get(field) : null}">
-							<td>
-								<input type="hidden" name="customerId" th:value="${row.customerId}">
-								<span th:text="${row.firstName == null} ? ${row.lastName} : |${row.lastName} ${row.firstName}|">Αλεξίου Μαρία</span>
-							</td>
-							<td th:text="${row.taxId} ?: '—'">900000080</td>
-							<td>
-								<span th:if="${row.mobile != null}" th:text="${row.mobile}">6900000001</span>
-								<span th:if="${row.mobile == null}" class="badge text-bg-warning">Λείπει</span>
-							</td>
-							<td>
-								<input class="form-control" type="text" inputmode="decimal" name="percentage"
-									th:value="${row.percentage}" th:attr="aria-label=|Ποσοστό ${row.lastName}|"
-									th:classappend="${error != null} ? 'is-invalid'">
-								<div class="invalid-feedback" th:if="${error != null}" th:text="${error}">Μήνυμα</div>
-							</td>
-							<td>
-								<input class="form-check-input" type="radio" name="primary" th:value="${row.customerId}"
-									th:checked="${row.customerId == o.primaryCustomerId}"
-									th:attr="aria-label=|Κύριος ιδιοκτήτης ${row.lastName}|">
-							</td>
-							<td class="text-end">
-								<button type="submit" name="remove" th:value="${row.customerId}"
-									class="btn btn-sm btn-outline-danger">Αφαίρεση</button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+					<div class="table-responsive" th:unless="${o.rows.isEmpty()}">
+						<table class="table align-middle" id="owners">
+							<thead>
+								<tr>
+									<th scope="col">Ονοματεπώνυμο</th>
+									<th scope="col">ΑΦΜ</th>
+									<th scope="col">Κινητό</th>
+									<th scope="col" style="width: 10rem">Ποσοστό %</th>
+									<th scope="col">Κύριος</th>
+									<th scope="col"></th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="row, iter : ${o.rows}"
+									th:with="field=|percentages[${iter.index}]|, error=${errors != null ? errors.get(field) : null}">
+									<td>
+										<input type="hidden" name="customerId" th:value="${row.customerId}">
+										<span th:text="${row.firstName == null} ? ${row.lastName} : |${row.lastName} ${row.firstName}|">Αλεξίου Μαρία</span>
+									</td>
+									<td th:text="${row.taxId} ?: '—'">900000080</td>
+									<td>
+										<span th:if="${row.mobile != null}" th:text="${row.mobile}">6900000001</span>
+										<span th:if="${row.mobile == null}" class="badge text-bg-warning">Λείπει</span>
+									</td>
+									<td>
+										<input class="form-control" type="text" inputmode="decimal" name="percentage"
+											th:value="${row.percentage}" th:attr="aria-label=|Ποσοστό ${row.lastName}|"
+											th:classappend="${error != null} ? 'is-invalid'">
+										<div class="invalid-feedback" th:if="${error != null}" th:text="${error}">Μήνυμα</div>
+									</td>
+									<td>
+										<input class="form-check-input" type="radio" name="primary" th:value="${row.customerId}"
+											th:checked="${row.customerId == o.primaryCustomerId}"
+											th:attr="aria-label=|Κύριος ιδιοκτήτης ${row.lastName}|">
+									</td>
+									<td class="text-end">
+										<button type="submit" name="remove" th:value="${row.customerId}"
+											class="btn btn-sm btn-outline-danger">Αφαίρεση</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 
-			<div class="row g-3 align-items-end mb-4">
-				<div class="col-md-4">
-					<label class="form-label" for="transferDate">Ημερομηνία μεταβίβασης</label>
-					<input class="form-control js-date" type="text" id="transferDate" name="transferDate"
-						th:value="${o.transferDate}"
-						th:classappend="${errors != null and errors.containsKey('transferDate')} ? 'is-invalid'">
-					<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('transferDate')}"
-						th:text="${errors.get('transferDate')}">Μήνυμα</div>
+					<div class="row g-3 align-items-end">
+						<div class="col-md-4">
+							<label class="form-label" for="transferDate">Ημερομηνία μεταβίβασης</label>
+							<input class="form-control js-date" type="text" id="transferDate" name="transferDate"
+								th:value="${o.transferDate}" placeholder="ηη/μμ/εεεε"
+								th:classappend="${errors != null and errors.containsKey('transferDate')} ? 'is-invalid'">
+							<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('transferDate')}"
+								th:text="${errors.get('transferDate')}">Μήνυμα</div>
+						</div>
+						<p class="col-md-8 text-body-secondary small mb-0">
+							Όποιος αφαιρείται παύει να είναι ιδιοκτήτης αυτή την ημερομηνία και μένει στην καρτέλα
+							ως πρώην· όποιος προστίθεται είναι ιδιοκτήτης από αυτή την ημερομηνία.
+						</p>
+					</div>
 				</div>
-				<p class="col-md-8 text-body-secondary small mb-0">
-					Όποιος αφαιρείται παύει να είναι ιδιοκτήτης αυτή την ημερομηνία και μένει στην καρτέλα
-					ως πρώην· όποιος προστίθεται είναι ιδιοκτήτης από αυτή την ημερομηνία.
-				</p>
-			</div>
+			</section>
 
-			<h2 class="h5">Προσθήκη ιδιοκτήτη</h2>
-			<div class="d-flex gap-2 mb-2" style="max-width: 36rem">
-				<label class="visually-hidden" for="owner-search">Αναζήτηση πελάτη</label>
-				<input class="form-control" type="search" id="owner-search" name="q" th:value="${q}"
-					placeholder="ΑΦΜ ή όνομα πελάτη">
-				<button type="submit" name="action" value="search" class="btn btn-outline-primary">Αναζήτηση</button>
-			</div>
-			<p class="text-body-secondary small">
-				Αν ο πελάτης δεν υπάρχει, δημιουργήστε τον πρώτα από τη
-				<a th:href="@{/customers/new}">φόρμα νέου πελάτη</a>.
-			</p>
+			<section class="card form-section">
+				<div class="card-header"><h2>Προσθήκη ιδιοκτήτη</h2></div>
+				<div class="card-body">
+					<div class="d-flex gap-2 mb-2" style="max-width: 36rem">
+						<label class="visually-hidden" for="owner-search">Αναζήτηση πελάτη</label>
+						<input class="form-control" type="search" id="owner-search" name="q" th:value="${q}"
+							placeholder="ΑΦΜ ή όνομα πελάτη">
+						<button type="submit" name="action" value="search" class="btn btn-outline-primary">Αναζήτηση</button>
+					</div>
+					<p class="text-body-secondary small mb-0">
+						Αν ο πελάτης δεν υπάρχει, δημιουργήστε τον πρώτα από τη
+						<a th:href="@{/customers/new}">φόρμα νέου πελάτη</a>.
+					</p>
 
-			<div th:if="${results != null}" class="mb-4">
-				<p th:if="${results.isEmpty()}" class="text-body-secondary">Κανένας πελάτης δεν βρέθηκε.</p>
-				<table class="table table-sm align-middle" id="results" th:unless="${results.isEmpty()}">
-					<tbody>
-						<tr th:each="hit : ${results}">
-							<td th:text="${hit.firstName == null} ? ${hit.lastName} : |${hit.lastName} ${hit.firstName}|">Βασιλείου Νίκος</td>
-							<td th:text="${hit.taxId} ?: '—'">900000091</td>
-							<td class="text-end">
-								<button type="submit" name="add" th:value="${hit.id}"
-									class="btn btn-sm btn-outline-success">Προσθήκη</button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+					<div th:if="${results != null}" class="mt-3">
+						<p th:if="${results.isEmpty()}" class="text-body-secondary mb-0">Κανένας πελάτης δεν βρέθηκε.</p>
+						<table class="table table-sm align-middle mb-0" id="results" th:unless="${results.isEmpty()}">
+							<tbody>
+								<tr th:each="hit : ${results}">
+									<td th:text="${hit.firstName == null} ? ${hit.lastName} : |${hit.lastName} ${hit.firstName}|">Βασιλείου Νίκος</td>
+									<td th:text="${hit.taxId} ?: '—'">900000091</td>
+									<td class="text-end">
+										<button type="submit" name="add" th:value="${hit.id}"
+											class="btn btn-sm btn-outline-success">Προσθήκη</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</section>
 
 			<div class="d-flex gap-2">
 				<button type="submit" name="action" value="save" class="btn btn-primary">Αποθήκευση</button>

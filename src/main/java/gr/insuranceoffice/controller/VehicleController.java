@@ -1,10 +1,15 @@
 package gr.insuranceoffice.controller;
 
+import java.beans.PropertyEditorSupport;
+import java.math.BigDecimal;
+
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,6 +31,21 @@ public class VehicleController {
 
 	public VehicleController(VehicleService vehicleService) {
 		this.vehicleService = vehicleService;
+	}
+
+	// Task 16d-1: the power (kW), the one decimal of the form, is read with a
+	// comma or a point, "12,5" or "12.5": the Greek number keypad of a phone
+	// types a comma. Anything else is still refused as unreadable, and
+	// FormErrors asks for a number beside the field.
+	@InitBinder("vehicle")
+	void readDecimalsWithEitherMark(WebDataBinder binder) {
+		binder.registerCustomEditor(BigDecimal.class, new PropertyEditorSupport() {
+			@Override
+			public void setAsText(String text) {
+				String typed = text == null ? "" : text.strip();
+				setValue(typed.isEmpty() ? null : new BigDecimal(typed.replace(',', '.')));
+			}
+		});
 	}
 
 	// Task 15: by plate, Α-Ω unless the clerk turns it round.

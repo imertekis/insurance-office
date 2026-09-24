@@ -99,6 +99,8 @@ class OwnershipFormTest {
 				"value=\"" + TODAY + "\"")
 				.doesNotContain("Γεωργίου Άννα");
 		assertThat(html).containsPattern("value=\"" + maria.getId() + "\"[^>]*checked");
+		// Task 16d-1: the date field shows what to type.
+		assertThat(html).containsPattern("id=\"transferDate\"[^>]*placeholder=\"ηη/μμ/εεεε\"");
 		// Reached from the vehicle card (Task 9).
 		assertThat(html(get("/vehicles/{id}", vehicle.getId())))
 				.contains("href=\"/vehicles/" + vehicle.getId() + "/owners\"");

@@ -1,0 +1,106 @@
+/*
+ * Task 16d-1: what Bootstrap leaves to us. Loaded by layout :: head after
+ * Bootstrap, so it can add to it, on every page, the login page included.
+ * Every colour is a Bootstrap variable (rule of Task 16c), never a fixed
+ * value, so it follows data-bs-theme; print (16e) forces the light theme in
+ * one place.
+ */
+
+/* Room under the last thing on every page, e.g. a form's buttons, which
+   otherwise touch the bottom edge of the window. One rule, not one per page. */
+main {
+	padding-bottom: 4rem;
+}
+
+/*
+ * Fields: a border that is seen and a light background before they take
+ * focus, in both themes. Bootstrap's own border (--bs-border-color) is
+ * barely there on white, and its background is the page's. The border is
+ * the text colour faded into the page, so it is grey on white and on black.
+ * Focus, and a field with an error, keep Bootstrap's own look: its
+ * rules for them are more specific than these.
+ */
+:root {
+	--app-field-border: color-mix(in srgb, var(--bs-body-color) 35%, var(--bs-body-bg));
+}
+
+.form-control,
+.form-select {
+	border-color: var(--app-field-border);
+}
+
+.form-control:not(:focus):not(:disabled):not([readonly]),
+.form-select:not(:focus):not(:disabled) {
+	background-color: var(--bs-tertiary-bg);
+}
+
+/* Bootstrap's pale blue focus border is faint on white: the full blue. A
+   field with an error keeps its red (Bootstrap's rule is more specific). */
+.form-control:focus,
+.form-select:focus {
+	border-color: var(--bs-primary);
+}
+
+.form-check-input {
+	border-color: var(--app-field-border);
+}
+
+/*
+ * Anything clickable says so, with the mouse (hover) and with the keyboard
+ * (focus-visible, so a mouse click leaves no ring behind). Shared rules, so
+ * they hold for the tables of 16d-2 too.
+ */
+a:hover {
+	text-decoration-thickness: 2px;
+}
+
+/* A solid button only darkens a shade on hover in Bootstrap; the underline
+   is the same signal as on the links and menus. */
+.btn:hover,
+.nav-link:hover,
+.navbar-brand:hover {
+	text-decoration: underline;
+	text-underline-offset: 0.3em;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus-visible {
+	background-color: var(--bs-secondary-bg);
+	color: var(--bs-emphasis-color);
+}
+
+.dropdown-item.active:hover,
+.dropdown-item.active:focus-visible {
+	background-color: var(--bs-dropdown-link-active-bg);
+	color: var(--bs-dropdown-link-active-color);
+}
+
+a:focus-visible,
+.btn:focus-visible,
+.nav-link:focus-visible,
+.navbar-brand:focus-visible,
+.dropdown-item:focus-visible,
+.navbar-toggler:focus-visible,
+.form-check-input:focus-visible {
+	outline: 3px solid var(--bs-primary);
+	outline-offset: 2px;
+	box-shadow: none;
+}
+
+/*
+ * The sections of a form (e.g. «Ταυτότητα», «Τεχνικά»), each in its own
+ * card: a titled header and the fields below it.
+ */
+.form-section {
+	margin-bottom: 1rem;
+}
+
+.form-section > .card-header {
+	background-color: var(--bs-secondary-bg);
+}
+
+.form-section > .card-header > h2 {
+	margin-bottom: 0;
+	font-size: 1rem;
+	font-weight: 600;
+}

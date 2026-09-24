@@ -14,6 +14,10 @@
 	     theme below is dark. Downloaded anyway, so switching is instant. -->
 	<link rel="stylesheet" id="flatpickr-dark" media="not all"
 		th:href="@{/webjars/flatpickr/dist/themes/dark.css}">
+	<!-- Task 16d-1: our own rules, after Bootstrap and flatpickr so they can
+	     add to them. Colours only as Bootstrap variables, so they follow the
+	     theme below. -->
+	<link rel="stylesheet" th:href="@{/css/app.css}">
 	<!-- Task 16c: the theme is set here, inline and before <body>, so a dark
 	     page is never drawn white first. The choice is the browser's own
 	     (localStorage): auto, light or dark; auto follows the OS. The theme

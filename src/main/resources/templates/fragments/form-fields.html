@@ -6,15 +6,25 @@
 	     it is only ever rendered where it is called with th:replace, never a
 	     second time in place of the page that declares it (Task 16a). The
 	     error comes from the service, keyed by the DTO field name; what was
-	     typed stays in the input. A 'date' field renders as plain text and
-	     is picked up by the flatpickr date picker (static/js/date-picker.js)
-	     through the "js-date" class: the display becomes dd/MM/yyyy but the
-	     value submitted to the server stays ISO, unchanged. -->
+	     typed stays in the input.
+	     Every field is type="text"; the type named here only changes how it
+	     is shown and typed (Task 16d-1):
+	     - 'date': picked up by the flatpickr date picker
+	       (static/js/date-picker.js) through the "js-date" class. The display
+	       becomes dd/MM/yyyy but the value submitted stays ISO. The
+	       placeholder is copied by flatpickr to the input the clerk sees.
+	     - 'integer' / 'decimal': a number, without the browser's spinner
+	       arrows, opening the phone's number keypad (inputmode). A word is
+	       no longer blocked by the browser; the controller answers it with a
+	       message beside the field (FormErrors).
+	     - 'uppercase': shown in capitals while typed, as the server stores
+	       it (Task 17); CSS only, the letters stay in their own alphabet. -->
 	<div th:fragment="field(name, label, type, value, colClass)" th:class="${colClass}">
 		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
-		<input class="form-control" th:type="${type == 'date'} ? 'text' : ${type}" th:id="${name}" th:name="${name}" th:value="${value}"
-			th:step="${type == 'number'} ? 'any'"
-			th:classappend="${(type == 'date' ? 'js-date ' : '') + (errors != null and errors.containsKey(name) ? 'is-invalid' : '')}">
+		<input class="form-control" type="text" th:id="${name}" th:name="${name}" th:value="${value}"
+			th:attr="inputmode=${type == 'integer'} ? 'numeric' : (${type == 'decimal'} ? 'decimal' : null)"
+			th:placeholder="${type == 'date'} ? 'ηη/μμ/εεεε'"
+			th:classappend="${(type == 'date' ? 'js-date ' : '') + (type == 'uppercase' ? 'text-uppercase ' : '') + (errors != null and errors.containsKey(name) ? 'is-invalid' : '')}">
 		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
 			th:text="${errors.get(name)}">Μήνυμα</div>
 	</div>

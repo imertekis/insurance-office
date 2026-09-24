@@ -21,7 +21,7 @@
 			<p class="mb-0" th:each="problem : ${problems}" th:text="${problem}">Πρόβλημα</p>
 		</div>
 
-		<form method="post" class="row g-3"
+		<form method="post"
 			th:action="${isNew} ? @{/vehicles/{id}/policies(id=${vehicleId})} : @{/policies/{id}(id=${p.id})}">
 			<!-- Optimistic locking (Task 7): the version the clerk started from. -->
 			<input type="hidden" name="version" th:value="${p.version}">
@@ -29,70 +29,92 @@
 			<input type="hidden" name="vehicleId" th:value="${vehicleId}">
 			<input type="hidden" name="renewalOf" th:if="${renewalOf != null}" th:value="${renewalOf}">
 
-			<div th:replace="~{fragments/form-fields :: field('policyNumber', 'Αρ. Συμβολαίου *', 'text', ${p.policyNumber}, 'col-md-4')}"></div>
+			<!-- Each section in a card of its own (Task 16d-1). -->
+			<section class="card form-section">
+				<div class="card-header"><h2>Συμβόλαιο</h2></div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div th:replace="~{fragments/form-fields :: field('policyNumber', 'Αρ. Συμβολαίου *', 'text', ${p.policyNumber}, 'col-md-4')}"></div>
 
-			<!-- Suggestions from the companies on file, so one company is not
-			     spelled three ways; a new one can still be typed. -->
-			<div class="col-md-4">
-				<label class="form-label" for="insuranceCompany">Ασφαλιστική Εταιρεία *</label>
-				<input class="form-control" type="text" id="insuranceCompany" name="insuranceCompany"
-					list="insurance-companies" th:value="${p.insuranceCompany}"
-					th:classappend="${errors != null and errors.containsKey('insuranceCompany')} ? 'is-invalid'">
-				<datalist id="insurance-companies">
-					<option th:each="company : ${insuranceCompanies}" th:value="${company}"></option>
-				</datalist>
-				<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('insuranceCompany')}"
-					th:text="${errors.get('insuranceCompany')}">Μήνυμα</div>
-			</div>
+						<!-- Suggestions from the companies on file, so one company is not
+						     spelled three ways; a new one can still be typed. -->
+						<div class="col-md-4">
+							<label class="form-label" for="insuranceCompany">Ασφαλιστική Εταιρεία *</label>
+							<input class="form-control" type="text" id="insuranceCompany" name="insuranceCompany"
+								list="insurance-companies" th:value="${p.insuranceCompany}"
+								th:classappend="${errors != null and errors.containsKey('insuranceCompany')} ? 'is-invalid'">
+							<datalist id="insurance-companies">
+								<option th:each="company : ${insuranceCompanies}" th:value="${company}"></option>
+							</datalist>
+							<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('insuranceCompany')}"
+								th:text="${errors.get('insuranceCompany')}">Μήνυμα</div>
+						</div>
 
-			<!-- Task 11d: existing intermediaries only, never free text. -->
-			<div class="col-md-4">
-				<label class="form-label" for="intermediaryId">Διαμεσολαβών</label>
-				<select class="form-select" id="intermediaryId" name="intermediaryId"
-					th:classappend="${errors != null and errors.containsKey('intermediaryId')} ? 'is-invalid'">
-					<option value="">—</option>
-					<option th:each="intermediary : ${intermediaries}" th:value="${intermediary.id}"
-						th:text="${intermediary.fullName}" th:selected="${intermediary.id == p.intermediaryId}">Παπαδόπουλος</option>
-				</select>
-				<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('intermediaryId')}"
-					th:text="${errors.get('intermediaryId')}">Μήνυμα</div>
-			</div>
-
-			<div th:replace="~{fragments/form-fields :: field('startDate', 'Έναρξη Ασφάλειας *', 'date', ${p.startDate}, 'col-md-4')}"></div>
-			<div th:replace="~{fragments/form-fields :: field('endDate', 'Λήξη Ασφάλειας *', 'date', ${p.endDate}, 'col-md-4')}"></div>
-			<div class="col-md-4">
-				<label class="form-label" for="premium">Ασφάλιστρο (€) *</label>
-				<input class="form-control" type="text" inputmode="decimal" id="premium" name="premium"
-					th:value="${p.premium}" placeholder="π.χ. 180,50"
-					th:classappend="${errors != null and errors.containsKey('premium')} ? 'is-invalid'">
-				<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('premium')}"
-					th:text="${errors.get('premium')}">Μήνυμα</div>
-			</div>
-			<p class="col-12 text-body-secondary small mb-0">
-				Η λήξη δεν υπολογίζεται: υπάρχουν εξάμηνα και ετήσια συμβόλαια. Ένα συμβόλαιο μπορεί να αρχίζει
-				την ημέρα που λήγει το προηγούμενο.
-			</p>
-
-			<div class="col-md-4 d-flex align-items-end">
-				<div class="form-check">
-					<input class="form-check-input" type="checkbox" id="surcharge" name="surcharge" value="true"
-						th:checked="${p.surcharge == true}">
-					<label class="form-check-label" for="surcharge">Επασφάλιστρο</label>
+						<!-- Task 11d: existing intermediaries only, never free text. -->
+						<div class="col-md-4">
+							<label class="form-label" for="intermediaryId">Διαμεσολαβών</label>
+							<select class="form-select" id="intermediaryId" name="intermediaryId"
+								th:classappend="${errors != null and errors.containsKey('intermediaryId')} ? 'is-invalid'">
+								<option value="">—</option>
+								<option th:each="intermediary : ${intermediaries}" th:value="${intermediary.id}"
+									th:text="${intermediary.fullName}" th:selected="${intermediary.id == p.intermediaryId}">Παπαδόπουλος</option>
+							</select>
+							<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('intermediaryId')}"
+								th:text="${errors.get('intermediaryId')}">Μήνυμα</div>
+						</div>
+					</div>
 				</div>
-			</div>
-			<div class="col-md-4">
-				<label class="form-label" for="surchargeType">Τύπος επασφαλίστρου</label>
-				<select class="form-select" id="surchargeType" name="surchargeType"
-					th:classappend="${errors != null and errors.containsKey('surchargeType')} ? 'is-invalid'">
-					<option value="">—</option>
-					<option th:each="type : ${surchargeTypes}" th:value="${type}" th:text="${type}"
-						th:selected="${type.name() == p.surchargeType}">ΝΕΟΣ_ΟΔΗΓΟΣ</option>
-				</select>
-				<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('surchargeType')}"
-					th:text="${errors.get('surchargeType')}">Μήνυμα</div>
-			</div>
+			</section>
 
-			<div class="col-12 d-flex gap-2">
+			<section class="card form-section">
+				<div class="card-header"><h2>Διάρκεια και ασφάλιστρο</h2></div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div th:replace="~{fragments/form-fields :: field('startDate', 'Έναρξη Ασφάλειας *', 'date', ${p.startDate}, 'col-md-4')}"></div>
+						<div th:replace="~{fragments/form-fields :: field('endDate', 'Λήξη Ασφάλειας *', 'date', ${p.endDate}, 'col-md-4')}"></div>
+						<div class="col-md-4">
+							<label class="form-label" for="premium">Ασφάλιστρο (€) *</label>
+							<input class="form-control" type="text" inputmode="decimal" id="premium" name="premium"
+								th:value="${p.premium}" placeholder="π.χ. 180,50"
+								th:classappend="${errors != null and errors.containsKey('premium')} ? 'is-invalid'">
+							<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('premium')}"
+								th:text="${errors.get('premium')}">Μήνυμα</div>
+						</div>
+						<p class="col-12 text-body-secondary small mb-0">
+							Η λήξη δεν υπολογίζεται: υπάρχουν εξάμηνα και ετήσια συμβόλαια. Ένα συμβόλαιο μπορεί να αρχίζει
+							την ημέρα που λήγει το προηγούμενο.
+						</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="card form-section">
+				<div class="card-header"><h2>Επασφάλιστρο</h2></div>
+				<div class="card-body">
+					<div class="row g-3">
+						<div class="col-md-4 d-flex align-items-end">
+							<div class="form-check">
+								<input class="form-check-input" type="checkbox" id="surcharge" name="surcharge" value="true"
+									th:checked="${p.surcharge == true}">
+								<label class="form-check-label" for="surcharge">Επασφάλιστρο</label>
+							</div>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="surchargeType">Τύπος επασφαλίστρου</label>
+							<select class="form-select" id="surchargeType" name="surchargeType"
+								th:classappend="${errors != null and errors.containsKey('surchargeType')} ? 'is-invalid'">
+								<option value="">—</option>
+								<option th:each="type : ${surchargeTypes}" th:value="${type}" th:text="${type}"
+									th:selected="${type.name() == p.surchargeType}">ΝΕΟΣ_ΟΔΗΓΟΣ</option>
+							</select>
+							<div class="invalid-feedback" th:if="${errors != null and errors.containsKey('surchargeType')}"
+								th:text="${errors.get('surchargeType')}">Μήνυμα</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<div class="d-flex gap-2">
 				<button class="btn btn-primary" type="submit">Αποθήκευση</button>
 				<a class="btn btn-outline-secondary" th:href="@{/vehicles/{id}(id=${vehicleId})}">Άκυρο</a>
 			</div>
