@@ -6,6 +6,11 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title th:text="|${title} · Ασφαλιστικό Γραφείο|">Ασφαλιστικό Γραφείο</title>
+	<!-- Task 16d-2: the tab icon, local like everything else. The SVG for the
+	     browsers that take it, the .ico for the rest; both are allowed
+	     before login (SecurityConfig), for the login page. -->
+	<link rel="icon" th:href="@{/favicon.ico}" sizes="16x16 32x32 48x48">
+	<link rel="icon" th:href="@{/favicon.svg}" type="image/svg+xml">
 	<!-- Served from webjars: the office LAN may be offline. -->
 	<link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
 	<link rel="stylesheet" th:href="@{/webjars/flatpickr/dist/flatpickr.min.css}">

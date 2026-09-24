@@ -145,6 +145,17 @@ class DashboardControllerTest {
 		assertThat(dashboard(result).period()).isEqualTo(ExpiryPeriod.DAYS_30);
 	}
 
+	// Task 16d-2: the home screen is for calling about renewals; from a phone,
+	// one tap.
+	@Test
+	void linksEachMobileForCalling() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW000001");
+		owns(vehicle, customer("Αλεξίου", "Μαρία", "6900000001"));
+		policy(vehicle, "2100000001", TODAY.plusDays(12), "Northwind", "180.00");
+
+		assertThat(html(get("/"))).contains("<a href=\"tel:6900000001\">6900000001</a>");
+	}
+
 	// DECISIONS §1: the clerk sees at once whom they cannot call.
 	@Test
 	void flagsAMissingMobile() throws Exception {

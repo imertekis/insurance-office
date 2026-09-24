@@ -133,6 +133,42 @@ class VehicleControllerTest {
 		assertThat(html.indexOf("Αλεξίου")).isLessThan(html.indexOf("Γεωργίου"));
 	}
 
+	// Task 16d-2: the mobile calls from a phone.
+	@Test
+	void linksTheOwnersMobileForCalling() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456");
+		Customer owner = customer("Αλεξίου", "Μαρία", "900000080");
+		owner.setMobile("6900000001");
+		customerRepository.save(owner);
+		owns(vehicle, owner, "100", true, null);
+
+		assertThat(html(get("/vehicles/{id}", vehicle.getId())))
+				.contains("<a href=\"tel:6900000001\">6900000001</a>");
+	}
+
+	// Task 16d-2: owners brought in by the import have no dates; a column of
+	// "— / —" in every row says nothing.
+	@Test
+	void hidesTheFromToColumnWhenNoOwnerHasADate() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456");
+		owns(vehicle, customer("Αλεξίου", "Μαρία", "900000080"), "60", true, null);
+		owns(vehicle, customer("Βασιλείου", "Νίκος", "900000091"), "40", false, null);
+
+		assertThat(table(html(get("/vehicles/{id}", vehicle.getId())), "owners"))
+				.contains("Αλεξίου Μαρία", "Βασιλείου Νίκος")
+				.doesNotContain("Από / Έως", "— / —");
+	}
+
+	@Test
+	void showsTheFromToColumnWhenOneOwnerHasADate() throws Exception {
+		Vehicle vehicle = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456");
+		owns(vehicle, customer("Αλεξίου", "Μαρία", "900000080"), "100", true, null);
+		owns(vehicle, customer("Γεωργίου", "Άννα", null), "100", true, LocalDate.of(2025, 2, 20));
+
+		assertThat(table(html(get("/vehicles/{id}", vehicle.getId())), "owners"))
+				.contains("Από / Έως", "— / —", "— / 20/02/2025");
+	}
+
 	@Test
 	void showsTheCurrentPolicyAboveTheHistory() throws Exception {
 		Vehicle vehicle = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456");
@@ -244,6 +280,13 @@ class VehicleControllerTest {
 
 	private String html(RequestBuilder request) throws Exception {
 		return mockMvc.perform(request).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+	}
+
+	// One table of the page, so a heading elsewhere does not count.
+	private static String table(String html, String id) {
+		int start = html.indexOf("<table class=\"table table-hover align-middle\" id=\"" + id + "\"");
+		assertThat(start).as("table " + id).isPositive();
+		return html.substring(start, html.indexOf("</table>", start));
 	}
 
 	// The table row of one policy, so a name elsewhere on the page does not count.

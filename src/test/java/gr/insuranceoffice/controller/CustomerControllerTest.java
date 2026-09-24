@@ -128,6 +128,40 @@ class CustomerControllerTest {
 		assertThat(html.indexOf("ΑΒΕ1234")).isLessThan(html.indexOf("ΖΗΡ9999"));
 	}
 
+	// Task 16d-2: the mobile calls from a phone.
+	@Test
+	void linksTheMobileForCalling() throws Exception {
+		Customer customer = customer("Αλεξίου", "Μαρία", "900000080");
+		customer.setMobile("6900000001");
+		customerRepository.save(customer);
+
+		assertThat(html(get("/customers/{id}", customer.getId())))
+				.contains("<a href=\"tel:6900000001\">6900000001</a>");
+	}
+
+	// Task 16d-2: ownership brought in by the import has no dates.
+	@Test
+	void hidesTheFromToColumnWhenNoVehicleHasADate() throws Exception {
+		Customer customer = customer("Αλεξίου", "Μαρία", "900000080");
+		owns(vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456", "Golf"), customer, "100", true, null);
+		owns(vehicle("ΚΜΝ-4321", "WVWZZZ1KZAW654321", "Clio"), customer, "50", false, null);
+
+		assertThat(table(html(get("/customers/{id}", customer.getId())), "vehicles"))
+				.contains("ΑΒΕ1234", "ΚΜΝ4321")
+				.doesNotContain("Από / Έως", "— / —");
+	}
+
+	@Test
+	void showsTheFromToColumnWhenOneVehicleHasADate() throws Exception {
+		Customer customer = customer("Αλεξίου", "Μαρία", "900000080");
+		owns(vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456", "Golf"), customer, "100", true, null);
+		owns(vehicle("ΚΜΝ-4321", "WVWZZZ1KZAW654321", "Clio"), customer, "100", true, LocalDate.of(2025, 2, 20),
+				null);
+
+		assertThat(table(html(get("/customers/{id}", customer.getId())), "vehicles"))
+				.contains("Από / Έως", "— / —", "20/02/2025 / —");
+	}
+
 	// SPEC §7.3: the policies of all their vehicles together, with a status.
 	@Test
 	void showsThePoliciesOfEveryVehicleWithItsStatus() throws Exception {
@@ -245,6 +279,13 @@ class CustomerControllerTest {
 
 	private String html(RequestBuilder request) throws Exception {
 		return mockMvc.perform(request).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+	}
+
+	// One table of the page, so a heading elsewhere does not count.
+	private static String table(String html, String id) {
+		int start = html.indexOf("<table class=\"table table-hover align-middle\" id=\"" + id + "\"");
+		assertThat(start).as("table " + id).isPositive();
+		return html.substring(start, html.indexOf("</table>", start));
 	}
 
 	private Customer customer(String lastName, String firstName, String taxId) {

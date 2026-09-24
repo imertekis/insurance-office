@@ -13,7 +13,8 @@
 		<!-- A plain GET form, so every view has its own URL. The selects submit
 		     on change; the button is there for browsers without JavaScript. -->
 		<form method="get" th:action="@{/}" class="d-flex flex-wrap gap-3 align-items-end mb-3">
-			<div class="btn-group" role="group" aria-label="Περίοδος">
+			<!-- On a phone the buttons wrap instead of widening the page (app.css). -->
+			<div class="btn-group period-filter" role="group" aria-label="Περίοδος">
 				<th:block th:each="p : ${periods}">
 					<input type="radio" class="btn-check" name="period" onchange="this.form.submit()"
 						th:id="|period-${p.param}|" th:value="${p.param}" th:checked="${p == d.period}">
@@ -60,7 +61,7 @@
 							<span th:if="${policy.customerId == null}" class="text-body-secondary">Χωρίς κύριο ιδιοκτήτη</span>
 						</td>
 						<td class="text-nowrap">
-							<span th:if="${policy.mobile != null}" th:text="${policy.mobile}">6900000001</span>
+							<a th:if="${policy.mobile != null}" th:href="|tel:${policy.mobile}|" th:text="${policy.mobile}">6900000001</a>
 							<span th:if="${policy.customerId != null and policy.mobile == null}"
 								class="badge text-bg-warning">Λείπει</span>
 						</td>
@@ -69,7 +70,7 @@
 						<td class="text-end text-nowrap"
 							th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
 						<!-- Task 12: the screen's purpose, one click from each row. -->
-						<td class="text-end">
+						<td class="row-actions">
 							<a class="btn btn-sm btn-primary" th:href="@{/policies/{id}/renew(id=${policy.policyId})}">Ανανέωση</a>
 						</td>
 					</tr>

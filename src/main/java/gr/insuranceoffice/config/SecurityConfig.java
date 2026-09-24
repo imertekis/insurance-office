@@ -34,6 +34,9 @@ public class SecurityConfig {
 						// 16d-1), and the theme script (Task 16c) to follow the OS
 						// while it is open. Public, static files only.
 						.requestMatchers("/webjars/**", "/js/**", "/css/**").permitAll()
+						// Its tab icon too (Task 16d-2): by exact path, not "/*", so
+						// nothing else put in static/ one day is public by accident.
+						.requestMatchers("/favicon.ico", "/favicon.svg").permitAll()
 						.anyRequest().authenticated())
 				.formLogin(login -> login
 						.loginPage("/login")

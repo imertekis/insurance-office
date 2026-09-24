@@ -99,6 +99,8 @@ class OwnershipFormTest {
 				"value=\"" + TODAY + "\"")
 				.doesNotContain("Γεωργίου Άννα");
 		assertThat(html).containsPattern("value=\"" + maria.getId() + "\"[^>]*checked");
+		// Task 16d-2: the mobile calls from a phone.
+		assertThat(html).contains("<a href=\"tel:6900000001\">6900000001</a>");
 		// Task 16d-1: the date field shows what to type.
 		assertThat(html).containsPattern("id=\"transferDate\"[^>]*placeholder=\"ηη/μμ/εεεε\"");
 		// Reached from the vehicle card (Task 9).
@@ -110,6 +112,8 @@ class OwnershipFormTest {
 	void findsACustomerAndAddsARowWithoutSavingIt() throws Exception {
 		String found = html(owners(List.of(maria), List.of("100"), maria)
 				.param("action", "search").param("q", "900000091"));
+		// Task 16d-2: in its own frame, like every table, so it never widens a phone's page.
+		assertThat(found).containsPattern("<div class=\"table-responsive\">\\s*<table[^>]*id=\"results\"");
 		assertThat(found).contains("Βασιλείου Νίκος", "name=\"add\" value=\"" + nikos.getId() + "\"")
 				// Already an owner, so not offered again.
 				.doesNotContain("name=\"add\" value=\"" + maria.getId() + "\"");

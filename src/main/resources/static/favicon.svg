@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+	<!-- Task 16d-2: a shield with a tick, in Bootstrap's primary blue, which
+	     reads on a light and a dark tab bar alike. favicon.ico is this same
+	     picture, for what asks for /favicon.ico by itself. -->
+	<path d="M16 1.5 28 5.5V15c0 7.6-5 12.8-12 15.5C9 27.8 4 22.6 4 15V5.5Z" fill="#0d6efd"/>
+	<path d="m10 16 4.3 4.3L22.5 12" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"
+		stroke-linejoin="round"/>
+</svg>

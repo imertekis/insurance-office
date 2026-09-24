@@ -104,3 +104,39 @@ a:focus-visible,
 	font-size: 1rem;
 	font-weight: 600;
 }
+
+/*
+ * Task 16d-2: the buttons at the end of a table row («Ανανέωση»,
+ * «Επεξεργασία», «Διαγραφή»). On one line, never stacked: a narrow table
+ * would otherwise squeeze the cell and pile them up, three in one row and
+ * two in the next, each its own width. Kept on one line, every row is one
+ * button high and each button sits at the same place in every row, since
+ * they are right-aligned and the ones that are sometimes missing come
+ * first. The column takes only the room its buttons need; a table that no
+ * longer fits scrolls in its own frame (.table-responsive).
+ */
+.row-actions {
+	width: 1%;
+	white-space: nowrap;
+	text-align: end;
+}
+
+/*
+ * The period filter of the home screen (7 / 30 / 60 / 90 ημέρες / Ληγμένα)
+ * is 413px wide as one group, wider than a 375px phone. On a narrow screen
+ * it becomes separate buttons that wrap, «Ληγμένα» usually on a line of
+ * its own. Smaller buttons would fit only to the pixel, and not with every
+ * font. !important because Bootstrap joins the buttons of a group with
+ * rules more specific than any class of ours.
+ */
+@media (max-width: 575.98px) {
+	.period-filter {
+		flex-wrap: wrap;
+		gap: 0.25rem;
+	}
+
+	.period-filter > .btn {
+		margin-left: 0 !important;
+		border-radius: var(--bs-btn-border-radius) !important;
+	}
+}

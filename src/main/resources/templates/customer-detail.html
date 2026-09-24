@@ -46,7 +46,7 @@
 						: |${c.street ?: ''} ${c.city ?: ''} ${c.postalCode ?: ''}|">Οδός Δοκιμής 1 Δοκιμούπολη 99000</dd>
 				<dt class="col-sm-3">Κινητό</dt>
 				<dd class="col-sm-9">
-					<span th:if="${c.mobile != null}" th:text="${c.mobile}">6900000001</span>
+					<a th:if="${c.mobile != null}" th:href="|tel:${c.mobile}|" th:text="${c.mobile}">6900000001</a>
 					<span th:if="${c.mobile == null}" class="badge text-bg-warning">Λείπει</span>
 				</dd>
 				<dt class="col-sm-3">Σταθερό</dt>
@@ -61,14 +61,17 @@
 			<div class="alert alert-light border" th:if="${#lists.isEmpty(detail.vehicles)}">
 				Ο πελάτης δεν έχει οχήματα.
 			</div>
-			<div class="table-responsive" th:unless="${#lists.isEmpty(detail.vehicles)}">
+			<!-- Task 16d-2: «Από / Έως» only when some row has a date; ownership
+			     brought in by the Excel import has none. -->
+			<div class="table-responsive" th:unless="${#lists.isEmpty(detail.vehicles)}"
+				th:with="showDates=${!detail.vehicles.?[fromDate != null or toDate != null].isEmpty()}">
 				<table class="table table-hover align-middle" id="vehicles">
 					<thead>
 						<tr>
 							<th scope="col">Πινακίδα</th>
 							<th scope="col">Όχημα</th>
 							<th scope="col">Ποσοστό</th>
-							<th scope="col">Από / Έως</th>
+							<th scope="col" th:if="${showDates}">Από / Έως</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -82,7 +85,7 @@
 							</td>
 							<td th:text="|${vehicle.brand} ${vehicle.model}|">Volkswagen Golf</td>
 							<td th:text="|${#numbers.formatDecimal(vehicle.percentage, 1, 'POINT', 0, 'COMMA')}%|">100%</td>
-							<td class="text-nowrap"
+							<td class="text-nowrap" th:if="${showDates}"
 								th:text="|${vehicle.fromDate != null ? #temporals.format(vehicle.fromDate, 'dd/MM/yyyy') : '—'} / ${vehicle.toDate != null ? #temporals.format(vehicle.toDate, 'dd/MM/yyyy') : '—'}|">— / —</td>
 						</tr>
 					</tbody>

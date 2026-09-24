@@ -78,7 +78,10 @@
 			<div class="alert alert-light border" th:if="${#lists.isEmpty(detail.owners)}">
 				Το όχημα δεν έχει ιδιοκτήτες.
 			</div>
-			<div class="table-responsive" th:unless="${#lists.isEmpty(detail.owners)}">
+			<!-- Task 16d-2: «Από / Έως» only when some row has a date; owners
+			     brought in by the Excel import have none. -->
+			<div class="table-responsive" th:unless="${#lists.isEmpty(detail.owners)}"
+				th:with="showDates=${!detail.owners.?[fromDate != null or toDate != null].isEmpty()}">
 				<table class="table table-hover align-middle" id="owners">
 					<thead>
 						<tr>
@@ -86,7 +89,7 @@
 							<th scope="col">ΑΦΜ</th>
 							<th scope="col">Κινητό</th>
 							<th scope="col">Ποσοστό</th>
-							<th scope="col">Από / Έως</th>
+							<th scope="col" th:if="${showDates}">Από / Έως</th>
 							<th scope="col"></th>
 						</tr>
 					</thead>
@@ -101,13 +104,13 @@
 							</td>
 							<td th:text="${owner.taxId} ?: '—'">900000080</td>
 							<td>
-								<span th:if="${owner.mobile != null}" th:text="${owner.mobile}">6900000001</span>
+								<a th:if="${owner.mobile != null}" th:href="|tel:${owner.mobile}|" th:text="${owner.mobile}">6900000001</a>
 								<span th:if="${owner.mobile == null}" class="badge text-bg-warning">Λείπει</span>
 							</td>
 							<td th:text="|${#numbers.formatDecimal(owner.percentage, 1, 'POINT', 0, 'COMMA')}%|">100%</td>
-							<td class="text-nowrap"
+							<td class="text-nowrap" th:if="${showDates}"
 								th:text="|${owner.fromDate != null ? #temporals.format(owner.fromDate, 'dd/MM/yyyy') : '—'} / ${owner.toDate != null ? #temporals.format(owner.toDate, 'dd/MM/yyyy') : '—'}|">— / —</td>
-							<td class="text-end">
+							<td class="row-actions">
 								<!-- Only a former owner's row can go (Task 11e); current owners
 								     change through the owners form. -->
 								<a class="btn btn-sm btn-outline-danger" th:if="${canDelete and !owner.current}"
@@ -165,7 +168,8 @@
 							<td class="text-nowrap" th:text="${#temporals.format(policy.endDate, 'dd/MM/yyyy')}">01/03/2027</td>
 							<td class="text-end text-nowrap"
 								th:text="|${#numbers.formatDecimal(policy.premium, 1, 'POINT', 2, 'COMMA')} €|">180,00 €</td>
-							<td class="text-end">
+							<!-- One line, same place in every row (app.css). -->
+							<td class="row-actions">
 								<!-- Task 12: on the latest policy only, the one no later policy
 								     follows; on a renewal's first day that is the newer one. -->
 								<a class="btn btn-sm btn-primary fw-normal" th:if="${policy.id == detail.renewablePolicyId}"
