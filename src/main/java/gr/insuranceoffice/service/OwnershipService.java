@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -102,13 +103,15 @@ public class OwnershipService {
 				.map(ownership -> row(ownership.getCustomer(), typed(ownership.getPercentage())))
 				.toList();
 		return new OwnersFormDto(vehicleId, vehicle.getPlate(), vehicle.getVersion(), LocalDate.now(), primary,
-				rows);
+				rows, false);
 	}
 
 	/**
 	 * The form as the clerk left it, before saving: after adding or removing a
 	 * row, or when saving failed. Customers are looked up for their names;
-	 * the shares stay as typed.
+	 * the shares stay as typed. It says whether the rows differ from the
+	 * owners in the database, so the page can warn before they are lost
+	 * (Task 16f-2).
 	 *
 	 * @throws NotFoundException if the vehicle does not exist
 	 */
@@ -124,7 +127,49 @@ public class OwnershipService {
 			}
 		}
 		return new OwnersFormDto(vehicleId, vehicle.getPlate(), submission.vehicleVersion(),
-				submission.transferDate(), submission.primaryCustomerId(), rows);
+				submission.transferDate(), submission.primaryCustomerId(), rows,
+				differsFromSaved(vehicleId, submission));
+	}
+
+	/**
+	 * Task 16f-2: whether the rows of the form are not what is saved: another
+	 * set of customers, or another share or primary owner for one of them.
+	 * Shares are compared as numbers ("50", "50,00" and "50.0" are the same);
+	 * one that cannot be read differs. The transfer date alone does not
+	 * count: without a change of rows it saves nothing.
+	 */
+	private boolean differsFromSaved(Long vehicleId, OwnersSubmissionDto submission) {
+		List<Ownership> saved = ownershipRepository.findCurrentByVehicleIdWithCustomer(vehicleId);
+		if (saved.size() != submission.customerIds().size()) {
+			return true;
+		}
+		Long savedPrimary = saved.stream().filter(Ownership::isPrimary).map(o -> o.getCustomer().getId())
+				.findFirst().orElse(null);
+		if (!Objects.equals(savedPrimary, submission.primaryCustomerId())) {
+			return true;
+		}
+		Map<Long, BigDecimal> savedShares = new HashMap<>();
+		saved.forEach(ownership -> savedShares.put(ownership.getCustomer().getId(), ownership.getPercentage()));
+		for (int i = 0; i < submission.customerIds().size(); i++) {
+			BigDecimal savedShare = savedShares.get(submission.customerIds().get(i));
+			BigDecimal typedShare = number(submission.percentages().get(i));
+			if (savedShare == null || typedShare == null || savedShare.compareTo(typedShare) != 0) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// A share as typed, with a comma or a point; null when it is not a number.
+	private static BigDecimal number(String typed) {
+		if (typed == null || typed.isBlank()) {
+			return null;
+		}
+		try {
+			return new BigDecimal(typed.strip().replace(',', '.'));
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	/**
@@ -274,10 +319,8 @@ public class OwnershipService {
 			violations.add(field, "Συμπληρώστε το ποσοστό.");
 			return null;
 		}
-		BigDecimal share;
-		try {
-			share = new BigDecimal(typed.strip().replace(',', '.'));
-		} catch (NumberFormatException e) {
+		BigDecimal share = number(typed);
+		if (share == null) {
 			violations.add(field, "Συμπληρώστε αριθμό, π.χ. 50 ή 33,33.");
 			return null;
 		}

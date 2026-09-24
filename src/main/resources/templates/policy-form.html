@@ -21,7 +21,8 @@
 			<p class="mb-0" th:each="problem : ${problems}" th:text="${problem}">Πρόβλημα</p>
 		</div>
 
-		<form method="post"
+		<!-- data-warn-unsaved: leaving with changes not saved asks first (Task 16f-2, app.js). -->
+		<form method="post" data-warn-unsaved
 			th:action="${isNew} ? @{/vehicles/{id}/policies(id=${vehicleId})} : @{/policies/{id}(id=${p.id})}">
 			<!-- Optimistic locking (Task 7): the version the clerk started from. -->
 			<input type="hidden" name="version" th:value="${p.version}">

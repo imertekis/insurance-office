@@ -10,6 +10,9 @@ import java.util.List;
  * @param vehicleVersion   the vehicle's version the clerk started from
  * @param transferDate     when owners removed stop and owners added start
  * @param primaryCustomerId the owner marked primary, or null
+ * @param unsaved          the rows differ from the owners in the database,
+ *                         e.g. after «Προσθήκη»: leaving the page loses them
+ *                         (Task 16f-2)
  */
 public record OwnersFormDto(
 		Long vehicleId,
@@ -17,7 +20,8 @@ public record OwnersFormDto(
 		Long vehicleVersion,
 		LocalDate transferDate,
 		Long primaryCustomerId,
-		List<OwnerRowDto> rows) {
+		List<OwnerRowDto> rows,
+		boolean unsaved) {
 
 	/**
 	 * One owner as the form shows it. The share is text, exactly as typed,

@@ -125,6 +125,65 @@ class OwnershipFormTest {
 		assertThat(ownershipRepository.count()).isEqualTo(1);
 	}
 
+	// Task 16f-2: the page says when its rows are not the saved owners, so
+	// leaving it asks even before anything is typed.
+	@Test
+	void doesNotMarkTheFormAsItIsSaved() throws Exception {
+		assertThat(html(get("/vehicles/{id}/owners", vehicle.getId()))).doesNotContain("data-unsaved=\"");
+		// A search leaves the rows as they are; "100,00" is the saved 100.
+		for (String share : List.of("100", "100,00", "100.0")) {
+			assertThat(html(owners(List.of(maria), List.of(share), maria).param("action", "search").param("q", "Βασιλείου")))
+					.as(share).contains("data-warn-unsaved").doesNotContain("data-unsaved=\"");
+		}
+	}
+
+	@Test
+	void marksTheFormWhenItsRowsAreNotTheSavedOwners() throws Exception {
+		owns(vehicle, nikos, "0.01", false, null, null);
+		ownershipRepository.findCurrentByVehicleIdWithCustomer(vehicle.getId()).stream()
+				.filter(ownership -> ownership.getCustomer().getId().equals(maria.getId()))
+				.forEach(ownership -> {
+					ownership.setPercentage(new BigDecimal("99.99"));
+					ownershipRepository.save(ownership);
+				});
+		List<Customer> both = List.of(maria, nikos);
+		// As saved: not marked.
+		assertThat(html(owners(both, List.of("99,99", "0,01"), maria).param("action", "search")))
+				.doesNotContain("data-unsaved=\"");
+
+		assertThat(html(owners(both, List.of("99,99", "0,01"), maria).param("add", anna.getId().toString())))
+				.as("added").contains("data-unsaved=\"true\"");
+		assertThat(html(owners(both, List.of("99,99", "0,01"), maria).param("remove", nikos.getId().toString())))
+				.as("removed").contains("data-unsaved=\"true\"");
+		assertThat(html(owners(both, List.of("90", "10"), maria).param("action", "search")))
+				.as("another share").contains("data-unsaved=\"true\"");
+		assertThat(html(owners(both, List.of("99,99", "0,01"), nikos).param("action", "search")))
+				.as("another primary").contains("data-unsaved=\"true\"");
+		assertThat(html(owners(both, List.of("πενήντα", "0,01"), maria).param("action", "search")))
+				.as("a share that is not a number").contains("data-unsaved=\"true\"");
+		// Refused (the shares do not add up), so nothing was saved.
+		assertThat(html(owners(both, List.of("50", "10"), maria).param("action", "save")))
+				.as("refused save").contains("αθροίζουν 60% αντί για 100%", "data-unsaved=\"true\"");
+	}
+
+	// The transfer date alone saves nothing without a change of rows.
+	@Test
+	void doesNotMarkTheFormForTheTransferDateAlone() throws Exception {
+		assertThat(html(owners(List.of(maria), List.of("100"), maria, TODAY.minusDays(3)).param("action", "search")))
+				.doesNotContain("data-unsaved=\"");
+	}
+
+	// Which forms ask before leaving with changes: the four that edit.
+	@Test
+	void marksTheFourEditingFormsForTheLeavingWarning() throws Exception {
+		policy(vehicle);
+		Long policyId = policyRepository.findAll().getFirst().getId();
+		for (String page : List.of("/customers/new", "/vehicles/new", "/vehicles/" + vehicle.getId() + "/policies/new",
+				"/policies/" + policyId + "/edit", "/vehicles/" + vehicle.getId() + "/owners")) {
+			assertThat(html(get(page))).as(page).contains("data-warn-unsaved");
+		}
+	}
+
 	// A vehicle's first owner owns all of it until told otherwise.
 	@Test
 	void makesTheFirstOwnerOfAnEmptyVehiclePrimaryWithAllOfIt() throws Exception {

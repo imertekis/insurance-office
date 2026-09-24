@@ -18,7 +18,12 @@
 
 		<!-- One form, several buttons. Every button sends the rows as they are,
 		     so nothing typed is lost; only "Αποθήκευση" writes them. -->
-		<form method="post" th:action="@{/vehicles/{id}/owners(id=${o.vehicleId})}">
+		<!-- data-warn-unsaved: leaving with changes not saved asks first (Task
+		     16f-2, app.js). data-unsaved: the rows on the page are not the
+		     saved owners (after «Προσθήκη», «Αφαίρεση», a refused save), so
+		     leaving asks even before anything is typed. -->
+		<form method="post" th:action="@{/vehicles/{id}/owners(id=${o.vehicleId})}" data-warn-unsaved
+			th:attr="data-unsaved=${o.unsaved} ? 'true' : null">
 			<!-- Pressing Enter uses the first button: make it the harmless one. -->
 			<button type="submit" name="action" value="refresh" class="visually-hidden" tabindex="-1"
 				aria-hidden="true">Ανανέωση</button>
