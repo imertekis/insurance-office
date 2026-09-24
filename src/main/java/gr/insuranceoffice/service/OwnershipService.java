@@ -136,9 +136,14 @@ public class OwnershipService {
 	 * set of customers, or another share or primary owner for one of them.
 	 * Shares are compared as numbers ("50", "50,00" and "50.0" are the same);
 	 * one that cannot be read differs. The transfer date alone does not
-	 * count: without a change of rows it saves nothing.
+	 * count: without a change of rows it saves nothing. A customer twice
+	 * always differs: the saved owners have one current row per customer
+	 * (REVIEW-08).
 	 */
 	private boolean differsFromSaved(Long vehicleId, OwnersSubmissionDto submission) {
+		if (new HashSet<>(submission.customerIds()).size() != submission.customerIds().size()) {
+			return true;
+		}
 		List<Ownership> saved = ownershipRepository.findCurrentByVehicleIdWithCustomer(vehicleId);
 		if (saved.size() != submission.customerIds().size()) {
 			return true;

@@ -166,6 +166,47 @@ class OwnershipFormTest {
 				.as("refused save").contains("αθροίζουν 60% αντί για 100%", "data-unsaved=\"true\"");
 	}
 
+	// REVIEW-08: a customer twice, in place of another owner, with the same
+	// share. The form cannot send it (the search leaves out whoever is in the
+	// rows), but a hand-made request can: the rows are not the saved owners,
+	// and saving them is refused.
+	@Test
+	void marksTheFormWithACustomerTwice() throws Exception {
+		owns(vehicle, nikos, "50", false, null, null);
+		ownershipRepository.findCurrentByVehicleIdWithCustomer(vehicle.getId()).stream()
+				.filter(ownership -> ownership.getCustomer().getId().equals(maria.getId()))
+				.forEach(ownership -> {
+					ownership.setPercentage(new BigDecimal("50"));
+					ownershipRepository.save(ownership);
+				});
+		List<Customer> twice = List.of(maria, maria);
+
+		assertThat(html(owners(twice, List.of("50", "50"), maria).param("action", "search")))
+				.contains("data-unsaved=\"true\"");
+
+		assertThat(html(owners(twice, List.of("50", "50"), maria).param("action", "save")))
+				.contains("Ο ίδιος πελάτης εμφανίζεται δύο φορές.", "data-unsaved=\"true\"");
+		assertThat(current()).extracting(ownership -> ownership.getCustomer().getId(), Ownership::getPercentage)
+				.containsExactlyInAnyOrder(tuple(maria.getId(), new BigDecimal("50.00")),
+						tuple(nikos.getId(), new BigDecimal("50.00")));
+	}
+
+	// Enter in the customer search presses «Αναζήτηση» (app.js); Enter in any
+	// other field still presses the hidden «Ανανέωση», the form's first
+	// submit button, so it can never add, remove or save. What Enter does is
+	// the browser's; checked there. Here: the page is wired for it.
+	@Test
+	void wiresEnterInTheCustomerSearchToTheSearchButton() throws Exception {
+		String html = html(get("/vehicles/{id}/owners", vehicle.getId()));
+
+		assertThat(html).containsPattern("id=\"owner-search\"[^>]*data-enter-button=\"owner-search-button\"");
+		assertThat(html).containsPattern("<button[^>]*value=\"search\"[^>]*id=\"owner-search-button\"");
+		assertThat(html.split("data-enter-button=", -1)).hasSize(2);
+		int form = html.indexOf("<form method=\"post\" action=\"/vehicles/" + vehicle.getId() + "/owners\"");
+		assertThat(html.indexOf("type=\"submit\"", form))
+				.isEqualTo(html.indexOf("type=\"submit\" name=\"action\" value=\"refresh\"", form));
+	}
+
 	// The transfer date alone saves nothing without a change of rows.
 	@Test
 	void doesNotMarkTheFormForTheTransferDateAlone() throws Exception {

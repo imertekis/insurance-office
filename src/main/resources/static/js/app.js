@@ -72,6 +72,30 @@
 		}, 0);
 	});
 
+	// Enter in a field with data-enter-button presses that button, not the
+	// form's first one: in the owners form's customer search, Enter searches
+	// as «Αναζήτηση» does (after REVIEW-08). Every other field keeps the
+	// browser's rule, the form's first button, which there is the hidden
+	// «Ανανέωση»: Enter can never add, remove or save. requestSubmit goes
+	// through the submit event above, like a click, so a second Enter is
+	// cancelled and sending the form is not leaving it.
+	document.addEventListener("keydown", function (event) {
+		if (event.key !== "Enter" || event.isComposing || event.shiftKey || event.ctrlKey || event.altKey
+				|| event.metaKey || event.defaultPrevented) {
+			return;
+		}
+		var input = event.target;
+		if (!(input instanceof HTMLInputElement) || !input.form || !input.hasAttribute("data-enter-button")) {
+			return;
+		}
+		var button = document.getElementById(input.getAttribute("data-enter-button"));
+		if (!button || button.form !== input.form) {
+			return;
+		}
+		event.preventDefault();
+		input.form.requestSubmit(button);
+	});
+
 	// Task 16f-2, part 2: leaving a form with changes that were not saved
 	// asks first, in the browser's own words (no text of ours is shown).
 	// - Only the forms marked data-warn-unsaved: customer, vehicle, policy,
