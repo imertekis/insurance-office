@@ -185,6 +185,11 @@ class VehicleControllerTest {
 				.doesNotContain("Παπαδόπουλος Νίκος", "Διαμεσολαβών");
 		// Newest first.
 		assertThat(html.indexOf("2100000002")).isLessThan(html.indexOf("2100000001"));
+		// The row in force keeps theme-aware colours under the mouse too (Task
+		// 16c): table-primary's own hover is light blue in both themes.
+		assertThat(row(html, "2100000002")).contains("--bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.075)",
+				"--bs-table-hover-color: var(--bs-primary-text-emphasis)");
+		assertThat(row(html, "2100000001")).doesNotContain("--bs-table-hover-bg");
 	}
 
 	@Test

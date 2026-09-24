@@ -146,11 +146,14 @@
 						     On a renewal's first day two policies are in force; a policy
 						     recorded ahead is not yet, so it is not emphasized. -->
 						<!-- Bootstrap's blue row is light in both themes; its colours are
-						     swapped for the theme-aware ones (Task 16c). -->
+						     swapped for the theme-aware ones (Task 16c), under the mouse
+						     too: Bootstrap's hover for that row is a fixed light blue with
+						     black text. The hover is the faint tint of every other row. -->
 						<tr th:each="policy : ${detail.policies}"
 							th:classappend="${policy.status.inForce} ? 'table-primary fw-semibold'
 								: (${policy.status.name() == 'EXPIRED'} ? 'text-body-secondary')"
-							th:styleappend="${policy.status.inForce} ? '--bs-table-bg: var(--bs-primary-bg-subtle); --bs-table-color: var(--bs-primary-text-emphasis)'">
+							th:styleappend="${policy.status.inForce} ? '--bs-table-bg: var(--bs-primary-bg-subtle); --bs-table-color: var(--bs-primary-text-emphasis);
+								--bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.075); --bs-table-hover-color: var(--bs-primary-text-emphasis)'">
 							<td>
 								<span th:replace="~{fragments/policy-status :: badge(${policy.status})}">Ενεργό</span>
 							</td>
