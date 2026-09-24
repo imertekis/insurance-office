@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- Task 16e: what the last action did, said once on the page it lands on.
+	     The controllers put it in a flash attribute before their redirect, so
+	     a reload of the page does not show it again. Included by
+	     fragments/header.html, so every page with the header has it, right
+	     under the header.
+	     - notice: «Αποθηκεύτηκε», «Το συμβόλαιο ανανεώθηκε», or a deletion
+	       with what went with it; closed with ×, without a reload (the
+	       Bootstrap JavaScript of Task 16b).
+	     - warnings: DECISIONS §2, a saved customer without ΑΦΜ. Beside the
+	       notice, not in its place, and not closed: it is still true. -->
+	<div th:fragment="flash" class="container flash" th:if="${notice != null or (warnings != null and !warnings.isEmpty())}">
+		<div class="alert alert-success alert-dismissible fade show" role="status" th:if="${notice != null}">
+			<span th:text="${notice}">Αποθηκεύτηκε.</span>
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Κλείσιμο"></button>
+		</div>
+		<div class="alert alert-warning" th:if="${warnings != null and !warnings.isEmpty()}">
+			<p class="mb-0" th:each="warning : ${warnings}" th:text="${warning}">Λείπει το ΑΦΜ του πελάτη.</p>
+		</div>
+	</div>
+</body>
+</html>

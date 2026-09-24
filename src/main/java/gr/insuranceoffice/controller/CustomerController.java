@@ -95,12 +95,14 @@ public class CustomerController {
 			// Became blocked since the page was shown: show why.
 			return confirmDelete(id, model);
 		}
-		redirect.addFlashAttribute("notice", "Ο πελάτης διαγράφηκε. Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
+		Notice.show(redirect, "Ο πελάτης διαγράφηκε. Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
 		return "redirect:/";
 	}
 
 	private String saved(SavedCustomerDto saved, RedirectAttributes redirect) {
-		// DECISIONS §2: a missing ΑΦΜ is saved, and said out loud on the card.
+		Notice.show(redirect, Notice.SAVED);
+		// DECISIONS §2: a missing ΑΦΜ is saved, and said out loud on the card,
+		// beside the notice.
 		redirect.addFlashAttribute("warnings", saved.warnings());
 		return "redirect:/customers/" + saved.customer().id();
 	}

@@ -140,3 +140,63 @@ a:focus-visible,
 		border-radius: var(--bs-btn-border-radius) !important;
 	}
 }
+
+/*
+ * Task 16e: printing a card (vehicle, customer) gives its content only, on
+ * one A4 page for a typical card. The colours are those of the light theme,
+ * which app.js switches to for the print; the browser leaves backgrounds
+ * out, so nothing here may depend on one.
+ */
+@media print {
+	@page {
+		size: A4;
+		margin: 12mm;
+	}
+
+	/* 13px instead of 16: every size in Bootstrap is in rem. */
+	html {
+		font-size: 13px;
+	}
+
+	/* No header, menus, buttons or messages. */
+	.navbar,
+	.flash,
+	.btn,
+	.row-actions {
+		display: none !important;
+	}
+
+	main {
+		padding-bottom: 0;
+	}
+
+	/* The whole width of the paper: on an A4 page Bootstrap would keep the
+	   container at 540px, its width for a small screen. */
+	.container {
+		max-width: none;
+	}
+
+	/* The licence fields one under the other, closer together. */
+	dd {
+		margin-bottom: 0.15rem;
+	}
+
+	/* A table wider than the page is not cut off at its frame. */
+	.table-responsive {
+		overflow: visible;
+	}
+
+	/* A badge is white text on a background the print leaves out: outlined
+	   text instead. */
+	.badge {
+		color: var(--bs-body-color) !important;
+		background: none !important;
+		border: var(--bs-border-width) solid var(--bs-border-color);
+	}
+
+	/* Links lead nowhere on paper. */
+	a {
+		color: inherit;
+		text-decoration: none;
+	}
+}

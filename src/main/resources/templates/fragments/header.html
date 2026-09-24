@@ -11,7 +11,8 @@
 	     and the user fold behind the hamburger. The two .header-collapse
 	     parts sit either side of the search on desktop, and after it (order-1)
 	     on narrower screens. -->
-	<nav th:fragment="header(active)" class="navbar navbar-expand-xl bg-body-tertiary border-bottom mb-4"
+	<th:block th:fragment="header(active)">
+	<nav class="navbar navbar-expand-xl bg-body-tertiary border-bottom mb-4"
 		th:with="expired=${active == 'Λήξεις' and dashboard != null and dashboard.period.expired}">
 		<div class="container">
 			<a class="navbar-brand" th:href="@{/}">Ασφαλιστικό Γραφείο</a>
@@ -103,5 +104,9 @@
 			</div>
 		</div>
 	</nav>
+	<!-- Task 16e: the message of the last action, under the header of every
+	     page (fragments/flash.html). -->
+	<div th:replace="~{fragments/flash :: flash}"></div>
+	</th:block>
 </body>
 </html>

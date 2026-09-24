@@ -50,7 +50,8 @@ public class OwnershipController {
 	// Read as raw parameters: bound to a List<String>, a single share typed
 	// as "33,33" would be split on its comma.
 	@PostMapping("/vehicles/{id}/owners")
-	public String submit(@PathVariable Long id, @RequestParam MultiValueMap<String, String> params, Model model) {
+	public String submit(@PathVariable Long id, @RequestParam MultiValueMap<String, String> params, Model model,
+			RedirectAttributes redirect) {
 		OwnersSubmissionDto submission = submission(params);
 		String action = params.getFirst("action");
 		Long add = number(params.getFirst("add"));
@@ -63,6 +64,7 @@ public class OwnershipController {
 		} else if ("save".equals(action)) {
 			try {
 				ownershipService.saveOwners(id, submission);
+				Notice.show(redirect, Notice.SAVED);
 				return "redirect:/vehicles/" + id;
 			} catch (BusinessException exception) {
 				FormErrors.show(exception, model);
@@ -97,7 +99,7 @@ public class OwnershipController {
 		} catch (BusinessException exception) {
 			return confirmDelete(id, model);
 		}
-		redirect.addFlashAttribute("notice", "Η παλιά ιδιοκτησία διαγράφηκε. "
+		Notice.show(redirect, "Η παλιά ιδιοκτησία διαγράφηκε. "
 				+ "Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
 		return "redirect:/vehicles/" + vehicleId;
 	}

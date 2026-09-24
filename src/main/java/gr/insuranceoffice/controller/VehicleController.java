@@ -75,13 +75,15 @@ public class VehicleController {
 	// The rules live in VehicleService; here they only become messages next to
 	// the fields, with what the clerk typed still in the form.
 	@PostMapping("/vehicles")
-	public String create(@ModelAttribute("vehicle") VehicleDto vehicle, BindingResult binding, Model model) {
+	public String create(@ModelAttribute("vehicle") VehicleDto vehicle, BindingResult binding, Model model,
+			RedirectAttributes redirect) {
 		if (binding.hasErrors()) {
 			FormErrors.show(binding, model);
 			return form(vehicle, model);
 		}
 		try {
 			VehicleDto saved = vehicleService.create(vehicle);
+			Notice.show(redirect, Notice.SAVED);
 			return "redirect:/vehicles/" + saved.id();
 		} catch (BusinessException exception) {
 			return formWithProblems(vehicle, exception, model);
@@ -90,13 +92,14 @@ public class VehicleController {
 
 	@PostMapping("/vehicles/{id}")
 	public String update(@PathVariable Long id, @ModelAttribute("vehicle") VehicleDto vehicle, BindingResult binding,
-			Model model) {
+			Model model, RedirectAttributes redirect) {
 		if (binding.hasErrors()) {
 			FormErrors.show(binding, model);
 			return form(vehicle, model);
 		}
 		try {
 			vehicleService.update(id, vehicle);
+			Notice.show(redirect, Notice.SAVED);
 			return "redirect:/vehicles/" + id;
 		} catch (BusinessException exception) {
 			return formWithProblems(vehicle, exception, model);
@@ -118,7 +121,7 @@ public class VehicleController {
 	@PostMapping("/vehicles/{id}/delete")
 	public String delete(@PathVariable Long id, RedirectAttributes redirect) {
 		vehicleService.delete(id);
-		redirect.addFlashAttribute("notice", "Το όχημα διαγράφηκε, μαζί με τα συμβόλαια και τις ιδιοκτησίες του. "
+		Notice.show(redirect, "Το όχημα διαγράφηκε, μαζί με τα συμβόλαια και τις ιδιοκτησίες του. "
 				+ "Μπορούν να ανακτηθούν από το ιστορικό αλλαγών.");
 		return "redirect:/";
 	}

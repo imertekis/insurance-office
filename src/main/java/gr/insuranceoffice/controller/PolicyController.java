@@ -68,7 +68,8 @@ public class PolicyController {
 	// the fields, with what the clerk typed still in the form.
 	@PostMapping("/vehicles/{vehicleId}/policies")
 	public String create(@PathVariable Long vehicleId, @ModelAttribute("policy") PolicyFormDto policy,
-			BindingResult binding, @RequestParam(required = false) String renewalOf, Model model) {
+			BindingResult binding, @RequestParam(required = false) String renewalOf, Model model,
+			RedirectAttributes redirect) {
 		// Still a renewal when the form comes back with a mistake.
 		model.addAttribute("renewalOf", renewalOf);
 		if (binding.hasErrors()) {
@@ -77,6 +78,8 @@ public class PolicyController {
 		}
 		try {
 			policyService.create(vehicleId, policy);
+			// Task 12: a renewal is a new policy, but the clerk renewed one.
+			Notice.show(redirect, renewalOf != null ? Notice.RENEWED : Notice.SAVED);
 			return "redirect:/vehicles/" + vehicleId;
 		} catch (BusinessException exception) {
 			FormErrors.show(exception, model);
@@ -86,13 +89,14 @@ public class PolicyController {
 
 	@PostMapping("/policies/{id}")
 	public String update(@PathVariable Long id, @ModelAttribute("policy") PolicyFormDto policy, BindingResult binding,
-			Model model) {
+			Model model, RedirectAttributes redirect) {
 		if (binding.hasErrors()) {
 			FormErrors.show(binding, model);
 			return form(policy, policy.vehicleId(), model);
 		}
 		try {
 			PolicyDto saved = policyService.update(id, policy);
+			Notice.show(redirect, Notice.SAVED);
 			return "redirect:/vehicles/" + saved.vehicleId();
 		} catch (BusinessException exception) {
 			FormErrors.show(exception, model);
@@ -116,7 +120,7 @@ public class PolicyController {
 	@PostMapping("/policies/{id}/delete")
 	public String delete(@PathVariable Long id, RedirectAttributes redirect) {
 		Long vehicleId = policyService.delete(id);
-		redirect.addFlashAttribute("notice", "Το συμβόλαιο διαγράφηκε. Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
+		Notice.show(redirect, "Το συμβόλαιο διαγράφηκε. Μπορεί να ανακτηθεί από το ιστορικό αλλαγών.");
 		return "redirect:/vehicles/" + vehicleId;
 	}
 

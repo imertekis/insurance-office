@@ -8,8 +8,6 @@
 		<h1 class="h3 mb-1" th:text="${v.plate}">ΑΒΕ1234</h1>
 		<p class="text-body-secondary" th:text="|${v.brand} ${v.model}|">Volkswagen Golf</p>
 
-		<div class="alert alert-success" th:if="${notice != null}" th:text="${notice}">Διαγράφηκε.</div>
-
 		<p>
 			<a class="btn btn-outline-primary btn-sm" th:href="@{/vehicles/{id}/edit(id=${v.id})}">Επεξεργασία</a>
 			<!-- Task 11e: only the ΔΙΑΧΕΙΡΙΣΤΗΣ deletes. -->
@@ -90,7 +88,7 @@
 							<th scope="col">Κινητό</th>
 							<th scope="col">Ποσοστό</th>
 							<th scope="col" th:if="${showDates}">Από / Έως</th>
-							<th scope="col"></th>
+							<th scope="col" class="row-actions"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -140,7 +138,7 @@
 							<th scope="col">Έναρξη</th>
 							<th scope="col">Λήξη</th>
 							<th scope="col" class="text-end">Ασφάλιστρο</th>
-							<th scope="col"></th>
+							<th scope="col" class="row-actions"></th>
 						</tr>
 					</thead>
 					<tbody>
