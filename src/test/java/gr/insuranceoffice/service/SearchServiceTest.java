@@ -303,6 +303,36 @@ class SearchServiceTest {
 		assertThat(result.vehicles()).extracting(VehicleHit::id).containsExactly(vehicle.getId());
 	}
 
+	// Task 16f-1: an email is free text, found through search_normalized
+	// (V2), whole, in capitals or in part; the search box says so.
+	@ParameterizedTest
+	@ValueSource(strings = { "maria.alexiou@example.gr", "MARIA.ALEXIOU@EXAMPLE.GR", "alexiou@", "@example.gr" })
+	void findsACustomerByEmail(String input) {
+		Customer maria = saveCustomer("Αλεξίου", "Μαρία", "900000080");
+		maria.setEmail("maria.alexiou@example.gr");
+		customerRepository.save(maria);
+		Customer nikos = saveCustomer("Βασιλείου", "Νίκος", "900000017");
+		nikos.setEmail("nikos@example.com");
+		customerRepository.save(nikos);
+
+		SearchResultDto result = searchService.search(input);
+
+		assertThat(result.searchedAs()).containsExactly(TEXT);
+		assertThat(result.customers()).extracting(CustomerHit::id).containsExactly(maria.getId());
+	}
+
+	// The _ of an email is a letter, not LIKE's "any character".
+	@Test
+	void matchesTheUnderscoreOfAnEmailLiterally() {
+		Customer nikos = saveCustomer("Βασιλείου", "Νίκος", "900000017");
+		nikos.setEmail("nikos_v@example.com");
+		customerRepository.save(nikos);
+
+		assertThat(searchService.search("nikos_v@example.com").customers()).extracting(CustomerHit::id)
+				.containsExactly(nikos.getId());
+		assertThat(searchService.search("nikosXv@example.com").customers()).isEmpty();
+	}
+
 	@ParameterizedTest
 	@ValueSource(strings = { "%", "_", "\\", "Αλεξ%ου" })
 	void matchesLikeWildcardsLiterally(String input) {

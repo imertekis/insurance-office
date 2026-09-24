@@ -18,15 +18,26 @@
 	       no longer blocked by the browser; the controller answers it with a
 	       message beside the field (FormErrors).
 	     - 'uppercase': shown in capitals while typed, as the server stores
-	       it (Task 17); CSS only, the letters stay in their own alphabet. -->
-	<div th:fragment="field(name, label, type, value, colClass)" th:class="${colClass}">
+	       it (Task 17); CSS only, the letters stay in their own alphabet.
+	     Thymeleaf passes fragment arguments by position, so field(...) has
+	     no hint: it is fieldWithHint(...) without one, not a second copy. -->
+	<div th:fragment="field(name, label, type, value, colClass)"
+		th:replace="~{fragments/form-fields :: fieldWithHint(${name}, ${label}, ${type}, ${value}, ${colClass}, null)}"></div>
+
+	<!-- The same field with a line of help under it (Task 16f-1), e.g. when
+	     Κυβικά may stay empty. The error, when there is one, stays right
+	     under the input as on every field, and the hint follows; the input
+	     names the hint in aria-describedby, so a screen reader reads it. -->
+	<div th:fragment="fieldWithHint(name, label, type, value, colClass, hint)" th:class="${colClass}">
 		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
 		<input class="form-control" type="text" th:id="${name}" th:name="${name}" th:value="${value}"
-			th:attr="inputmode=${type == 'integer'} ? 'numeric' : (${type == 'decimal'} ? 'decimal' : null)"
+			th:attr="inputmode=${type == 'integer'} ? 'numeric' : (${type == 'decimal'} ? 'decimal' : null),
+				aria-describedby=${hint != null} ? |${name}-hint| : null"
 			th:placeholder="${type == 'date'} ? 'ηη/μμ/εεεε'"
 			th:classappend="${(type == 'date' ? 'js-date ' : '') + (type == 'uppercase' ? 'text-uppercase ' : '') + (errors != null and errors.containsKey(name) ? 'is-invalid' : '')}">
 		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
 			th:text="${errors.get(name)}">Μήνυμα</div>
+		<div class="form-text" th:if="${hint != null}" th:id="|${name}-hint|" th:text="${hint}">Οδηγία</div>
 	</div>
 
 	<!-- One dropdown of Greek enum values (DATA_MODEL), shared the same way. -->

@@ -16,6 +16,9 @@
 		th:with="expired=${active == 'Λήξεις' and dashboard != null and dashboard.period.expired}">
 		<div class="container">
 			<a class="navbar-brand" th:href="@{/}">Ασφαλιστικό Γραφείο</a>
+			<!-- Task 16f-1: the theme, outside the hamburger, so it stays in the
+			     first row next to it on a phone; last, at the far right, from xl. -->
+			<div th:replace="~{fragments/theme-switcher :: switcher('ms-auto me-2 order-xl-last ms-xl-2 me-xl-0')}"></div>
 			<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".header-collapse"
 				aria-controls="header-menus header-user" aria-expanded="false" aria-label="Μενού">
 				<span class="navbar-toggler-icon"></span>
@@ -70,7 +73,7 @@
 			<form class="d-flex col-12 col-xl mt-2 mt-xl-0 mx-xl-3" role="search" method="get" th:action="@{/search}">
 				<label class="visually-hidden" for="q">Αναζήτηση</label>
 				<input class="form-control me-2" type="search" id="q" name="q"
-					placeholder="Πινακίδα, ΑΦΜ, όνομα, VIN, τηλέφωνο, αρ. συμβολαίου"
+					placeholder="Πινακίδα, ΑΦΜ, όνομα, email, τηλέφωνο, αρ. συμβολαίου"
 					th:value="${searchQuery}">
 				<button class="btn btn-outline-primary text-nowrap" type="submit">Αναζήτηση</button>
 			</form>
@@ -86,13 +89,7 @@
 								class="d-inline-block text-truncate align-bottom" style="max-width: 12rem"
 								th:text="${currentUser}">Χρήστης</span></a>
 						<ul class="dropdown-menu dropdown-menu-end">
-							<!-- Task 16c: kept in this browser, not in the database;
-							     static/js/theme.js marks the current one. -->
-							<li><h6 class="dropdown-header">Θέμα</h6></li>
-							<li><button class="dropdown-item" type="button" data-theme-choice="auto">Αυτόματο</button></li>
-							<li><button class="dropdown-item" type="button" data-theme-choice="light">Φωτεινό</button></li>
-							<li><button class="dropdown-item" type="button" data-theme-choice="dark">Σκούρο</button></li>
-							<li><hr class="dropdown-divider"></li>
+							<!-- The theme has its own button since Task 16f-1. -->
 							<li>
 								<form method="post" th:action="@{/logout}">
 									<button class="dropdown-item" type="submit">Αποσύνδεση</button>

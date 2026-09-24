@@ -28,7 +28,10 @@
 	     (localStorage): auto, light or dark; auto follows the OS. The theme
 	     lives only in data-bs-theme (and the stylesheet above), so the print
 	     styles of Task 16e can force a light page in one place. theme.js
-	     reuses window.appTheme for the header menu. -->
+	     reuses window.appTheme for the theme button.
+	     Task 16f-1: the choice itself goes on <html> too (data-chosen-theme),
+	     so the button shows the right icon from the first paint. Not
+	     data-theme-choice: that marks the choice buttons, for theme.js. -->
 	<script>
 		(function () {
 			var choices = ["auto", "light", "dark"];
@@ -44,6 +47,7 @@
 			function apply(chosen) {
 				var theme = chosen === "auto" ? (osDark.matches ? "dark" : "light") : chosen;
 				document.documentElement.setAttribute("data-bs-theme", theme);
+				document.documentElement.setAttribute("data-chosen-theme", chosen);
 				var calendar = document.getElementById("flatpickr-dark");
 				if (calendar) {
 					calendar.media = theme === "dark" ? "all" : "not all";

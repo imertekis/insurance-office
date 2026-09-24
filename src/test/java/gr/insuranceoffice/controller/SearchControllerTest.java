@@ -109,10 +109,12 @@ class SearchControllerTest {
 		assertThat(html).contains("Σταθερό", "Αριθμός συμβολαίου", "href=\"/vehicles/" + vehicle.getId() + "\"");
 	}
 
+	// Task 16f-1: email among what can be typed; VIN still is too, so the
+	// full list keeps it.
 	@Test
 	void asksForInputWhenTheBoxIsEmpty() throws Exception {
 		assertThat(html(get("/search")))
-				.contains("Πληκτρολογήστε στο πεδίο αναζήτησης")
+				.contains("Πληκτρολογήστε στο πεδίο αναζήτησης: πινακίδα, ΑΦΜ, όνομα, email, VIN, τηλέφωνο ή αριθμό συμβολαίου.")
 				.doesNotContain("Κανένα αποτέλεσμα");
 	}
 
@@ -137,6 +139,8 @@ class SearchControllerTest {
 			assertThat(html(get(page))).as(page)
 					.contains("action=\"/search\"", "name=\"q\"", "Αναζήτηση");
 		}
+		// Task 16f-1: the hint names email where it named VIN.
+		assertThat(html(get("/"))).contains("placeholder=\"Πινακίδα, ΑΦΜ, όνομα, email, τηλέφωνο, αρ. συμβολαίου\"");
 		// What was typed stays in the box after the search.
 		assertThat(html(get("/search").param("q", "αλεξ"))).contains("value=\"αλεξ\"");
 	}

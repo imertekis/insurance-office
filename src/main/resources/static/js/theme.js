@@ -1,6 +1,9 @@
-// Task 16c: the theme menu in the header, and "Αυτόματο" following the OS
-// while the page is open. Choosing and applying a theme are in the inline
-// script of layout.html (window.appTheme); this file only reacts.
+// Task 16c: the theme choices, and "Αυτόματο" following the OS while the
+// page is open. Choosing and applying a theme are in the inline script of
+// layout.html (window.appTheme); this file only reacts. Since Task 16f-1 the
+// choices are in their own button (fragments/theme-switcher.html), in the
+// header and on the login page; its icon follows data-chosen-theme on <html>, which
+// appTheme.apply sets, so nothing here draws it.
 (function () {
 	var theme = window.appTheme;
 	if (!theme) {

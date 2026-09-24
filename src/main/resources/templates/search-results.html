@@ -8,7 +8,7 @@
 		<h1 class="h3 mb-3">Αποτελέσματα αναζήτησης</h1>
 
 		<p th:if="${#strings.isEmpty(#strings.trim(r.query))}" class="text-body-secondary">
-			Πληκτρολογήστε στο πεδίο αναζήτησης: πινακίδα, ΑΦΜ, όνομα, VIN, τηλέφωνο ή αριθμό συμβολαίου.
+			Πληκτρολογήστε στο πεδίο αναζήτησης: πινακίδα, ΑΦΜ, όνομα, email, VIN, τηλέφωνο ή αριθμό συμβολαίου.
 		</p>
 
 		<div th:unless="${#strings.isEmpty(#strings.trim(r.query))}">

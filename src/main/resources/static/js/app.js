@@ -32,18 +32,20 @@
 
 	// Print is black on white, from the dark theme too. The theme lives only
 	// in data-bs-theme (Task 16c), so the page turns light for the print and
-	// back after it, through the one function that applies a theme.
+	// back after it, through the one function that applies a theme. What is
+	// put back is the clerk's choice (Task 16f-1), not the theme it gave: an
+	// "Αυτόματο" must stay "Αυτόματο" after printing.
 	var theme = window.appTheme;
 	if (theme) {
-		var shown = null;
+		var chosen = null;
 		window.addEventListener("beforeprint", function () {
-			shown = document.documentElement.getAttribute("data-bs-theme");
+			chosen = document.documentElement.getAttribute("data-chosen-theme");
 			theme.apply("light");
 		});
 		window.addEventListener("afterprint", function () {
-			if (shown) {
-				theme.apply(shown);
-				shown = null;
+			if (chosen) {
+				theme.apply(chosen);
+				chosen = null;
 			}
 		});
 	}

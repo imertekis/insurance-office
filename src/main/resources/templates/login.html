@@ -2,6 +2,8 @@
 <html lang="el" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{layout :: head('Σύνδεση')}"></head>
 <body class="bg-body-tertiary">
+	<!-- Task 16f-1: the theme here too, top right, although there is no header. -->
+	<div th:replace="~{fragments/theme-switcher :: switcher('position-absolute top-0 end-0 m-2 m-sm-3')}"></div>
 	<main class="container" style="max-width: 24rem">
 		<h1 class="h4 my-4 text-center">Ασφαλιστικό Γραφείο</h1>
 

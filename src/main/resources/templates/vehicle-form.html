@@ -43,16 +43,14 @@
 						<div th:replace="~{fragments/form-fields :: field('color', 'Χρώμα (R) *', 'text', ${v.color}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('seats', 'Θέσεις (S.1)', 'integer', ${v.seats}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: choice('fuelType', 'Καύσιμο (P.3) *', ${fuelTypes}, ${v.fuelType}, 'col-md-4')}"></div>
-						<div th:replace="~{fragments/form-fields :: field('engineCc', 'Κυβικά (P.1)', 'integer', ${v.engineCc}, 'col-md-4')}"></div>
+						<div th:replace="~{fragments/form-fields :: fieldWithHint('engineCc', 'Κυβικά (P.1)', 'integer', ${v.engineCc}, 'col-md-4',
+							'Τα κυβικά μένουν κενά μόνο σε ηλεκτρικό όχημα.')}"></div>
 						<!-- "12,5" or "12.5": VehicleController reads both. -->
 						<div th:replace="~{fragments/form-fields :: field('powerKw', 'Ισχύς kW (P.2) *', 'decimal', ${v.powerKw}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('engineNumber', 'Αρ. Κινητήρα (P.5)', 'text', ${v.engineNumber}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('co2', 'CO2 (V.7)', 'integer', ${v.co2}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('emissionStandard', 'Euro (V.9)', 'text', ${v.emissionStandard}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('weightKg', 'Βάρος kg (G)', 'integer', ${v.weightKg}, 'col-md-4')}"></div>
-						<p class="text-body-secondary small mb-0">
-							Τα κυβικά μένουν κενά μόνο σε ηλεκτρικό όχημα.
-						</p>
 					</div>
 				</div>
 			</section>

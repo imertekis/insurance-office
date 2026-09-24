@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="el" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<!-- Task 16f-1: the theme (Task 16c) in its own small button, top right of
+	     every page: in the header, and on the login page, which has none.
+	     One fragment for both; placement is the caller's (classes).
+	     - The icon shows the clerk's choice, not the theme it gives: with
+	       «Αυτόματο» on a dark OS it stays the half circle. app.css picks it
+	       from data-chosen-theme, which the inline script of layout.html puts
+	       on <html> before the page is drawn, so it is right from the start.
+	     - Choosing is theme.js (16c), through the data-theme-choice buttons;
+	       it also marks the current one (active, aria-pressed).
+	     - Icons drawn here, inline, in currentColor so they follow the theme;
+	       no icon library. Defined once as symbols, used by the button and
+	       by each choice. -->
+	<div th:fragment="switcher(placement)" class="dropdown theme-switcher" th:classappend="${placement}">
+		<svg class="visually-hidden" aria-hidden="true" focusable="false">
+			<symbol id="theme-icon-auto" viewBox="0 0 16 16">
+				<circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/>
+				<path d="M8 1.75a6.25 6.25 0 0 0 0 12.5z" fill="currentColor"/>
+			</symbol>
+			<symbol id="theme-icon-light" viewBox="0 0 16 16">
+				<circle cx="8" cy="8" r="3.25" fill="currentColor"/>
+				<path d="M8 .75v1.5M8 13.75v1.5M.75 8h1.5M13.75 8h1.5M2.87 2.87l1.06 1.06M12.07 12.07l1.06 1.06M2.87 13.13l1.06-1.06M12.07 3.93l1.06-1.06"
+					fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+			</symbol>
+			<symbol id="theme-icon-dark" viewBox="0 0 16 16">
+				<path d="M6.2 1.2a6.9 6.9 0 1 0 8.6 8.6A5.6 5.6 0 0 1 6.2 1.2z" fill="currentColor"/>
+			</symbol>
+		</svg>
+		<button class="btn btn-outline-secondary px-2 theme-switcher-toggle" type="button" data-bs-toggle="dropdown"
+			aria-expanded="false" aria-label="Θέμα" title="Θέμα">
+			<svg class="theme-icon theme-icon-auto" aria-hidden="true" focusable="false"><use href="#theme-icon-auto"/></svg>
+			<svg class="theme-icon theme-icon-light" aria-hidden="true" focusable="false"><use href="#theme-icon-light"/></svg>
+			<svg class="theme-icon theme-icon-dark" aria-hidden="true" focusable="false"><use href="#theme-icon-dark"/></svg>
+		</button>
+		<ul class="dropdown-menu dropdown-menu-end">
+			<li><button class="dropdown-item d-flex align-items-center gap-2" type="button" data-theme-choice="auto"><svg
+					class="theme-icon" aria-hidden="true" focusable="false"><use href="#theme-icon-auto"/></svg>Αυτόματο</button></li>
+			<li><button class="dropdown-item d-flex align-items-center gap-2" type="button" data-theme-choice="light"><svg
+					class="theme-icon" aria-hidden="true" focusable="false"><use href="#theme-icon-light"/></svg>Φωτεινό</button></li>
+			<li><button class="dropdown-item d-flex align-items-center gap-2" type="button" data-theme-choice="dark"><svg
+					class="theme-icon" aria-hidden="true" focusable="false"><use href="#theme-icon-dark"/></svg>Σκούρο</button></li>
+		</ul>
+	</div>
+</body>
+</html>

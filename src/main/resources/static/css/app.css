@@ -142,6 +142,41 @@ a:focus-visible,
 }
 
 /*
+ * Task 16f-1: the theme button shows the icon of the clerk's choice, read
+ * from data-chosen-theme, which the inline script of layout.html puts on
+ * <html> before the page is drawn. Without it (no script) the half circle
+ * of «Αυτόματο», which is then what applies.
+ */
+.theme-icon {
+	width: 1rem;
+	height: 1rem;
+	flex-shrink: 0;
+	vertical-align: -0.125em;
+}
+
+.theme-switcher-toggle .theme-icon {
+	display: none;
+}
+
+[data-chosen-theme="auto"] .theme-switcher-toggle .theme-icon-auto,
+[data-chosen-theme="light"] .theme-switcher-toggle .theme-icon-light,
+[data-chosen-theme="dark"] .theme-switcher-toggle .theme-icon-dark,
+:root:not([data-chosen-theme]) .theme-switcher-toggle .theme-icon-auto {
+	display: inline-block;
+}
+
+/*
+ * Task 16f-1: Bootstrap's grey (#6c757d) is 3.29:1 on the dark page, under
+ * the 4.5:1 that text needs («Άκυρο», the row «Επεξεργασία»). Its own
+ * secondary text colour follows the theme: 7.31:1 dark, 6.76:1 light. The
+ * hover, white on grey, stays Bootstrap's.
+ */
+.btn-outline-secondary {
+	--bs-btn-color: var(--bs-secondary-color);
+	--bs-btn-border-color: var(--bs-secondary-color);
+}
+
+/*
  * Task 16e: printing a card (vehicle, customer) gives its content only, on
  * one A4 page for a typical card. The colours are those of the light theme,
  * which app.js switches to for the print; the browser leaves backgrounds
@@ -160,6 +195,7 @@ a:focus-visible,
 
 	/* No header, menus, buttons or messages. */
 	.navbar,
+	.theme-switcher,
 	.flash,
 	.btn,
 	.row-actions {

@@ -280,6 +280,32 @@ class VehicleFormTest {
 		assertThat(input(html, "brand")).doesNotContain("text-uppercase");
 	}
 
+	// Task 16f-1: the hint of Κυβικά is under that field, in its column, and
+	// the input names it for a screen reader; no other field has one.
+	@Test
+	void showsTheEngineCapacityHintUnderItsField() throws Exception {
+		String html = html(get("/vehicles/new"));
+
+		assertThat(input(html, "engineCc")).contains("aria-describedby=\"engineCc-hint\"");
+		assertThat(html).containsPattern("name=\"engineCc\"[^>]*>\\s*<div class=\"form-text\" id=\"engineCc-hint\">"
+				+ "Τα κυβικά μένουν κενά μόνο σε ηλεκτρικό όχημα\\.</div>\\s*</div>");
+		assertThat(html.split("Τα κυβικά μένουν κενά", -1)).hasSize(2);
+		assertThat(html.split("aria-describedby", -1)).hasSize(2);
+	}
+
+	// With an error, the message stays right under the input and the hint follows.
+	@Test
+	void keepsTheErrorUnderTheFieldAndTheHintAfterIt() throws Exception {
+		MultiValueMap<String, String> values = valid();
+		values.set("engineCc", "");
+
+		String html = html(form("/vehicles", values));
+
+		assertThat(html).containsPattern("name=\"engineCc\"[^>]*>\\s*"
+				+ "<div class=\"invalid-feedback\">Τα κυβικά είναι υποχρεωτικά\\.</div>\\s*"
+				+ "<div class=\"form-text\" id=\"engineCc-hint\">");
+	}
+
 	// The Greek number keypad of a phone types a comma.
 	@ParameterizedTest
 	@ValueSource(strings = { "12,5", "12.5", " 12,50 " })

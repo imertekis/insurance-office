@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,11 +63,38 @@ class ThemeTest {
 				"/webjars/flatpickr/4.6.13/dist/themes/dark.css");
 	}
 
+	// Task 16f-1: its own button, on every page and on the login page, which
+	// has no header; one of each choice, each with its icon.
 	@Test
-	void offersTheThreeThemesInTheUserMenu() throws Exception {
-		assertThat(html("/")).contains("data-theme-choice=\"auto\">Αυτόματο<",
-				"data-theme-choice=\"light\">Φωτεινό<", "data-theme-choice=\"dark\">Σκούρο<",
-				"Αποσύνδεση");
+	void offersTheThemesInTheirOwnButtonOnEveryPage() throws Exception {
+		for (String page : List.of("/login", "/", "/customers", "/vehicles/new")) {
+			String html = html(page);
+			assertThat(count(html, "aria-label=\"Θέμα\"")).as(page).isEqualTo(1);
+			for (String choice : List.of("auto", "light", "dark")) {
+				assertThat(count(html, "data-theme-choice=\"" + choice + "\"")).as(page + " " + choice).isEqualTo(1);
+				assertThat(html).as(page).contains("<use href=\"#theme-icon-" + choice + "\"/></svg>");
+			}
+			assertThat(html).as(page).contains("Αυτόματο</button>", "Φωτεινό</button>", "Σκούρο</button>");
+		}
+	}
+
+	// One place for the theme: the user menu has the name and the way out.
+	@Test
+	void leavesTheUserMenuWithTheNameAndLogoutOnly() throws Exception {
+		String html = html("/");
+		String userMenu = html.substring(html.indexOf("id=\"header-user\""), html.indexOf("</nav>"));
+		assertThat(userMenu).contains("Αποσύνδεση").doesNotContain("data-theme-choice", "Θέμα");
+	}
+
+	// The icon shows the choice from the first paint: the inline script puts
+	// it on <html> before the body is read.
+	@Test
+	void marksTheChoiceBeforeThePageIsDrawn() throws Exception {
+		for (String page : List.of("/login", "/")) {
+			String html = html(page);
+			assertThat(html.indexOf("setAttribute(\"data-chosen-theme\", chosen)")).as(page)
+					.isPositive().isLessThan(html.indexOf("</head>"));
+		}
 	}
 
 	// Black on near-white in both themes: the brightest thing on a dark page.
@@ -79,6 +107,10 @@ class ThemeTest {
 			assertThat(template.getContentAsString(StandardCharsets.UTF_8)).as(template.getFilename())
 					.doesNotContain("text-bg-light");
 		}
+	}
+
+	private static int count(String html, String text) {
+		return html.split(Pattern.quote(text), -1).length - 1;
 	}
 
 	private String html(String url) throws Exception {
