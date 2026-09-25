@@ -122,6 +122,19 @@ a:focus-visible,
 }
 
 /*
+ * Task 20: a row that is history, not the present: a former owner, an
+ * expired policy. Bootstrap gives every table cell a colour of its own from
+ * --bs-table-color, so a colour class on the <tr> never reached the text;
+ * the variable is set on the row instead, and its cells read it. Under the
+ * mouse too: table-hover takes the cell colour from --bs-table-hover-color.
+ * Links keep their colour, so they are still seen as links.
+ */
+.row-muted {
+	--bs-table-color: var(--bs-secondary-color);
+	--bs-table-hover-color: var(--bs-secondary-color);
+}
+
+/*
  * The period filter of the home screen (7 / 30 / 60 / 90 ημέρες / Ληγμένα)
  * is 413px wide as one group, wider than a 375px phone. On a narrow screen
  * it becomes separate buttons that wrap, «Ληγμένα» usually on a line of

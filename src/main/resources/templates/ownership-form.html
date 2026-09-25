@@ -82,6 +82,11 @@
 							</tbody>
 						</table>
 					</div>
+					<!-- Task 20: with three owners or more, the total of the shares as
+					     they are typed (app.js); hidden otherwise. Read out when it
+					     changes. -->
+					<p class="small" id="owners-total" aria-live="polite" hidden
+						th:unless="${o.rows.isEmpty()}"></p>
 
 					<div class="row g-3 align-items-end">
 						<div class="col-md-4">

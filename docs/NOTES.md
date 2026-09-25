@@ -41,6 +41,69 @@
     reopens rows from the ownership form, not from the import. The limit
     stays until the import learns about transfers.
 
+## Manual checks before deployment
+
+What an automated run cannot show, to check by hand in the office's own
+browsers and on its own screens before the app goes live. Grouped by task;
+an item leaves this list once it has been checked.
+
+### Task 16a
+- **Vehicle or policy form:** save a date such as 03/04/2020, reopen the
+  form and the card: it still reads 03/04/2020, never 04/03/2020.
+
+### Task 16d-2
+- **Any page, in a real browser tab:** the app's icon shows in the tab, in
+  the browser's light and dark look.
+
+### Task 16e
+- **Any page, with the Greek keyboard layout:** "/" puts the cursor in the
+  header's search box; in a field it types "/".
+- **A vehicle card, dark theme, Ctrl+P:** it prints black on white, on one
+  A4 page.
+
+### Task 16f-2
+- **A customer form after typing:** F5, Ctrl+W, «Πίσω» (Alt+←) and closing
+  the window each make the browser ask before leaving.
+- **New customer, from a second PC over the office network:** a double
+  click on «Αποθήκευση» saves one customer, not two.
+
+### Task 18
+- **New customer, two tabs, the same ΑΦΜ saved at once:** the second shows
+  «Υπάρχει ήδη πελάτης με αυτό το ΑΦΜ.» beside the field, not an error
+  page. The two saves must overlap in the database; the Task 18 check used
+  a throwaway database whose inserts were slowed by a trigger.
+
+### Task 19
+- **Owners form, a vehicle with two owners:** remove the wrong owner and
+  save, add them back with the same date and save. The card shows them once,
+  as current, with their original start and no «Πρώην» row.
+
+### Task 20
+- **Owners form, «Πίσω».** The headless check (Chrome, DevTools protocol)
+  never got the page back from the browser's cache: the app's pages are
+  sent `no-store`, so «Πίσω» loaded them again from the server, with the
+  saved shares and their total. The kept-page path was only run with a
+  synthetic `pageshow` event. By hand, in each browser the office uses:
+  type a share on a vehicle with three owners, follow a link, choose to
+  leave, press «Πίσω». Either the shares come back as typed with their
+  total, or the saved shares with theirs; never typed shares with the saved
+  total. The buttons work.
+- **Owners form, the office keyboard.** The check typed the decimal comma
+  as a character. With the Greek layout, type «49,5» using the numeric
+  keypad's decimal key: the other owner gets «50,5».
+- **Owners form, a screen reader.** The total line under three or more
+  owners is `aria-live="polite"`. With the screen reader the office may use
+  (NVDA or Narrator), typing a share reads out the new total.
+- **Owners form, a real phone.** At 375px the share fields sit in the
+  table's own horizontal scroll (Task 16d-2), and the total line under it.
+  On a phone: scroll the table to a share, type with the decimal keypad
+  («inputmode»), and read the total.
+- **Vehicle and customer cards, the office screens.** Former owners and
+  expired policies are in Bootstrap's secondary text colour, measured at
+  6.78:1 in the light theme and 7.29:1 in the dark one. On the office
+  monitors, at their usual brightness, those rows still read easily, and
+  are clearly fainter than current ones.
+
 ## Open questions
 
 Every decision still to be made in the project. CLAUDE.md points here; an

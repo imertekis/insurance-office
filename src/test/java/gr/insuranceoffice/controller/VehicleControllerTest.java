@@ -131,6 +131,11 @@ class VehicleControllerTest {
 				"href=\"/customers/" + former.getId() + "\"", "Πρώην");
 		// Current owners first, the former one last.
 		assertThat(html.indexOf("Αλεξίου")).isLessThan(html.indexOf("Γεωργίου"));
+		// Task 20: the former owner's row is faint, so her share is not read
+		// as a current one.
+		assertThat(muted(html, "href=\"/customers/" + former.getId() + "\"")).isTrue();
+		assertThat(muted(html, "href=\"/customers/" + primary.getId() + "\"")).isFalse();
+		assertThat(muted(html, "href=\"/customers/" + coOwner.getId() + "\"")).isFalse();
 	}
 
 	// Task 16d-2: the mobile calls from a phone.
@@ -190,6 +195,9 @@ class VehicleControllerTest {
 		assertThat(row(html, "2100000002")).contains("--bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.075)",
 				"--bs-table-hover-color: var(--bs-primary-text-emphasis)");
 		assertThat(row(html, "2100000001")).doesNotContain("--bs-table-hover-bg");
+		// Task 20: the expired policy is faint, the one in force is not.
+		assertThat(muted(html, "2100000001")).isTrue();
+		assertThat(muted(html, "2100000002")).isFalse();
 	}
 
 	@Test
@@ -294,11 +302,18 @@ class VehicleControllerTest {
 		return html.substring(start, html.indexOf("</table>", start));
 	}
 
-	// The table row of one policy, so a name elsewhere on the page does not count.
+	// The table row of one policy, so a name elsewhere on the page does not
+	// count; or of any other text first found in a table row.
 	private static String row(String html, String policyNumber) {
 		int number = html.indexOf(policyNumber);
 		assertThat(number).as("policy " + policyNumber).isPositive();
 		return html.substring(html.lastIndexOf("<tr", number), html.indexOf("</tr>", number));
+	}
+
+	// Task 20: whether the row that holds the text is shown faint.
+	private static boolean muted(String html, String text) {
+		String row = row(html, text);
+		return row.substring(0, row.indexOf('>')).contains("row-muted");
 	}
 
 	private Customer customer(String lastName, String firstName, String taxId) {

@@ -71,7 +71,7 @@
 					</thead>
 					<tbody>
 						<tr th:each="vehicle : ${detail.vehicles}"
-							th:classappend="${vehicle.current} ? '' : 'text-body-secondary'">
+							th:classappend="${vehicle.current} ? '' : 'row-muted'">
 							<td class="text-nowrap">
 								<!-- Every plate is a link to the vehicle card. -->
 								<a th:href="@{/vehicles/{id}(id=${vehicle.vehicleId})}" th:text="${vehicle.plate}">ΑΒΕ1234</a>

@@ -112,6 +112,20 @@ class OwnershipFormTest {
 				.contains("href=\"/vehicles/" + vehicle.getId() + "/owners\"");
 	}
 
+	// Task 20: under the owners, the line where the page (app.js) gives the
+	// total of the shares as they are typed, read out when it changes. Not
+	// there when the vehicle has no owners to add up.
+	@Test
+	void leavesALineForTheTotalOfTheSharesUnderTheOwners() throws Exception {
+		String html = html(get("/vehicles/{id}/owners", vehicle.getId()));
+
+		assertThat(html).contains("<p class=\"small\" id=\"owners-total\" aria-live=\"polite\" hidden></p>");
+		assertThat(html.indexOf("id=\"owners-total\""))
+				.isGreaterThan(html.indexOf("<table class=\"table align-middle\" id=\"owners\""));
+		Vehicle empty = vehicle("ΚΜΝ-4321", "WVWZZZ1KZAW654321");
+		assertThat(html(get("/vehicles/{id}/owners", empty.getId()))).doesNotContain("owners-total");
+	}
+
 	@Test
 	void findsACustomerAndAddsARowWithoutSavingIt() throws Exception {
 		String found = html(owners(List.of(maria), List.of("100"), maria)

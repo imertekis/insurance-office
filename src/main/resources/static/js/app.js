@@ -96,6 +96,123 @@
 		input.form.requestSubmit(button);
 	});
 
+	// Task 20: the owners' shares, filled in where the arithmetic is plain.
+	// A help only: the server checks the owners as a whole on saving.
+	// - One row, on a page the server marked data-unsaved and with no error
+	//   or conflict on it: that row gets 100. That is the page after
+	//   «Αφαίρεση» left one owner, or after «Προσθήκη» of the first. Never
+	//   what is saved (no data-unsaved), nor what the server refused: the
+	//   clerk sees the value beside its error.
+	// - Two rows: typing in one sets the other to 100 minus it, when what is
+	//   typed is a share (above 0, under 100, two decimals at most).
+	// - Three or more: nothing changes; the line under the table gives the
+	//   total and what is missing or over, or says a share is not a number.
+	// - Shares are read as the server reads them: "50", "50,5", "50.5",
+	//   with spaces around; anything else (a word, "1e2") is the server's to
+	//   judge. Sums are exact: integers, never floating point, so 100 minus
+	//   33,33 is 66,67.
+	// This listener is registered before remember() below, so a 100 filled
+	// in on load is part of the page as it came, for the leaving warning;
+	// such a page is data-unsaved anyway, and leaving it asks.
+	var SHARE = /^\s*(\d+)(?:[.,](\d+))?\s*$/;
+
+	// A share as digits and the number of decimals among them, or null.
+	function share(text) {
+		var match = SHARE.exec(text);
+		return match ? { digits: match[1] + (match[2] || ""), decimals: (match[2] || "").length } : null;
+	}
+
+	// 5050 hundredths are "50,5"; 7000 are "70".
+	function written(value, decimals) {
+		var text = value.toString().padStart(decimals + 1, "0");
+		var whole = text.slice(0, text.length - decimals);
+		var fraction = text.slice(text.length - decimals).replace(/0+$/, "");
+		return fraction ? whole + "," + fraction : whole;
+	}
+
+	function ownerShares() {
+		var total = document.getElementById("owners-total");
+		var form = total && total.closest("form");
+		return form ? { form: form, total: total, inputs: form.querySelectorAll("input[name=percentage]") } : null;
+	}
+
+	function showTotal(owners) {
+		if (owners.inputs.length < 3) {
+			owners.total.hidden = true;
+			owners.total.textContent = "";
+			return;
+		}
+		var read = [];
+		var unreadable = 0;
+		owners.inputs.forEach(function (input) {
+			if (input.value.trim() === "") {
+				return;
+			}
+			var value = share(input.value);
+			if (value) {
+				read.push(value);
+			} else {
+				unreadable++;
+			}
+		});
+		var text;
+		if (unreadable) {
+			text = "Σύνολο: — · " + (unreadable === 1 ? "ένα ποσοστό δεν είναι αριθμός"
+				: unreadable + " ποσοστά δεν είναι αριθμοί");
+		} else {
+			// In the smallest unit typed; an empty share counts as 0.
+			var decimals = read.reduce(function (most, value) { return Math.max(most, value.decimals); }, 0);
+			var sum = read.reduce(function (sumSoFar, value) {
+				return sumSoFar + BigInt(value.digits) * 10n ** BigInt(decimals - value.decimals);
+			}, 0n);
+			var full = 100n * 10n ** BigInt(decimals);
+			text = "Σύνολο: " + written(sum, decimals) + "%";
+			if (sum < full) {
+				text += " · λείπουν " + written(full - sum, decimals) + "%";
+			} else if (sum > full) {
+				text += " · περισσεύουν " + written(sum - full, decimals) + "%";
+			}
+		}
+		owners.total.textContent = text;
+		owners.total.hidden = false;
+	}
+
+	document.addEventListener("DOMContentLoaded", function () {
+		var owners = ownerShares();
+		if (!owners) {
+			return;
+		}
+		if (owners.inputs.length === 1 && owners.form.getAttribute("data-unsaved") === "true"
+				&& !document.querySelector("main .is-invalid, main .alert-danger, main .alert-warning")) {
+			owners.inputs[0].value = "100";
+		}
+		showTotal(owners);
+		owners.form.addEventListener("input", function (event) {
+			var typed = event.target;
+			if (!(typed instanceof HTMLInputElement) || typed.name !== "percentage") {
+				return;
+			}
+			if (owners.inputs.length === 2) {
+				var value = share(typed.value);
+				var hundredths = value && value.decimals <= 2 ? Number(value.digits) * 10 ** (2 - value.decimals) : 0;
+				if (hundredths > 0 && hundredths < 10000) {
+					var other = owners.inputs[0] === typed ? owners.inputs[1] : owners.inputs[0];
+					other.value = written(10000 - hundredths, 2);
+				}
+			}
+			showTotal(owners);
+		});
+	});
+
+	// Back to a page the browser kept: the shares are as the clerk left them,
+	// and nothing is filled in again; only the total is worked out afresh.
+	window.addEventListener("pageshow", function (event) {
+		var owners = event.persisted && ownerShares();
+		if (owners) {
+			showTotal(owners);
+		}
+	});
+
 	// Task 16f-2, part 2: leaving a form with changes that were not saved
 	// asks first, in the browser's own words (no text of ours is shown).
 	// - Only the forms marked data-warn-unsaved: customer, vehicle, policy,

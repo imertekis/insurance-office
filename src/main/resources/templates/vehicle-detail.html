@@ -92,7 +92,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr th:each="owner : ${detail.owners}" th:classappend="${owner.current} ? '' : 'text-body-secondary'">
+						<tr th:each="owner : ${detail.owners}" th:classappend="${owner.current} ? '' : 'row-muted'">
 							<td>
 								<!-- Every name is a link back to its customer card. -->
 								<a th:href="@{/customers/{id}(id=${owner.customerId})}"
@@ -151,7 +151,7 @@
 						     black text. The hover is the faint tint of every other row. -->
 						<tr th:each="policy : ${detail.policies}"
 							th:classappend="${policy.status.inForce} ? 'table-primary fw-semibold'
-								: (${policy.status.name() == 'EXPIRED'} ? 'text-body-secondary')"
+								: (${policy.status.name() == 'EXPIRED'} ? 'row-muted')"
 							th:styleappend="${policy.status.inForce} ? '--bs-table-bg: var(--bs-primary-bg-subtle); --bs-table-color: var(--bs-primary-text-emphasis);
 								--bs-table-hover-bg: rgba(var(--bs-emphasis-color-rgb), 0.075); --bs-table-hover-color: var(--bs-primary-text-emphasis)'">
 							<td>

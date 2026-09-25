@@ -126,6 +126,10 @@ class CustomerControllerTest {
 				"href=\"/vehicles/" + sold.getId() + "\"", "Πρώην");
 		// Vehicles still owned come first.
 		assertThat(html.indexOf("ΑΒΕ1234")).isLessThan(html.indexOf("ΖΗΡ9999"));
+		// Task 20: the vehicle sold is faint, so its share is not read as a
+		// current one.
+		assertThat(muted(html, "href=\"/vehicles/" + sold.getId() + "\"")).isTrue();
+		assertThat(muted(html, "href=\"/vehicles/" + golf.getId() + "\"")).isFalse();
 	}
 
 	// Task 16d-2: the mobile calls from a phone.
@@ -286,6 +290,14 @@ class CustomerControllerTest {
 		int start = html.indexOf("<table class=\"table table-hover align-middle\" id=\"" + id + "\"");
 		assertThat(start).as("table " + id).isPositive();
 		return html.substring(start, html.indexOf("</table>", start));
+	}
+
+	// Task 20: whether the table row that holds the text is shown faint.
+	private static boolean muted(String html, String text) {
+		int at = html.indexOf(text);
+		assertThat(at).as(text).isPositive();
+		int row = html.lastIndexOf("<tr", at);
+		return html.substring(row, html.indexOf('>', row)).contains("row-muted");
 	}
 
 	private Customer customer(String lastName, String firstName, String taxId) {
