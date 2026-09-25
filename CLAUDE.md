@@ -169,7 +169,8 @@ These override any older wording in `docs/`.
 
 ## Open questions (ask before implementing)
 
-None at the moment.
+Listed in the «Open questions» section of `docs/NOTES.md`, the one place
+that tracks them. Ask before implementing anything that depends on one.
 
 ## Commands
 

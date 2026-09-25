@@ -31,9 +31,46 @@
   unique index `(vehicle_id, customer_id, from_date) NULLS NOT DISTINCT`.
   One more reason the import must become insert-only, or learn about
   transfers, before the office re-imports.
+  - **Known limit of re-import, reproduced while specifying Task 18.**
+    The row the form closed has no `from_date` and a `to_date`; the
+    importer treats only rows with neither as current, so it inserts the
+    owner again and the insert collides. The whole import stops and
+    keeps nothing.
+  - Task 18 only turns the PostgreSQL text into a Greek row message
+    naming both ΑΦΜ columns. Task 19 does not change it either: it
+    reopens rows from the ownership form, not from the import. The limit
+    stays until the import learns about transfers.
 
 ## Open questions
 
+Every decision still to be made in the project. CLAUDE.md points here; an
+entry leaves this list when the decision is recorded (in DECISIONS, CLAUDE.md
+or the task). Details that live elsewhere in this file are linked, not
+repeated.
+
+- **How should a re-import treat existing data?** Insert-only, an explicit
+  "overwrite existing" confirmation, or an import that knows about
+  transfers. Today the only guard is `--import.allow-existing-data=true`.
+  Decide before the app goes live, and in any case before the office
+  re-imports. Details: «Import risks» above, and REVIEW-03 finding 4
+  (customer rules not checked on import) under «Deferred review findings».
+- **How long should a login last?** The session timeout is the Spring
+  Boot default (30 minutes idle), with no "remember me". Decide before the
+  office starts using the app. Details: «REVIEW-04, session timeout».
+- **What should the search do with a 9-digit input that is no known
+  ΑΦΜ?** Today it looks up the ΑΦΜ only and shows «Κανένα αποτέλεσμα.».
+  The entry said to decide in Task 9; Task 9 kept the empty result without
+  recording a decision. Options: explain it on the page, fall back to free
+  text, or keep it. Details: «Unknown ΑΦΜ finds nothing».
+- **How should other insurers' policy numbers be found?** Only 10-digit
+  numbers starting with `21` are recognised, and `policy_number` is in no
+  `search_normalized`. Needs the other insurers' formats. Details: «Policy
+  number search».
+- **Which of the ΔΙΑΧΕΙΡΙΣΤΗΣ functions of SPEC §2 are needed before
+  go-live?** User management, the audit-log view and exports do not exist,
+  and neither does a screen for intermediaries (TASKS Task 11e leaves them
+  here). Details: «No user-management screen» and «Roles enforced for
+  deletions only».
 - **Which alphabet should a plate's look-alike letters be stored in?**
   Task 17 uppercases plates and strips accents on save but keeps the
   alphabet as typed (DECISIONS §5), so today it depends on the source:
@@ -83,8 +120,8 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   adding it to a searchable field or adding a dedicated lookup.
 - **Unknown ΑΦΜ finds nothing (Task 5).** A 9-digit input that is not a
   known ΑΦΜ returns no results instead of falling back to free text.
-  Decide in Task 9 whether the UI should explain this or the search
-  should fall back.
+  Task 9 kept this without deciding; the question is under «Open
+  questions».
 - **Mobile rule from the other side (Tasks 11c, 11d): done.** Task 7
   checks the rule when a customer is saved; Task 11c refuses making a
   customer without a mobile the primary owner of an insured vehicle, and
