@@ -41,6 +41,9 @@ import gr.insuranceoffice.security.Roles;
  * The form edits all current owners of a vehicle together (Task 11c). An
  * owner who is removed is closed with {@code to_date}, never deleted: a
  * transfer is an event with a date, and the vehicle card shows former owners.
+ * The one exception is a removal put right: an owner added back on the date
+ * they were removed gets that row reopened, so no transfer is shown that
+ * never happened (Task 19).
  */
 @Service
 public class OwnershipService {
@@ -180,7 +183,8 @@ public class OwnershipService {
 	/**
 	 * Replaces the vehicle's current owners with the submitted ones, in one
 	 * transaction. Owners who stay keep their row with the new share; owners
-	 * who leave are closed on the transfer date; new owners start on it.
+	 * who leave are closed on the transfer date; new owners start on it,
+	 * unless they were removed on it, whose row is reopened (Task 19).
 	 *
 	 * @throws NotFoundException if the vehicle does not exist
 	 * @throws ObjectOptimisticLockingFailureException if the vehicle, or its
@@ -250,6 +254,8 @@ public class OwnershipService {
 		if (!leaving.isEmpty() || !joining.isEmpty()) {
 			violations.required("transferDate", transferDate, "Συμπληρώστε την ημερομηνία μεταβίβασης.");
 		}
+		Map<Long, Ownership> reopened = transferDate == null ? Map.of()
+				: removedOn(vehicleId, joining, transferDate);
 		if (transferDate != null) {
 			violations.addIf(transferDate.isAfter(today), "transferDate",
 					"Η ημερομηνία μεταβίβασης δεν μπορεί να είναι μελλοντική.");
@@ -258,7 +264,8 @@ public class OwnershipService {
 						"transferDate", "Ο πελάτης " + name(ownership.getCustomer()) + " έγινε ιδιοκτήτης στις "
 								+ ownership.getFromDate() + ", μετά την ημερομηνία μεταβίβασης.");
 			}
-			checkRejoining(vehicleId, joining, transferDate, violations);
+			checkRejoining(vehicleId, joining.stream().filter(id -> !reopened.containsKey(id)).toList(),
+					transferDate, violations);
 		}
 		violations.throwIfAny();
 
@@ -268,6 +275,13 @@ public class OwnershipService {
 		for (int i = 0; i < submission.customerIds().size(); i++) {
 			Long customerId = submission.customerIds().get(i);
 			Ownership ownership = currentByCustomer.get(customerId);
+			if (ownership == null && reopened.containsKey(customerId)) {
+				// Back on the date they were removed: they never left. Only the
+				// end changes, so the unique index (vehicle, customer, start)
+				// holds.
+				ownership = reopened.get(customerId);
+				ownership.setToDate(null);
+			}
 			if (ownership == null) {
 				ownership = new Ownership();
 				ownership.setVehicle(vehicle);
@@ -281,36 +295,47 @@ public class OwnershipService {
 	}
 
 	/**
-	 * Task 18: a customer who joins on the day an earlier ownership of theirs
-	 * started. The new row would break the unique index (vehicle, customer,
-	 * start), so the clerk is told what happened, by name. Such a row is
-	 * closed, since a current one would make the customer an owner who stays,
-	 * not one who joins. The usual case is a clerk putting right a mistake:
-	 * an owner added and removed on the same day, added back.
+	 * Task 19: the joining customers who were removed from the vehicle on the
+	 * transfer date, each with that row. Adding them back on that date puts
+	 * a mistaken removal right: their row is reopened, since a new one would
+	 * show a transfer that never happened. With more than one such row (only
+	 * in data from before Task 19), the one with the latest start.
 	 */
-	private void checkRejoining(Long vehicleId, List<Long> joining, LocalDate transferDate, Violations violations) {
+	private Map<Long, Ownership> removedOn(Long vehicleId, List<Long> joining, LocalDate transferDate) {
 		if (joining.isEmpty()) {
+			return Map.of();
+		}
+		Map<Long, Ownership> removed = new HashMap<>();
+		// Latest start first, so each customer's first row is the one.
+		ownershipRepository.findEndingOn(vehicleId, joining, transferDate)
+				.forEach(ownership -> removed.putIfAbsent(ownership.getCustomer().getId(), ownership));
+		return removed;
+	}
+
+	/**
+	 * Task 18: a customer who starts a new ownership on the day an earlier
+	 * one of theirs started. The new row would break the unique index
+	 * (vehicle, customer, start), so the clerk is told what happened, by
+	 * name. One removed on that same day is not here: they are reopened
+	 * (Task 19). What is left is an ownership that started on the transfer
+	 * date and ended later.
+	 *
+	 * @param starting the joining customers, less those reopened
+	 */
+	private void checkRejoining(Long vehicleId, List<Long> starting, LocalDate transferDate, Violations violations) {
+		if (starting.isEmpty()) {
 			return;
 		}
-		for (Ownership earlier : ownershipRepository.findStartingOn(vehicleId, joining, transferDate)) {
+		for (Ownership earlier : ownershipRepository.findStartingOn(vehicleId, starting, transferDate)) {
 			if (earlier.getToDate() == null) {
 				// Current after all: another clerk added them since the owners
 				// were read. The index refuses the save as a concurrent change.
 				continue;
 			}
-			String customer = name(earlier.getCustomer());
-			if (transferDate.equals(earlier.getToDate())) {
-				violations.add("transferDate", "Ο πελάτης " + customer + " αφαιρέθηκε από αυτό το όχημα με "
-						+ "ημερομηνία μεταβίβασης " + transferDate.format(GREEK_DATE) + ", την ίδια με αυτή που "
-						+ "δώσατε, και δεν μπορεί να ξαναμπεί με την ίδια ημερομηνία. Αν η αφαίρεση ήταν λάθος, "
-						+ "ζητήστε από τον διαχειριστή να τη διαγράψει από τους πρώην ιδιοκτήτες στην καρτέλα του "
-						+ "οχήματος και αποθηκεύστε ξανά.");
-			} else {
-				violations.add("transferDate", "Ο πελάτης " + customer + " ήταν ιδιοκτήτης αυτού του οχήματος από "
-						+ earlier.getFromDate().format(GREEK_DATE) + " έως " + earlier.getToDate().format(GREEK_DATE)
-						+ ". Νέα ιδιοκτησία του δεν μπορεί να αρχίζει στις " + transferDate.format(GREEK_DATE)
-						+ "· ελέγξτε την ημερομηνία μεταβίβασης.");
-			}
+			violations.add("transferDate", "Ο πελάτης " + name(earlier.getCustomer()) + " ήταν ιδιοκτήτης αυτού "
+					+ "του οχήματος από " + earlier.getFromDate().format(GREEK_DATE) + " έως "
+					+ earlier.getToDate().format(GREEK_DATE) + ". Νέα ιδιοκτησία του δεν μπορεί να αρχίζει στις "
+					+ transferDate.format(GREEK_DATE) + "· ελέγξτε την ημερομηνία μεταβίβασης.");
 		}
 	}
 

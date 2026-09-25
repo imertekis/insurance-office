@@ -6,7 +6,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -55,7 +54,9 @@ import gr.insuranceoffice.repository.VehicleRepository;
  * Task 18: a save that a unique index refuses after the service's own check
  * passed comes back as the form, with the message beside the field and what
  * the clerk typed, instead of an error page; and the ownership form says by
- * name who cannot join again on the same day.
+ * name why a former owner cannot start again on a date. An owner removed by
+ * mistake and added back on the same date is reopened instead (Task 19,
+ * OwnershipFormTest).
  * <p>
  * The race is played out without threads: the service's check is stubbed so
  * that another clerk's row is committed, in a transaction of its own, right
@@ -301,40 +302,6 @@ class UniqueViolationFormTest {
 						tuple(nikos.getId(), new BigDecimal("50.00"), TODAY));
 	}
 
-	// The reproduced case: added and removed with the same transfer date,
-	// then added back with it. Not a race: the check names the customer.
-	@Test
-	void ownerRemovedAndAddedBackWithTheSameTransferDate() throws Exception {
-		Customer maria = customer("Αλεξίου", "Μαρία", "900000080", "6900000001");
-		Customer nikos = customer("Βασιλείου", "Νίκος", "900000091", "6900000002");
-		Vehicle golf = vehicle("ΑΒΕ-1234", "WVWZZZ1KZAW123456");
-		owns(golf, maria, "100", true, null, null);
-		saved(saveOwners(golf, List.of(maria, nikos), List.of("50", "50"), maria, TODAY), golf);
-		saved(saveOwners(golf, List.of(maria), List.of("100"), maria, TODAY), golf);
-
-		String html = html(saveOwners(golf, List.of(maria, nikos), List.of("50", "50"), maria, TODAY));
-
-		assertFieldError(html, "transferDate", "Ο πελάτης Βασιλείου Νίκος αφαιρέθηκε από αυτό το όχημα με "
-				+ "ημερομηνία μεταβίβασης " + TODAY.format(GREEK_DATE) + ", την ίδια με αυτή που δώσατε, και δεν "
-				+ "μπορεί να ξαναμπεί με την ίδια ημερομηνία. Αν η αφαίρεση ήταν λάθος, ζητήστε από τον διαχειριστή "
-				+ "να τη διαγράψει από τους πρώην ιδιοκτήτες στην καρτέλα του οχήματος και αποθηκεύστε ξανά.");
-		assertThat(html).contains("Αλεξίου Μαρία", "Βασιλείου Νίκος", "data-unsaved=\"true\"");
-		Ownership removed = ownershipRepository.findByVehicleIdWithCustomer(golf.getId()).stream()
-				.filter(o -> o.getCustomer().getId().equals(nikos.getId())).findFirst().orElseThrow();
-		assertThat(removed).extracting(Ownership::getFromDate, Ownership::getToDate).containsExactly(TODAY, TODAY);
-		assertThat(ownershipRepository.count()).isEqualTo(2);
-
-		// As the message says: the administrator deletes the mistaken row, and
-		// the same form saves.
-		mockMvc.perform(post("/ownerships/{id}/delete", removed.getId()).with(csrf())
-				.with(user("διαχειριστής").roles("ΔΙΑΧΕΙΡΙΣΤΗΣ")))
-				.andExpect(status().is3xxRedirection());
-		saved(saveOwners(golf, List.of(maria, nikos), List.of("50", "50"), maria, TODAY), golf);
-		assertThat(ownershipRepository.findCurrentByVehicleIdWithCustomer(golf.getId()))
-				.extracting(o -> o.getCustomer().getId(), Ownership::isPrimary, Ownership::getFromDate)
-				.containsExactly(tuple(maria.getId(), true, null), tuple(nikos.getId(), false, TODAY));
-	}
-
 	@Test
 	void formerOwnerAddedBackOnTheDayTheirOwnershipStarted() throws Exception {
 		Customer maria = customer("Αλεξίου", "Μαρία", "900000080", "6900000001");
@@ -440,10 +407,6 @@ class UniqueViolationFormTest {
 		customers.forEach(customer -> request.param("customerId", customer.getId().toString()));
 		percentages.forEach(percentage -> request.param("percentage", percentage));
 		return request;
-	}
-
-	private void saved(MockHttpServletRequestBuilder request, Vehicle vehicle) throws Exception {
-		mockMvc.perform(request).andExpect(redirectedUrl("/vehicles/" + vehicle.getId()));
 	}
 
 	private String html(MockHttpServletRequestBuilder request) throws Exception {

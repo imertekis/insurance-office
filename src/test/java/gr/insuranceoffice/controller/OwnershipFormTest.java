@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -23,6 +24,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.StringUtils;
 
 import gr.insuranceoffice.TestcontainersConfiguration;
 import gr.insuranceoffice.entity.Customer;
@@ -44,6 +46,8 @@ import gr.insuranceoffice.repository.VehicleRepository;
 class OwnershipFormTest {
 
 	private static final LocalDate TODAY = LocalDate.now();
+
+	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -272,6 +276,147 @@ class OwnershipFormTest {
 		assertThat(html(get("/vehicles/{id}", vehicle.getId()))).contains("Βασιλείου Νίκος", "Πρώην");
 	}
 
+	// Task 19, the case Task 18 refused with a message: added and removed on
+	// the same day, then added back with that date. The row he was removed
+	// from comes back; no second one is written.
+	@Test
+	void reopensAnOwnerAddedAndRemovedTheSameDay() throws Exception {
+		saved(List.of(maria, nikos), List.of("50", "50"), maria);
+		saved(List.of(maria), List.of("100"), maria);
+
+		saved(List.of(maria, nikos), List.of("50", "50"), maria);
+
+		assertThat(rowsOf(nikos)).singleElement()
+				.extracting(Ownership::getFromDate, Ownership::getToDate, Ownership::getPercentage,
+						Ownership::isPrimary)
+				.containsExactly(TODAY, null, new BigDecimal("50.00"), false);
+		assertThat(ownershipRepository.count()).isEqualTo(2);
+	}
+
+	// Task 19: removed by mistake and put back on the same day. As the import
+	// leaves him, with no start: the reopened row still has none.
+	@Test
+	void reopensAnImportedOwnerRemovedByMistake() throws Exception {
+		halvedWithNikos(null);
+		saved(List.of(maria), List.of("100"), maria);
+
+		saved(List.of(maria, nikos), List.of("50", "50"), maria);
+
+		assertThat(rowsOf(nikos)).singleElement()
+				.extracting(Ownership::getFromDate, Ownership::getToDate, Ownership::getPercentage)
+				.containsExactly(null, null, new BigDecimal("50.00"));
+		assertThat(current()).hasSize(2);
+	}
+
+	// Task 19: the same for an owner who joined earlier, who keeps the day he
+	// joined. The card shows no transfer, and the audit log the plain UPDATE
+	// of the listener (the decision of Task 19): the pair of UPDATEs is the
+	// removal and its undoing.
+	@Test
+	void reopensAnOwnerWhoJoinedEarlierAndLogsItAsAnUpdate() throws Exception {
+		LocalDate bought = TODAY.minusDays(100);
+		halvedWithNikos(bought);
+		saved(List.of(maria), List.of("100"), maria);
+
+		saved(List.of(maria, nikos), List.of("50", "50"), maria);
+
+		Ownership reopened = rowsOf(nikos).getFirst();
+		assertThat(rowsOf(nikos)).singleElement()
+				.extracting(Ownership::getFromDate, Ownership::getToDate).containsExactly(bought, null);
+		assertThat(jdbcTemplate.queryForList("""
+				SELECT action, old_values ->> 'to_date' AS old_end, new_values ->> 'to_date' AS new_end
+				FROM audit_log WHERE entity_type = 'Ownership' AND entity_id = ? ORDER BY id
+				""", reopened.getId()))
+				.extracting(row -> row.get("action"), row -> row.get("old_end"), row -> row.get("new_end"))
+				.containsExactly(tuple("CREATE", null, null), tuple("UPDATE", null, TODAY.toString()),
+						tuple("UPDATE", TODAY.toString(), null));
+		assertThat(jdbcTemplate.queryForObject("""
+				SELECT count(*) FROM audit_log
+				WHERE entity_type = 'Ownership' AND action = 'CREATE' AND new_values ->> 'customer_id' = ?
+				""", Long.class, nikos.getId().toString())).isOne();
+
+		String owners = ownersTable(html(get("/vehicles/{id}", vehicle.getId())));
+		assertThat(StringUtils.countOccurrencesOf(owners, "Βασιλείου Νίκος")).isOne();
+		assertThat(owners).contains(bought.format(GREEK_DATE) + " / —").doesNotContain("Πρώην");
+	}
+
+	// Task 19: the wrong owner removed, and put right in one save. The one
+	// removed by mistake comes back; the other leaves on the same date.
+	@Test
+	void putsRightTheRemovalOfTheWrongOwner() throws Exception {
+		halvedWithNikos(null);
+		// Maria removed instead of Nikos.
+		saved(List.of(nikos), List.of("100"), nikos);
+
+		saved(List.of(maria), List.of("100"), maria);
+
+		assertThat(current()).singleElement()
+				.extracting(o -> o.getCustomer().getId(), Ownership::getPercentage, Ownership::isPrimary,
+						Ownership::getFromDate)
+				.containsExactly(maria.getId(), new BigDecimal("100.00"), true, null);
+		assertThat(rowsOf(maria)).hasSize(1);
+		assertThat(rowsOf(nikos)).singleElement().extracting(Ownership::getToDate).isEqualTo(TODAY);
+	}
+
+	// Task 19: the reopened row takes the share and the primary owner of the
+	// form, like any other row the form saves.
+	@Test
+	void reopensWithTheShareAndPrimaryOfTheForm() throws Exception {
+		LocalDate bought = TODAY.minusDays(100);
+		halvedWithNikos(bought);
+		saved(List.of(maria), List.of("100"), maria);
+
+		saved(List.of(maria, nikos), List.of("30", "70"), nikos);
+
+		assertThat(current()).extracting(o -> o.getCustomer().getId(), Ownership::getPercentage,
+				Ownership::isPrimary, Ownership::getFromDate)
+				.containsExactly(tuple(nikos.getId(), new BigDecimal("70.00"), true, bought),
+						tuple(maria.getId(), new BigDecimal("30.00"), false, null));
+		assertThat(ownershipRepository.count()).isEqualTo(2);
+	}
+
+	// Task 19: only the date he left on reopens. Back on another day is a new
+	// ownership, as before.
+	@Test
+	void givesANewRowToAnOwnerBackOnAnotherDay() throws Exception {
+		LocalDate left = TODAY.minusDays(5);
+		owns(vehicle, nikos, "50", false, null, left);
+
+		saved(List.of(maria, nikos), List.of("50", "50"), maria);
+
+		assertThat(rowsOf(nikos)).extracting(Ownership::getFromDate, Ownership::getToDate)
+				.containsExactlyInAnyOrder(tuple(null, left), tuple(TODAY, null));
+	}
+
+	// Task 19: before it, an owner put back and removed again on one day was
+	// left with two rows ending on it. The latest start comes back, and a
+	// row with no start (the import's) counts as the oldest.
+	@Test
+	void reopensTheLatestStartOfTwoRowsEndingThatDay() throws Exception {
+		LocalDate bought = TODAY.minusDays(10);
+		owns(vehicle, nikos, "50", false, null, TODAY);
+		owns(vehicle, nikos, "50", false, bought, TODAY);
+
+		saved(List.of(maria, nikos), List.of("50", "50"), maria);
+
+		assertThat(rowsOf(nikos)).extracting(Ownership::getFromDate, Ownership::getToDate)
+				.containsExactlyInAnyOrder(tuple(null, TODAY), tuple(bought, null));
+	}
+
+	// Task 19: reopening is a save like any other; the ownership rule holds.
+	@Test
+	void refusesAReopeningThatBreaksTheOwnershipRule() throws Exception {
+		halvedWithNikos(null);
+		saved(List.of(maria), List.of("100"), maria);
+
+		String html = html(saving(List.of(maria, nikos), List.of("100", "50"), maria));
+
+		assertThat(html).contains("Τα ποσοστά ιδιοκτησίας του οχήματος αθροίζουν 150% αντί για 100%.");
+		assertThat(rowsOf(nikos)).singleElement().extracting(Ownership::getToDate).isEqualTo(TODAY);
+		assertThat(current()).singleElement().extracting(Ownership::getPercentage)
+				.isEqualTo(new BigDecimal("100.00"));
+	}
+
 	@Test
 	void refusesSharesThatDoNotAddUpAndKeepsWhatWasTyped() throws Exception {
 		String html = html(owners(List.of(maria, nikos), List.of("60", "30"), maria).param("action", "save"));
@@ -376,14 +521,52 @@ class OwnershipFormTest {
 	// param() adds a value rather than replacing it, so the date is chosen here.
 	private MockHttpServletRequestBuilder owners(List<Customer> customers, List<String> percentages,
 			Customer primary, LocalDate transferDate) {
+		return owners(customers, percentages, primary, transferDate, 0L);
+	}
+
+	private MockHttpServletRequestBuilder owners(List<Customer> customers, List<String> percentages,
+			Customer primary, LocalDate transferDate, Long vehicleVersion) {
 		MockHttpServletRequestBuilder request = post("/vehicles/{id}/owners", vehicle.getId()).with(csrf())
-				.param("vehicleVersion", "0").param("transferDate", transferDate.toString());
+				.param("vehicleVersion", vehicleVersion.toString()).param("transferDate", transferDate.toString());
 		customers.forEach(customer -> request.param("customerId", customer.getId().toString()));
 		percentages.forEach(percentage -> request.param("percentage", percentage));
 		if (primary != null) {
 			request.param("primary", primary.getId().toString());
 		}
 		return request;
+	}
+
+	// Task 19: saves one after another, each with the vehicle's version as it
+	// is now. Every saved change of owners raises it; owners(...) sends 0.
+	private MockHttpServletRequestBuilder saving(List<Customer> customers, List<String> percentages,
+			Customer primary) {
+		Long version = vehicleRepository.findById(vehicle.getId()).orElseThrow().getVersion();
+		return owners(customers, percentages, primary, TODAY, version).param("action", "save");
+	}
+
+	private void saved(List<Customer> customers, List<String> percentages, Customer primary) throws Exception {
+		mockMvc.perform(saving(customers, percentages, primary))
+				.andExpect(redirectedUrl("/vehicles/" + vehicle.getId()));
+	}
+
+	// Maria and Nikos 50/50, Maria primary; Nikos from the given day, or with
+	// no start, as the import leaves him.
+	private void halvedWithNikos(LocalDate nikosFrom) {
+		jdbcTemplate.update("UPDATE ownership SET percentage = 50 WHERE customer_id = ?", maria.getId());
+		owns(vehicle, nikos, "50", false, nikosFrom, null);
+	}
+
+	// All of a customer's ownerships of the vehicle, current and former.
+	private List<Ownership> rowsOf(Customer customer) {
+		return ownershipRepository.findByVehicleIdWithCustomer(vehicle.getId()).stream()
+				.filter(ownership -> ownership.getCustomer().getId().equals(customer.getId()))
+				.toList();
+	}
+
+	// The owners' table of the vehicle card, without the rest of the page.
+	private static String ownersTable(String card) {
+		int start = card.indexOf("id=\"owners\"");
+		return card.substring(start, card.indexOf("</table>", start));
 	}
 
 	private List<Ownership> current() {

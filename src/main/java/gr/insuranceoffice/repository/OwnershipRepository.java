@@ -43,6 +43,19 @@ public interface OwnershipRepository extends JpaRepository<Ownership, Long> {
 			""")
 	List<Ownership> findStartingOn(Long vehicleId, Collection<Long> customerIds, LocalDate fromDate);
 
+	/**
+	 * The customers' ownerships of a vehicle that end on the given day, with
+	 * their customer, in one query for all of them: latest start first, an
+	 * empty start (the import's) last, then the newest row. A customer who
+	 * joins on the day they were removed gets that row back (Task 19).
+	 */
+	@Query("""
+			select o from Ownership o join fetch o.customer
+			where o.vehicle.id = :vehicleId and o.customer.id in :customerIds and o.toDate = :toDate
+			order by o.fromDate desc nulls last, o.id desc
+			""")
+	List<Ownership> findEndingOn(Long vehicleId, Collection<Long> customerIds, LocalDate toDate);
+
 	/** A customer's vehicles with their share, current ownerships first. */
 	@Query("""
 			select o from Ownership o join fetch o.vehicle
