@@ -225,8 +225,7 @@ public class VehicleService {
 		violations.format("vin", values.vin(), VIN, "Το VIN έχει 17 χαρακτήρες, χωρίς τα γράμματα I, O και Q.");
 		if (isVin(values.vin())) {
 			violations.addIf(vehicleRepository.findByVin(values.vin())
-					.filter(other -> !other.getId().equals(id)).isPresent(),
-					"vin", "Υπάρχει ήδη όχημα με αυτό το VIN.");
+					.filter(other -> !other.getId().equals(id)).isPresent(), UniqueConstraint.VEHICLE_VIN);
 		}
 
 		violations.required("plate", values.plate(), "Ο αριθμός κυκλοφορίας είναι υποχρεωτικός.");
@@ -234,8 +233,7 @@ public class VehicleService {
 			// ΑΒΕ1234 and ABE1234 are the same plate (CLAUDE.md §5).
 			violations.addIf(vehicleRepository.findByPlateNormalized(TextNormalizationUtils
 					.normalizePlate(values.plate())).filter(other -> !other.getId().equals(id)).isPresent(),
-					"plate", "Υπάρχει ήδη όχημα με αυτή την πινακίδα· "
-							+ "τα ελληνικά και τα λατινικά γράμματα μετρούν ως ίδια.");
+					UniqueConstraint.VEHICLE_PLATE);
 		}
 
 		violations.required("brand", values.brand(), "Η μάρκα είναι υποχρεωτική.");

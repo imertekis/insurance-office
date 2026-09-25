@@ -258,8 +258,7 @@ public class CustomerService {
 				violations.add("taxId", "Μη έγκυρο ΑΦΜ: 9 ψηφία με σωστό ψηφίο ελέγχου.");
 			} else {
 				violations.addIf(customerRepository.findByTaxId(values.taxId())
-						.filter(other -> !other.getId().equals(id)).isPresent(),
-						"taxId", "Υπάρχει ήδη πελάτης με αυτό το ΑΦΜ.");
+						.filter(other -> !other.getId().equals(id)).isPresent(), UniqueConstraint.CUSTOMER_TAX_ID);
 			}
 		}
 		violations.format("mobile", values.mobile(), MOBILE,

@@ -3,6 +3,7 @@ package gr.insuranceoffice.controller;
 import java.beans.PropertyEditorSupport;
 import java.math.BigDecimal;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -87,6 +88,9 @@ public class VehicleController {
 			return "redirect:/vehicles/" + saved.id();
 		} catch (BusinessException exception) {
 			return formWithProblems(vehicle, exception, model);
+		} catch (DataIntegrityViolationException exception) {
+			FormErrors.show(exception, model);
+			return form(vehicle, model);
 		}
 	}
 
@@ -103,6 +107,9 @@ public class VehicleController {
 			return "redirect:/vehicles/" + id;
 		} catch (BusinessException exception) {
 			return formWithProblems(vehicle, exception, model);
+		} catch (DataIntegrityViolationException exception) {
+			FormErrors.show(exception, model);
+			return form(vehicle, model);
 		} catch (ObjectOptimisticLockingFailureException exception) {
 			// SPEC §9: the other change is not overwritten silently.
 			model.addAttribute("conflict", "Το όχημα άλλαξε από άλλον χρήστη ενώ το επεξεργαζόσασταν. "

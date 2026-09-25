@@ -5,12 +5,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 
 import gr.insuranceoffice.service.BusinessException;
 import gr.insuranceoffice.service.BusinessException.Violation;
+import gr.insuranceoffice.service.UniqueConstraint;
 
 /**
  * Puts what is wrong with a form where the templates look for it: messages
@@ -35,6 +37,23 @@ final class FormErrors {
 				.map(Violation::message)
 				.distinct()
 				.toList());
+	}
+
+	/**
+	 * A save a unique index refused although the service checked it, because
+	 * another clerk saved the same value meanwhile (Task 18). Shown like the
+	 * service's own check, beside the field. The controllers call this once
+	 * the service's transaction has rolled back, so the form can be read
+	 * again; the seven of them share it so the mapping is written once.
+	 *
+	 * @throws DataIntegrityViolationException the same exception when it is
+	 *             not a unique index with a form field: a bug, for the error page
+	 */
+	static void show(DataIntegrityViolationException exception, Model model) {
+		UniqueConstraint constraint = UniqueConstraint.violatedBy(exception)
+				.filter(violated -> violated.field() != null)
+				.orElseThrow(() -> exception);
+		show(new BusinessException(List.of(new Violation(constraint.field(), constraint.message()))), model);
 	}
 
 	/**

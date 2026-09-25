@@ -1,5 +1,6 @@
 package gr.insuranceoffice.controller;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -62,6 +63,9 @@ public class CustomerController {
 			return saved(customerService.create(customer), redirect);
 		} catch (BusinessException exception) {
 			return formWithErrors(customer, exception, model);
+		} catch (DataIntegrityViolationException exception) {
+			FormErrors.show(exception, model);
+			return formWithValues(customer, model);
 		}
 	}
 
@@ -72,6 +76,9 @@ public class CustomerController {
 			return saved(customerService.update(id, customer), redirect);
 		} catch (BusinessException exception) {
 			return formWithErrors(customer, exception, model);
+		} catch (DataIntegrityViolationException exception) {
+			FormErrors.show(exception, model);
+			return formWithValues(customer, model);
 		} catch (ObjectOptimisticLockingFailureException exception) {
 			// SPEC §9: the other change is not overwritten silently.
 			model.addAttribute("conflict", "Ο πελάτης άλλαξε από άλλον χρήστη ενώ τον επεξεργαζόσασταν. "

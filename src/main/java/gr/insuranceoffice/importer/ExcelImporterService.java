@@ -32,6 +32,7 @@ import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
 import gr.insuranceoffice.service.OwnershipService;
 import gr.insuranceoffice.service.OwnershipService.Share;
+import gr.insuranceoffice.service.UniqueConstraint;
 import gr.insuranceoffice.service.VehicleService;
 import gr.insuranceoffice.util.TextNormalizationUtils;
 
@@ -164,12 +165,51 @@ public class ExcelImporterService {
 				// refuses is reported as that row.
 				customerRepository.flush();
 			} catch (DataIntegrityViolationException e) {
-				String reason = String.valueOf(e.getMostSpecificCause().getMessage()).lines().findFirst().orElse("");
-				row.reject(null, "η βάση δεδομένων απέρριψε τη γραμμή: " + reason);
-				// PostgreSQL refuses every further statement in this transaction.
+				// Caught inside the import's transaction, and safe there: it is
+				// never swallowed, so the transaction rolls back and nothing
+				// else runs in it. PostgreSQL would refuse any further statement.
+				Optional<UniqueConstraint> duplicate = UniqueConstraint.violatedBy(e);
+				if (duplicate.isPresent()) {
+					rejectDuplicate(row, duplicate.get());
+				} else {
+					// Another rule the database enforces, e.g. a policy ending
+					// before it starts: reported in PostgreSQL's words, as before.
+					String reason = String.valueOf(e.getMostSpecificCause().getMessage()).lines().findFirst()
+							.orElse("");
+					row.reject(null, "η βάση δεδομένων απέρριψε τη γραμμή: " + reason);
+				}
 				throw new ExcelImportException(errors);
 			}
 		}
+	}
+
+	/**
+	 * A value a unique index refused although the row was checked against
+	 * the file and the database (Task 18): a clerk saved the same value in
+	 * the application meanwhile, or, for an ownership, a re-import met a row
+	 * the ownership form closed (NOTES «Import risks»). Every index has its
+	 * column and message here; a switch expression, so a new one does not
+	 * compile without them.
+	 */
+	private static void rejectDuplicate(ExcelRow row, UniqueConstraint constraint) {
+		Refusal refusal = switch (constraint) {
+			case CUSTOMER_TAX_ID -> new Refusal(TAX_ID, "υπάρχει ήδη πελάτης με αυτό το ΑΦΜ στη βάση");
+			case VEHICLE_VIN -> new Refusal(VIN, "υπάρχει ήδη όχημα με αυτό το VIN στη βάση");
+			case VEHICLE_PLATE -> new Refusal(PLATE, "η πινακίδα ανήκει ήδη σε άλλο όχημα στη βάση");
+			case POLICY_NUMBER -> new Refusal(POLICY_NUMBER, "υπάρχει ήδη συμβόλαιο με αυτόν τον αριθμό στη βάση");
+			case INTERMEDIARY_NAME -> new Refusal(INTERMEDIARY,
+					"υπάρχει ήδη διαμεσολαβητής με αυτό το όνομα στη βάση");
+			// The index does not say whether the owner or the co-owner
+			// collided, so the message names both columns. The import only
+			// writes rows without a start, so it can only meet such a row.
+			case OWNERSHIP -> new Refusal(null, "ο πελάτης της στήλης «" + OWNER_TAX_ID + "» ή της «"
+					+ CO_OWNER_TAX_ID + "» έχει ήδη σε αυτό το όχημα ιδιοκτησία χωρίς ημερομηνία έναρξης, "
+					+ "που έκλεισε στη φόρμα ιδιοκτητών· η εισαγωγή δεν την ανοίγει ξανά");
+		};
+		row.reject(refusal.column(), refusal.message());
+	}
+
+	private record Refusal(String column, String message) {
 	}
 
 	private void importCustomer(ExcelRow row, Run run) {

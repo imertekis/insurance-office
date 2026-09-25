@@ -30,6 +30,19 @@ public interface OwnershipRepository extends JpaRepository<Ownership, Long> {
 			""")
 	List<Ownership> findCurrentByVehicleIdWithCustomer(Long vehicleId);
 
+	/**
+	 * The customers' ownerships of a vehicle that start on the given day,
+	 * with their customer, in one query for all of them. A new row for one
+	 * of these customers starting that day would break the unique index
+	 * (vehicle, customer, start) (Task 18).
+	 */
+	@Query("""
+			select o from Ownership o join fetch o.customer
+			where o.vehicle.id = :vehicleId and o.customer.id in :customerIds and o.fromDate = :fromDate
+			order by o.id
+			""")
+	List<Ownership> findStartingOn(Long vehicleId, Collection<Long> customerIds, LocalDate fromDate);
+
 	/** A customer's vehicles with their share, current ownerships first. */
 	@Query("""
 			select o from Ownership o join fetch o.vehicle

@@ -53,6 +53,7 @@
 ### Optimistic Locking
 *   **Πού ζει**: Στο `gr.insuranceoffice.entity`.
 *   **Πώς λειτουργεί**: Στα Entities προστίθεται ένα πεδίο τύπου `Long` με το `@Version`. Αν υπάρξει conflict κατά το save, ρίχνεται `OptimisticLockException` και το Spring MVC Controller επιστρέφει το αντίστοιχο σφάλμα (409 Conflict) στο UI.
+*   **Παραβίαση μοναδικότητας (Task 18)**: Όταν ένας unique index απορρίπτει μια αποθήκευση παρά τον έλεγχο του service (δύο υπάλληλοι σώζουν ταυτόχρονα την ίδια τιμή), ο controller πιάνει το `DataIntegrityViolationException` έξω από τη συναλλαγή, που έχει ήδη γίνει rollback. Το `FormErrors` το δείχνει ως μήνυμα δίπλα στο πεδίο και η φόρμα κρατά ό,τι πληκτρολογήθηκε. Ποιος index είναι ποιο πεδίο το λέει το `UniqueConstraint` (service), από το όνομα του index και όχι από το κείμενο της PostgreSQL· η εισαγωγή το χρησιμοποιεί για το μήνυμα γραμμής.
 
 ### Audit Logging
 Με δεδομένο ότι το μοντέλο (`DATA_MODEL.md`) απαιτεί ένα custom schema (`audit_log` με `old_values` / `new_values` σε `JSONB`), η λύση του Hibernate Envers **απορρίπτεται**.

@@ -242,9 +242,12 @@ public class OwnershipService {
 		List<Ownership> leaving = current.stream()
 				.filter(ownership -> !submission.customerIds().contains(ownership.getCustomer().getId()))
 				.toList();
-		boolean joining = submission.customerIds().stream().anyMatch(id -> !currentByCustomer.containsKey(id));
+		List<Long> joining = submission.customerIds().stream()
+				.filter(id -> !currentByCustomer.containsKey(id))
+				.distinct()
+				.toList();
 		LocalDate transferDate = submission.transferDate();
-		if (!leaving.isEmpty() || joining) {
+		if (!leaving.isEmpty() || !joining.isEmpty()) {
 			violations.required("transferDate", transferDate, "Συμπληρώστε την ημερομηνία μεταβίβασης.");
 		}
 		if (transferDate != null) {
@@ -255,6 +258,7 @@ public class OwnershipService {
 						"transferDate", "Ο πελάτης " + name(ownership.getCustomer()) + " έγινε ιδιοκτήτης στις "
 								+ ownership.getFromDate() + ", μετά την ημερομηνία μεταβίβασης.");
 			}
+			checkRejoining(vehicleId, joining, transferDate, violations);
 		}
 		violations.throwIfAny();
 
@@ -273,6 +277,40 @@ public class OwnershipService {
 			ownership.setPercentage(shares.get(i));
 			ownership.setPrimary(customerId.equals(submission.primaryCustomerId()));
 			ownershipRepository.save(ownership);
+		}
+	}
+
+	/**
+	 * Task 18: a customer who joins on the day an earlier ownership of theirs
+	 * started. The new row would break the unique index (vehicle, customer,
+	 * start), so the clerk is told what happened, by name. Such a row is
+	 * closed, since a current one would make the customer an owner who stays,
+	 * not one who joins. The usual case is a clerk putting right a mistake:
+	 * an owner added and removed on the same day, added back.
+	 */
+	private void checkRejoining(Long vehicleId, List<Long> joining, LocalDate transferDate, Violations violations) {
+		if (joining.isEmpty()) {
+			return;
+		}
+		for (Ownership earlier : ownershipRepository.findStartingOn(vehicleId, joining, transferDate)) {
+			if (earlier.getToDate() == null) {
+				// Current after all: another clerk added them since the owners
+				// were read. The index refuses the save as a concurrent change.
+				continue;
+			}
+			String customer = name(earlier.getCustomer());
+			if (transferDate.equals(earlier.getToDate())) {
+				violations.add("transferDate", "Ο πελάτης " + customer + " αφαιρέθηκε από αυτό το όχημα με "
+						+ "ημερομηνία μεταβίβασης " + transferDate.format(GREEK_DATE) + ", την ίδια με αυτή που "
+						+ "δώσατε, και δεν μπορεί να ξαναμπεί με την ίδια ημερομηνία. Αν η αφαίρεση ήταν λάθος, "
+						+ "ζητήστε από τον διαχειριστή να τη διαγράψει από τους πρώην ιδιοκτήτες στην καρτέλα του "
+						+ "οχήματος και αποθηκεύστε ξανά.");
+			} else {
+				violations.add("transferDate", "Ο πελάτης " + customer + " ήταν ιδιοκτήτης αυτού του οχήματος από "
+						+ earlier.getFromDate().format(GREEK_DATE) + " έως " + earlier.getToDate().format(GREEK_DATE)
+						+ ". Νέα ιδιοκτησία του δεν μπορεί να αρχίζει στις " + transferDate.format(GREEK_DATE)
+						+ "· ελέγξτε την ημερομηνία μεταβίβασης.");
+			}
 		}
 	}
 

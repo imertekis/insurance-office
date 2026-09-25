@@ -247,8 +247,7 @@ public class PolicyService {
 				"policyNumber", "Ο αριθμός συμβολαίου έχει το πολύ 30 χαρακτήρες.");
 		if (values.policyNumber() != null) {
 			violations.addIf(policyRepository.findByPolicyNumber(values.policyNumber())
-					.filter(other -> !other.getId().equals(policyId)).isPresent(),
-					"policyNumber", "Υπάρχει ήδη συμβόλαιο με αυτόν τον αριθμό.");
+					.filter(other -> !other.getId().equals(policyId)).isPresent(), UniqueConstraint.POLICY_NUMBER);
 		}
 		violations.required("insuranceCompany", values.insuranceCompany(), "Η ασφαλιστική εταιρεία είναι υποχρεωτική.");
 

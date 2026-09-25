@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -25,6 +27,7 @@ import gr.insuranceoffice.repository.IntermediaryRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.service.UniqueConstraint;
 
 /**
  * Proves the V3 schema and the JPA mappings agree: Hibernate runs with
@@ -160,6 +163,26 @@ class FullSchemaTest {
 				WHERE table_schema = 'public' AND column_name = 'deleted_at'
 				""", String.class);
 		assertThat(softDeleteColumns).isEmpty();
+	}
+
+	// Task 18: a save that breaks a unique index shows a Greek message, not
+	// an error page. A new index fails here until UniqueConstraint lists it.
+	@Test
+	void givesEveryUniqueIndexAMessage() {
+		List<String> uniqueIndexes = jdbcTemplate.queryForList("""
+				SELECT index_class.relname
+				FROM pg_index i
+				JOIN pg_class index_class ON index_class.oid = i.indexrelid
+				JOIN pg_namespace n ON n.oid = index_class.relnamespace
+				WHERE n.nspname = 'public' AND i.indisunique AND NOT i.indisprimary
+				""", String.class);
+
+		List<String> listed = new ArrayList<>(Arrays.stream(UniqueConstraint.values())
+				.map(UniqueConstraint::indexName).toList());
+		// Out of scope: accounts are made by the create-user profile, which
+		// looks the user up first.
+		listed.add("idx_app_user_username");
+		assertThat(uniqueIndexes).containsExactlyInAnyOrderElementsOf(listed);
 	}
 
 	private String isNullable(String table, String column) {

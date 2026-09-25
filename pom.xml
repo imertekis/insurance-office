@@ -71,7 +71,8 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
+			<!-- Compile scope, not runtime: UniqueConstraint reads the violated
+			     index's name from the driver's PSQLException (Task 18). -->
 		</dependency>
 		<dependency>
 			<groupId>org.mapstruct</groupId>

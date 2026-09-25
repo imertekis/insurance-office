@@ -25,6 +25,11 @@ class Violations {
 		}
 	}
 
+	/** A value a unique index already holds, with the index's own field and message (Task 18). */
+	void addIf(boolean taken, UniqueConstraint constraint) {
+		addIf(taken, constraint.field(), constraint.message());
+	}
+
 	/** Blank counts as missing: an empty form field means "no value". */
 	void required(String field, Object value, String message) {
 		addIf(value == null || (value instanceof String text && text.isBlank()), field, message);

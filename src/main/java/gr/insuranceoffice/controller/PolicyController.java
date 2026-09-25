@@ -1,5 +1,6 @@
 package gr.insuranceoffice.controller;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -84,6 +85,9 @@ public class PolicyController {
 		} catch (BusinessException exception) {
 			FormErrors.show(exception, model);
 			return form(policy, vehicleId, model);
+		} catch (DataIntegrityViolationException exception) {
+			FormErrors.show(exception, model);
+			return form(policy, vehicleId, model);
 		}
 	}
 
@@ -99,6 +103,9 @@ public class PolicyController {
 			Notice.show(redirect, Notice.SAVED);
 			return "redirect:/vehicles/" + saved.vehicleId();
 		} catch (BusinessException exception) {
+			FormErrors.show(exception, model);
+			return form(policy, policy.vehicleId(), model);
+		} catch (DataIntegrityViolationException exception) {
 			FormErrors.show(exception, model);
 			return form(policy, policy.vehicleId(), model);
 		} catch (ObjectOptimisticLockingFailureException exception) {

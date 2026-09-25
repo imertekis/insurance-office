@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -67,6 +68,8 @@ public class OwnershipController {
 				Notice.show(redirect, Notice.SAVED);
 				return "redirect:/vehicles/" + id;
 			} catch (BusinessException exception) {
+				FormErrors.show(exception, model);
+			} catch (DataIntegrityViolationException exception) {
 				FormErrors.show(exception, model);
 			} catch (ObjectOptimisticLockingFailureException exception) {
 				// SPEC §9: the other change is not overwritten silently.
