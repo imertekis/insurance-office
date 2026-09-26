@@ -54,6 +54,30 @@ class AppStylesheetTest {
 				+ "\\s*--bs-table-hover-color: var\\(--bs-secondary-color\\);\\s*\\}");
 	}
 
+	// Task 21b: the suggestions under the search box are as wide as the field
+	// at any screen width, and what does not fit on a row is cut with «…».
+	@Test
+	void keepsTheSuggestionsAsWideAsTheSearchFieldAndCutsLongTexts() throws Exception {
+		String css = mockMvc.perform(get("/css/app.css")).andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+
+		assertThat(css).containsPattern("\\.search-suggestions \\{[^}]*\\btop: 100%;[^}]*\\bleft: 0;"
+				+ "[^}]*\\bwidth: 100%;[^}]*\\bmin-width: 0;[^}]*\\}");
+		assertThat(css).containsPattern("\\.search-suggestion-text,\\s*\\.search-suggestion-detail \\{"
+				+ "[^}]*\\bmin-width: 0;[^}]*\\boverflow: hidden;[^}]*\\btext-overflow: ellipsis;[^}]*\\}");
+		// The second part is fainter, in the theme's own colour.
+		assertThat(css).containsPattern(
+				"\\.search-suggestion-detail \\{[^}]*\\bcolor: var\\(--bs-secondary-color\\);[^}]*\\}");
+		// No taller than the room app.js measures under the field; the rest
+		// scrolls inside the list.
+		assertThat(css).containsPattern("\\.search-suggestions \\{[^}]*\\bmax-height: "
+				+ "max\\(var\\(--search-suggestions-room, 70vh\\), 3rem\\);[^}]*\\boverflow-y: auto;[^}]*\\}");
+		// On a phone, two lines: the name, then the second part under it
+		// (CLAUDE.md, resolved conflict 9).
+		assertThat(css).containsPattern("@media \\(max-width: 575\\.98px\\) \\{\\s*\\.search-suggestion,"
+				+ "\\s*\\.search-suggestion-text,\\s*\\.search-suggestion-detail \\{\\s*display: block;");
+	}
+
 	// After Bootstrap, so it can add to it.
 	@Test
 	void linksTheStylesheetAfterBootstrapOnEveryPage() throws Exception {

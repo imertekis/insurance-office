@@ -155,6 +155,85 @@ a:focus-visible,
 }
 
 /*
+ * Task 21b: the suggestions under the header's search box. The list is
+ * Bootstrap's dropdown menu (colours, border, shadow, both themes), placed
+ * under the field and as wide as it, whatever the screen: no horizontal
+ * scroll at 375px. One line per suggestion, the second part fainter and
+ * smaller; what does not fit is cut with «…», the name keeping up to two
+ * thirds. On a phone (below) each takes two lines. The row chosen with the
+ * arrows is Bootstrap's active item, and its second part turns the same
+ * colour so it stays readable on it. «Όλα τα αποτελέσματα (N) →» may wrap,
+ * «(N) →» staying together, rather than run out of the list.
+ */
+.search-box {
+	min-width: 0;
+}
+
+.search-suggestions {
+	top: 100%;
+	left: 0;
+	width: 100%;
+	min-width: 0;
+	margin-top: var(--bs-dropdown-spacer);
+	/* No taller than what is left in view under the field, which app.js
+	   measures (above a phone's on-screen keyboard too); the rest scrolls
+	   inside the list, so «Όλα τα αποτελέσματα» can always be reached.
+	   At least 3rem, one row, should almost nothing be left in view. */
+	max-height: max(var(--search-suggestions-room, 70vh), 3rem);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+.search-suggestion {
+	display: flex;
+	align-items: baseline;
+	gap: 0.5rem;
+}
+
+.search-suggestion-text,
+.search-suggestion-detail {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.search-suggestion-text {
+	flex: 0 1 auto;
+	max-width: 67%;
+}
+
+.search-suggestion-detail {
+	flex: 1 1 0;
+	color: var(--bs-secondary-color);
+	font-size: 0.875em;
+}
+
+.search-suggestion.active .search-suggestion-detail {
+	color: inherit;
+}
+
+.search-suggestions-all {
+	border-top: var(--bs-border-width) solid var(--bs-border-color-translucent);
+	margin-top: var(--bs-dropdown-padding-y);
+	white-space: normal;
+}
+
+/*
+ * At 375px the field, and so the list, is some 233px wide: one line held a
+ * name and «ΑΦΜ 1…». On a phone the name goes on one line and the second
+ * part under it, each cut with «…» if it still does not fit. Decided with
+ * the office after the Task 21b check (CLAUDE.md, resolved conflict 9).
+ */
+@media (max-width: 575.98px) {
+	.search-suggestion,
+	.search-suggestion-text,
+	.search-suggestion-detail {
+		display: block;
+		max-width: none;
+	}
+}
+
+/*
  * Task 16f-1: the theme button shows the icon of the clerk's choice, read
  * from data-chosen-theme, which the inline script of layout.html puts on
  * <html> before the page is drawn. Without it (no script) the half circle

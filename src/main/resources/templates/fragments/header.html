@@ -72,10 +72,43 @@
 
 			<form class="d-flex col-12 col-xl mt-2 mt-xl-0 mx-xl-3" role="search" method="get" th:action="@{/search}">
 				<label class="visually-hidden" for="q">Αναζήτηση</label>
-				<input class="form-control me-2" type="search" id="q" name="q"
-					placeholder="Πινακίδα, ΑΦΜ, όνομα, email, τηλέφωνο, αρ. συμβολαίου"
-					th:value="${searchQuery}">
+				<!-- Task 21b: suggestions while the clerk types, from
+				     data-suggestions (Task 21a), in the list under the field:
+				     the combobox pattern of WAI-ARIA. app.js fills the list from
+				     the templates below, which hold every word and tag of its
+				     rows; the suggestions' own texts come from the server.
+				     autocomplete="off": the browser's list of past searches
+				     would open over ours. -->
+				<div class="search-box position-relative flex-grow-1 me-2">
+					<input class="form-control" type="search" id="q" name="q"
+						placeholder="Πινακίδα, ΑΦΜ, όνομα, email, τηλέφωνο, αρ. συμβολαίου"
+						role="combobox" aria-autocomplete="list" aria-expanded="false"
+						aria-controls="search-suggestions" autocomplete="off"
+						th:data-suggestions="@{/search/suggestions}"
+						th:value="${searchQuery}">
+					<div class="dropdown-menu search-suggestions" id="search-suggestions" role="listbox"
+						aria-label="Προτάσεις αναζήτησης"></div>
+				</div>
 				<button class="btn btn-outline-primary text-nowrap" type="submit">Αναζήτηση</button>
+				<template id="search-suggestions-group">
+					<div role="group"><div class="dropdown-header" role="presentation"></div></div>
+				</template>
+				<!-- The space between the two parts is for screen readers; on
+				     screen app.css keeps them apart (a gap, or two lines on a
+				     phone). -->
+				<template id="search-suggestions-option">
+					<a class="dropdown-item search-suggestion" role="option" aria-selected="false"
+						tabindex="-1"><span class="search-suggestion-text"></span> <span
+						class="search-suggestion-detail"></span></a>
+				</template>
+				<template id="search-suggestions-all">
+					<a class="dropdown-item search-suggestions-all" role="option" aria-selected="false"
+						tabindex="-1">Όλα τα αποτελέσματα (<span class="search-suggestions-total"></span>)&nbsp;→</a>
+				</template>
+				<template id="search-suggestions-none">
+					<div class="dropdown-item-text text-body-secondary" role="option"
+						aria-disabled="true">Κανένα αποτέλεσμα</div>
+				</template>
 			</form>
 
 			<!-- Who is logged in, and the way out (SPEC §2). A long name is cut

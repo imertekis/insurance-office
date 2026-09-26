@@ -116,10 +116,13 @@ The remaining ~3 ms of each request is the application: session and
 login check, Hibernate, JSON. Below three characters no statement runs
 (1.0 ms, all application).
 
-**For Task 21b.** The script should send `Accept: application/json`. With
-it, an expired session gets the redirect to the login page and nothing is
-remembered; with the default `*/*`, Spring Security remembers the
-suggestions address, and a login right after would open the JSON.
+**`Accept: application/json` (done in Task 21b).** The header's script
+sends it. With it, an expired session gets the redirect to the login page
+and nothing is remembered; with the default `*/*`, Spring Security would
+remember the suggestions address, and a login right after would open the
+JSON. The Task 21b headless check logged out in a second tab, typed in
+the first (no list), pressed Enter (the login page) and logged in: back
+on the search page, not on the JSON.
 
 ## Manual checks before deployment
 
@@ -193,6 +196,28 @@ an item leaves this list once it has been checked.
   browser's developer tools, Network tab, the request's «Waiting for server
   response» stays under 100 ms after the first load. The first request
   after the application starts is slower (197 ms here) and does not count.
+
+### Task 21b
+- **Suggestions, in each browser the office uses.** The check ran in
+  headless Chrome only, with key events that give each letter directly.
+  With the Greek layout, type «Αλεξίου» with its accent (the dead key «΄»,
+  then the letter): the list opens after the third letter and follows every
+  letter typed, the accented one too. Then ↓ and ↑ move through the rows,
+  Enter opens the chosen one, Esc closes the list and leaves the text, a
+  click on a row opens it, a click elsewhere closes the list.
+- **Suggestions, with a screen reader.** The field is a WAI-ARIA combobox
+  and the list a listbox with groups. With the screen reader the office
+  may use (NVDA or Narrator): the field is read as a combobox, collapsed
+  or expanded as the list closes and opens; ↓ reads each row, name and
+  second part, with its group («Πελάτες», «Οχήματα»), and the last one,
+  «Όλα τα αποτελέσματα»; «Κανένα αποτέλεσμα» is read when nothing matches.
+- **Suggestions, on a real phone.** The check emulated a 375px phone with
+  touch, and stood in for the on-screen keyboard with a short window
+  (375×400). On a phone, with the keyboard up: each row is two lines
+  (CLAUDE.md, resolved conflict 9), the list ends above the keyboard and
+  scrolls inside itself down to «Όλα τα αποτελέσματα», and a tap on a row
+  opens its card without first closing the list. Also with the keyboard
+  opening after the list, and in landscape.
 
 ## Open questions
 

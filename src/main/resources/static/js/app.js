@@ -30,6 +30,232 @@
 		search.select();
 	});
 
+	// Task 21b: suggestions while the clerk types in the header's search box,
+	// from /search/suggestions (Task 21a), in the list under it. The combobox
+	// pattern of WAI-ARIA: the cursor stays in the field, and the arrows move
+	// aria-activedescendant through the rows.
+	// - From three characters, counted as the server counts them (without
+	//   accents and the white space around), 250 ms after the last key.
+	//   Fewer close the list and send nothing.
+	// - Only the latest answer is shown: typing cancels the request in
+	//   flight, and an answer counts only if it is for what the field holds
+	//   now, and the field still has the focus.
+	// - Accept: application/json. An expired session then only gets the
+	//   redirect to the login page (NOTES, Task 21a); with the browser's */*
+	//   Spring Security would remember this address, and logging in would
+	//   lead to the JSON. That redirect, or any answer that is not JSON,
+	//   closes the list without a word; Enter still searches, as before.
+	// - Every text goes in with textContent, from the templates of the
+	//   header, which hold every word and tag of the list: the names are
+	//   what clerks typed.
+	// - Rows are links, so a click opens the card as any link does, the
+	//   leaving warning of 16f-2 included. Pressing the mouse on the list
+	//   keeps the focus in the field, so the list is still there when the
+	//   click lands; leaving the field otherwise closes it.
+	// - Down and Up go through the rows and back to none; Enter opens the
+	//   chosen row, and without one sends the form, the full search. Esc
+	//   closes the list; with it closed, the browser's own Esc clears the
+	//   field. "/" (above) puts the cursor in the field without opening the
+	//   list: only typing does.
+	// - The list is no taller than what is in view under the field, and the
+	//   rest scrolls inside it (app.css), so «Όλα τα αποτελέσματα» can always
+	//   be reached. On a phone the on-screen keyboard shrinks the visual
+	//   viewport, not the page, so the bottom is read from there; measured
+	//   when the list opens, and again whenever that view changes.
+	var SUGGEST_FROM = 3;
+	var SUGGEST_DELAY = 250;
+	var MARKS = /\p{M}/gu;
+	var JSON_TYPE = /^application\/json\b/i;
+	// Space kept free under the list, in pixels.
+	var ROOM_BELOW = 8;
+
+	function suggestions(field, list) {
+		var timer = null;
+		var request = null;
+		var options = [];
+		var chosen = -1;
+
+		function fromTemplate(id) {
+			return document.getElementById(id).content.firstElementChild.cloneNode(true);
+		}
+
+		function typed() {
+			return Array.from(field.value.normalize("NFD").replace(MARKS, "").normalize("NFC").trim()).length;
+		}
+
+		function cancel() {
+			clearTimeout(timer);
+			if (request) {
+				request.abort();
+				request = null;
+			}
+		}
+
+		function choose(index) {
+			if (chosen >= 0) {
+				options[chosen].classList.remove("active");
+				options[chosen].setAttribute("aria-selected", "false");
+			}
+			chosen = index;
+			if (chosen < 0) {
+				field.removeAttribute("aria-activedescendant");
+				return;
+			}
+			options[chosen].classList.add("active");
+			options[chosen].setAttribute("aria-selected", "true");
+			field.setAttribute("aria-activedescendant", options[chosen].id);
+			options[chosen].scrollIntoView({ block: "nearest" });
+		}
+
+		function fit() {
+			var view = window.visualViewport;
+			var bottom = view ? view.offsetTop + view.height : window.innerHeight;
+			var room = Math.floor(bottom - list.getBoundingClientRect().top - ROOM_BELOW);
+			list.style.setProperty("--search-suggestions-room", room + "px");
+		}
+
+		function refit() {
+			if (list.classList.contains("show")) {
+				fit();
+			}
+		}
+
+		function close() {
+			choose(-1);
+			options = [];
+			list.classList.remove("show");
+			list.replaceChildren();
+			field.setAttribute("aria-expanded", "false");
+		}
+
+		function show(answer) {
+			close();
+			answer.groups.forEach(function (group, index) {
+				var element = fromTemplate("search-suggestions-group");
+				var label = element.firstElementChild;
+				label.id = "search-suggestions-group-" + index;
+				label.textContent = group.label;
+				element.setAttribute("aria-labelledby", label.id);
+				group.suggestions.forEach(function (suggestion) {
+					var option = fromTemplate("search-suggestions-option");
+					option.href = suggestion.url;
+					option.querySelector(".search-suggestion-text").textContent = suggestion.text;
+					option.querySelector(".search-suggestion-detail").textContent = suggestion.detail;
+					element.appendChild(option);
+					options.push(option);
+				});
+				list.appendChild(element);
+			});
+			if (options.length) {
+				var all = fromTemplate("search-suggestions-all");
+				var page = new URL(field.form.action);
+				page.searchParams.set("q", answer.query);
+				all.href = page.href;
+				all.querySelector(".search-suggestions-total").textContent = answer.totalLabel;
+				list.appendChild(all);
+				options.push(all);
+			} else {
+				list.appendChild(fromTemplate("search-suggestions-none"));
+			}
+			options.forEach(function (option, index) {
+				option.id = "search-suggestion-" + index;
+			});
+			list.classList.add("show");
+			field.setAttribute("aria-expanded", "true");
+			fit();
+		}
+
+		function ask() {
+			var controller = new AbortController();
+			request = controller;
+			var address = new URL(field.getAttribute("data-suggestions"), document.baseURI);
+			address.searchParams.set("q", field.value);
+			fetch(address, { headers: { Accept: "application/json" }, redirect: "manual", signal: controller.signal })
+				.then(function (response) {
+					if (!response.ok || !JSON_TYPE.test(response.headers.get("Content-Type") || "")) {
+						throw new Error("Not suggestions: " + response.status);
+					}
+					return response.json();
+				})
+				.then(function (answer) {
+					if (request === controller) {
+						request = null;
+					}
+					if (!controller.signal.aborted && answer.query === field.value
+							&& document.activeElement === field) {
+						show(answer);
+					}
+				})
+				.catch(function () {
+					if (!controller.signal.aborted) {
+						request = null;
+						close();
+					}
+				});
+		}
+
+		field.addEventListener("input", function () {
+			cancel();
+			choose(-1);
+			if (typed() < SUGGEST_FROM) {
+				close();
+				return;
+			}
+			timer = setTimeout(ask, SUGGEST_DELAY);
+		});
+
+		field.addEventListener("keydown", function (event) {
+			if (!list.classList.contains("show") || event.isComposing || event.altKey || event.ctrlKey
+					|| event.metaKey) {
+				return;
+			}
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				choose(chosen + 1 < options.length ? chosen + 1 : -1);
+			} else if (event.key === "ArrowUp") {
+				event.preventDefault();
+				choose(chosen < 0 ? options.length - 1 : chosen - 1);
+			} else if (event.key === "Enter" && chosen >= 0) {
+				event.preventDefault();
+				options[chosen].click();
+			} else if (event.key === "Escape") {
+				event.preventDefault();
+				cancel();
+				close();
+			}
+		});
+
+		list.addEventListener("mousedown", function (event) {
+			event.preventDefault();
+		});
+
+		if (window.visualViewport) {
+			window.visualViewport.addEventListener("resize", refit);
+			window.visualViewport.addEventListener("scroll", refit);
+		}
+		window.addEventListener("resize", refit);
+		window.addEventListener("scroll", refit, { passive: true });
+
+		field.addEventListener("blur", function () {
+			cancel();
+			close();
+		});
+
+		// Back to a page the browser kept: the list only opens by typing.
+		window.addEventListener("pageshow", function (event) {
+			if (event.persisted) {
+				cancel();
+				close();
+			}
+		});
+	}
+
+	var searchField = document.getElementById("q");
+	var suggestionList = document.getElementById("search-suggestions");
+	if (searchField && suggestionList && searchField.hasAttribute("data-suggestions")) {
+		suggestions(searchField, suggestionList);
+	}
+
 	// Task 16f-2, part 1: one submit per form. A double click would send a
 	// POST twice: two customers, or a conflict message for the second edit.
 	// - The first submit goes through untouched. Its buttons are not disabled

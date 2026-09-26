@@ -13,6 +13,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,16 +126,18 @@ class SearchControllerTest {
 
 	// Task 16f-1: email among what can be typed; VIN still is too, so the
 	// full list keeps it.
+	// In <main>: since Task 21b the header's list carries «Κανένα αποτέλεσμα»
+	// on every page, in a template.
 	@Test
 	void asksForInputWhenTheBoxIsEmpty() throws Exception {
-		assertThat(html(get("/search")))
+		assertThat(main(html(get("/search"))))
 				.contains("Πληκτρολογήστε στο πεδίο αναζήτησης: πινακίδα, ΑΦΜ, όνομα, email, VIN, τηλέφωνο ή αριθμό συμβολαίου.")
 				.doesNotContain("Κανένα αποτέλεσμα");
 	}
 
 	@Test
 	void saysSoWhenNothingMatches() throws Exception {
-		assertThat(html(get("/search").param("q", "Παπαδόπουλος"))).contains("Κανένα αποτέλεσμα");
+		assertThat(main(html(get("/search").param("q", "Παπαδόπουλος")))).contains("Κανένα αποτέλεσμα.");
 	}
 
 	@Test
@@ -155,6 +160,57 @@ class SearchControllerTest {
 		assertThat(html(get("/"))).contains("placeholder=\"Πινακίδα, ΑΦΜ, όνομα, email, τηλέφωνο, αρ. συμβολαίου\"");
 		// What was typed stays in the box after the search.
 		assertThat(html(get("/search").param("q", "αλεξ"))).contains("value=\"αλεξ\"");
+	}
+
+	// Task 21b: the box is a WAI-ARIA combobox with its list, on every page
+	// that has the box, and the list's rows are in the page's templates, with
+	// all their words. aria-activedescendant comes only with a chosen row.
+	// What the script does with them is checked in the browser (TASKS).
+	@Test
+	@WithMockUser(roles = "ΔΙΑΧΕΙΡΙΣΤΗΣ")
+	void makesTheSearchBoxAComboboxWithItsListOnEveryPageThatHasIt() throws Exception {
+		Long policyId = policyRepository.findAll().getFirst().getId();
+		List<String> pages = List.of("/", "/?period=expired", "/search", "/customers", "/customers/new",
+				"/customers/" + owner.getId(), "/customers/" + owner.getId() + "/edit",
+				"/customers/" + owner.getId() + "/delete", "/vehicles", "/vehicles/new", "/vehicles/" + vehicle.getId(),
+				"/vehicles/" + vehicle.getId() + "/edit", "/vehicles/" + vehicle.getId() + "/delete",
+				"/vehicles/" + vehicle.getId() + "/owners", "/vehicles/" + vehicle.getId() + "/policies/new",
+				"/policies", "/policies/" + policyId + "/edit", "/policies/" + policyId + "/renew",
+				"/policies/" + policyId + "/delete", "/access-denied", "/customers/999999");
+		for (String page : pages) {
+			String html = mockMvc.perform(get(page)).andReturn().getResponse().getContentAsString();
+
+			assertThat(tag(html, "input", "q")).as(page).contains("type=\"search\"", "role=\"combobox\"",
+					"aria-autocomplete=\"list\"", "aria-expanded=\"false\"", "aria-controls=\"search-suggestions\"",
+					"autocomplete=\"off\"", "data-suggestions=\"/search/suggestions\"")
+					.doesNotContain("aria-activedescendant");
+			assertThat(tag(html, "div", "search-suggestions")).as(page).contains("role=\"listbox\"", "aria-label=");
+			assertThat(html).as(page).contains("<template id=\"search-suggestions-group\">",
+					"<template id=\"search-suggestions-option\">", "role=\"option\"",
+					"Όλα τα αποτελέσματα (<span class=\"search-suggestions-total\"></span>)&nbsp;→",
+					"aria-disabled=\"true\">Κανένα αποτέλεσμα</div>");
+		}
+	}
+
+	// The login page has no search box, so no list either.
+	@Test
+	@WithAnonymousUser
+	void leavesTheLoginPageWithoutSuggestions() throws Exception {
+		assertThat(html(get("/login"))).contains("Όνομα χρήστη")
+				.doesNotContain("role=\"combobox\"", "search-suggestions", "data-suggestions");
+	}
+
+	// The page's own content, without the header.
+	private static String main(String html) {
+		assertThat(html).contains("<main", "</main>");
+		return html.substring(html.indexOf("<main"), html.indexOf("</main>"));
+	}
+
+	// The whole opening tag of the element with this id.
+	private static String tag(String html, String name, String id) {
+		Matcher tag = Pattern.compile("<" + name + "\\b[^>]*\\bid=\"" + id + "\"[^>]*>").matcher(html);
+		assertThat(tag.find()).as("<%s id=\"%s\">", name, id).isTrue();
+		return tag.group();
 	}
 
 	// Task 21a: the suggestions under the header's box, the one answer in

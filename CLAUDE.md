@@ -171,6 +171,12 @@ These override any older wording in `docs/`.
    renewed policies are left out of every view. "Already expired" means
    not renewed, with `end_date` in the last 90 days (yesterday included).
    A policy ending today is still in force, so it is expiring, not expired.
+9. **Search suggestions take two lines on a phone.** TASKS Task 21b asks
+   for one line per suggestion in a list as wide as the search field, and
+   for a list that reads at 375px. There the field is some 233px wide, and
+   one line showed a cut name and «ΑΦΜ 1…». Below 576px each suggestion is
+   two lines, the name and then its second part, each cut with «…»; from
+   576px up, one line. The list stays as wide as the field.
 
 ## Open questions (ask before implementing)
 
