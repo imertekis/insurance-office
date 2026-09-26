@@ -232,6 +232,28 @@ an item leaves this list once it has been checked.
   opens its card without first closing the list. Also with the keyboard
   opening after the list, and in landscape.
 
+### Task 22a
+- **create-user in a real terminal, where the office will run it.** The
+  check drove it through a pseudo-terminal (Python `pty`), with `java -jar`
+  and with the documented `./mvnw spring-boot:run`: the prompt appeared,
+  nothing typed was shown, and piped input was refused. By hand, in the
+  terminal the ΔΙΑΧΕΙΡΙΣΤΗΣ will use on the office server (a local
+  console, SSH over Tailscale, or `docker compose run -it` once the app
+  runs in Docker): run the command of CLAUDE.md for a test account. Both
+  prompts show, the letters typed do not (no dots either), a mismatch
+  stops with «Οι δύο κωδικοί δεν είναι ίδιοι.», and the shell's history
+  (`history`) holds the command without any password. Then delete the
+  test account.
+- **The office's accounts on their first login after Task 22a.** Accounts
+  made before the rule may have a shorter password. Each such login lands
+  on «Αλλαγή κωδικού» with «Ο κωδικός σας δεν πληροί πλέον τους κανόνες»,
+  every link leads back there, «Αποσύνδεση» works, and after the change
+  the user goes on without logging in again.
+- **The browser's password manager, in each browser the office uses.** The
+  fields carry `autocomplete` current-password / new-password. After a
+  change, the browser offers to save the new password for the application,
+  and it never fills the old password into «Νέος κωδικός».
+
 ## Open questions
 
 Every decision still to be made in the project. CLAUDE.md points here; an
@@ -366,9 +388,9 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   Decide on a longer timeout before the office starts using the app.
 - **No user-management screen (Task 10), and no intermediary screen.**
   Accounts are made and passwords reset only with the `create-user`
-  profile. Nothing lets the ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk, deactivate one or
-  change their own password from the application, and SPEC §2 expects
-  that. Intermediaries are in the same position: the policy form of Task
+  profile. Nothing lets the ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk or deactivate one
+  from the application, and SPEC §2 expects that. Since Task 22a every
+  user changes their own password («Αλλαγή κωδικού», in the user menu). Intermediaries are in the same position: the policy form of Task
   11d only picks from existing ones, and today they are created only by
   the import. Worth a task of its own, covering both.
 - **Roles enforced for deletions only (Tasks 10, 11e).** Since Task 11e

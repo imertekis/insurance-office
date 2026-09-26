@@ -11,7 +11,7 @@ import gr.insuranceoffice.security.CurrentUser;
  * courtesy; the services refuse the delete itself.
  */
 @ControllerAdvice(assignableTypes = { DashboardController.class, SearchController.class, CustomerController.class,
-		VehicleController.class, OwnershipController.class, PolicyController.class })
+		VehicleController.class, OwnershipController.class, PolicyController.class, AccountController.class })
 public class CurrentUserAdvice {
 
 	@ModelAttribute("currentUser")

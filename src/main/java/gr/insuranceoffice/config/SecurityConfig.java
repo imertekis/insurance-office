@@ -3,11 +3,19 @@ package gr.insuranceoffice.config;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+
+import gr.insuranceoffice.security.ForcedPasswordChangeFilter;
+import gr.insuranceoffice.security.PasswordCheckingAuthenticationProvider;
+import gr.insuranceoffice.security.PasswordPrompt;
 
 /**
  * Session-based login for the whole application (SPEC §2): identifying the
@@ -48,7 +56,29 @@ public class SecurityConfig {
 				// A logged-in clerk who tries to delete gets a page saying so,
 				// with status 403, not the login page.
 				.exceptionHandling(exceptions -> exceptions.accessDeniedPage("/access-denied"))
+				// Task 22a: a password that no longer meets the rule is changed
+				// before anything else. After authorization: a page that needs
+				// a login has one by then. Not a bean, which Spring Boot would
+				// also register as a filter of its own, outside this chain.
+				.addFilterAfter(new ForcedPasswordChangeFilter(), AuthorizationFilter.class)
 				.build();
+	}
+
+	// The one way to log in, so Spring Security uses it instead of building
+	// its own from the UserDetailsService (Task 22a: it also checks the
+	// password just typed against the rule).
+	@Bean
+	AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,
+			PasswordEncoder passwordEncoder) {
+		return new PasswordCheckingAuthenticationProvider(userDetailsService, passwordEncoder);
+	}
+
+	// Task 22a: create-user asks for the password on the console, never on
+	// the command line.
+	@Bean
+	@Profile("create-user")
+	PasswordPrompt passwordPrompt() {
+		return PasswordPrompt.console();
 	}
 
 	@Bean

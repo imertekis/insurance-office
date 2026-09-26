@@ -123,6 +123,10 @@
 								th:text="${currentUser}">Χρήστης</span></a>
 						<ul class="dropdown-menu dropdown-menu-end">
 							<!-- The theme has its own button since Task 16f-1. -->
+							<!-- Task 22a: the clerk's own password. -->
+							<li><a class="dropdown-item" th:href="@{/account/password}"
+								th:classappend="${active == 'Αλλαγή κωδικού'} ? 'active'"
+								th:attrappend="aria-current=${active == 'Αλλαγή κωδικού'} ? 'page'">Αλλαγή κωδικού</a></li>
 							<li>
 								<form method="post" th:action="@{/logout}">
 									<button class="dropdown-item" type="submit">Αποσύνδεση</button>

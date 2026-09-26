@@ -200,8 +200,11 @@ docker compose up -d        # start PostgreSQL
 # Create a user, or reset a password, then exit. There is no user
 # management screen; this is how the first ΔΙΑΧΕΙΡΙΣΤΗΣ is made.
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=create-user \
-  -Dspring-boot.run.arguments="--user.username=<όνομα> --user.password=<κωδικός> '--user.full-name=<ονοματεπώνυμο>' [--user.role=ΥΠΑΛΛΗΛΟΣ]"
+  -Dspring-boot.run.arguments="--user.username=<όνομα> '--user.full-name=<ονοματεπώνυμο>' [--user.role=ΥΠΑΛΛΗΛΟΣ]"
 # The inner quotes matter: the plugin splits the arguments on spaces.
+# The password is asked for twice in the terminal, without showing it
+# (Task 22a); --user.password is refused. Run it in a terminal: with the
+# input or output redirected there is no console, and it stops.
 
 # One-off Excel migration into the configured database, then exit.
 # Refuses a database that already has customers or vehicles unless
