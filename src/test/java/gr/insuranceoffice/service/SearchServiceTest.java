@@ -13,6 +13,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -21,6 +23,7 @@ import java.util.stream.Stream;
 
 import org.hibernate.SessionFactory;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
+import org.hibernate.stat.QueryStatistics;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +44,9 @@ import gr.insuranceoffice.dto.SearchResultDto;
 import gr.insuranceoffice.dto.SearchResultDto.CustomerHit;
 import gr.insuranceoffice.dto.SearchResultDto.SearchType;
 import gr.insuranceoffice.dto.SearchResultDto.VehicleHit;
+import gr.insuranceoffice.dto.SearchSuggestionsDto;
+import gr.insuranceoffice.dto.SearchSuggestionsDto.Group;
+import gr.insuranceoffice.dto.SearchSuggestionsDto.Suggestion;
 import gr.insuranceoffice.dto.SortDirection;
 import gr.insuranceoffice.entity.Customer;
 import gr.insuranceoffice.entity.Ownership;
@@ -476,6 +482,258 @@ class SearchServiceTest {
 		assertThat(searchService.search("Volkswagen Golf ABE").vehicles()).extracting(VehicleHit::id)
 				.containsExactly(golf.getId());
 		assertThat(likeConditions("from vehicle")).isEqualTo(3);
+	}
+
+	// Task 21a: the suggestions under the header's box. Their JSON is in
+	// SearchControllerTest.
+
+	// Whatever the browser sends: no statement, and not even a transaction,
+	// so no connection is taken from the pool.
+	@ParameterizedTest(name = "«{0}»")
+	@ValueSource(strings = { "", "   ", "α", "αβ", "  αβ  ", "12", "ΑΒ\t" })
+	void suggestsNothingBelowThreeCharactersWithoutAskingTheDatabase(String input) {
+		saveCustomer("Αβραμίδης", "Αβραάμ", "900000017");
+
+		Statistics statistics = statisticsOf(() -> assertThat(searchService.suggest(input))
+				.isEqualTo(new SearchSuggestionsDto(input, List.of(), 0, false, "0")));
+
+		assertThat(statistics.getPrepareStatementCount()).isZero();
+		assertThat(statistics.getTransactionCount()).isZero();
+		assertThat(statistics.getConnectCount()).isZero();
+	}
+
+	// The counters above do count: three characters reach the database.
+	@Test
+	void asksTheDatabaseFromThreeCharacters() {
+		saveCustomer("Αβραμίδης", "Αβραάμ", "900000017");
+
+		Statistics statistics = statisticsOf(() -> assertThat(searchService.suggest(" αβρ ").groups())
+				.extracting(Group::label).containsExactly("Πελάτες"));
+
+		assertThat(statistics.getPrepareStatementCount()).isPositive();
+		assertThat(statistics.getTransactionCount()).isEqualTo(1);
+		assertThat(statistics.getConnectCount()).isEqualTo(1);
+	}
+
+	@Test
+	void writesEachSuggestionInTheWordsOfTheResultsPage() {
+		Customer konstantinos = saveCustomer("Αλεξίου", "Κωνσταντίνος", "900000017");
+		Customer maria = saveCustomer("Αλεξίου", "Μαρία", "900000080");
+		// No ΑΦΜ, no first name and no vehicle.
+		Customer company = saveCustomer("Αλεξίου ΑΕ", null, null);
+		Vehicle astra = saveVehicle("W0L0AHL3555000001", "NZA-8812", "Opel", "Astra J");
+		Vehicle corsa = saveVehicle("W0L0XCE7584000001", "ΗΟΚ-2201", "Opel", "Corsa");
+		Vehicle unowned = saveVehicle("W0L0XCE7584000002", "ΗΟΚ-2202", "Opel", "Meriva");
+		saveOwnership(astra, konstantinos, "50", true);
+		saveOwnership(corsa, maria, "100", true);
+		Ownership sold = ownership(unowned, maria, "100", true);
+		sold.setToDate(LocalDate.of(2025, 1, 31));
+		ownershipRepository.save(sold);
+		// Maria also co-owns the Astra: 2 vehicles.
+		saveOwnership(astra, maria, "50", false);
+
+		// By name, as on the page: «Αλεξίου ΑΕ» before «Αλεξίου Κωνσταντίνος».
+		assertThat(searchService.suggest("αλεξ").groups()).singleElement().satisfies(group -> {
+			assertThat(group.label()).isEqualTo("Πελάτες");
+			assertThat(group.suggestions()).containsExactly(
+					new Suggestion("Αλεξίου ΑΕ", "ΑΦΜ — · 0 οχήματα", "/customers/" + company.getId()),
+					new Suggestion("Αλεξίου Κωνσταντίνος", "ΑΦΜ 900000017 · 1 όχημα", "/customers/" + konstantinos.getId()),
+					new Suggestion("Αλεξίου Μαρία", "ΑΦΜ 900000080 · 2 οχήματα", "/customers/" + maria.getId()));
+		});
+		// A sold vehicle has no current primary owner: nobody is named.
+		assertThat(searchService.suggest("opel").groups()).singleElement().satisfies(group -> {
+			assertThat(group.label()).isEqualTo("Οχήματα");
+			assertThat(group.suggestions()).containsExactly(
+					new Suggestion("ΗΟΚ2201", "Opel Corsa · Αλεξίου Μαρία", "/vehicles/" + corsa.getId()),
+					new Suggestion("ΗΟΚ2202", "Opel Meriva", "/vehicles/" + unowned.getId()),
+					new Suggestion("NZA8812", "Opel Astra J · Αλεξίου Κωνσταντίνος", "/vehicles/" + astra.getId()));
+		});
+	}
+
+	// A policy number finds a vehicle, shown with the number, never a group
+	// of policies. The same ten digits are a landline too.
+	@Test
+	void showsTheVehicleAPolicyNumberFoundWithTheNumber() {
+		Customer withLandline = saveCustomer("Αλεξίου", "Κωνσταντίνος", "900000017");
+		withLandline.setPhone("2100000001");
+		customerRepository.save(withLandline);
+		Customer owner = saveCustomer("Δημητρίου", "Ελένη", "900000029");
+		Vehicle insured = saveVehicle("WVWZZZ1KZAW123456", "ΑΒΕ-1234", "Volkswagen", "Golf");
+		saveOwnership(insured, owner, "100", true);
+		savePolicy(insured, "2100000001");
+
+		assertThat(searchService.suggest("2100000001")).isEqualTo(new SearchSuggestionsDto("2100000001", List.of(
+				new Group("Πελάτες", List.of(new Suggestion("Αλεξίου Κωνσταντίνος", "ΑΦΜ 900000017 · 0 οχήματα",
+						"/customers/" + withLandline.getId()))),
+				new Group("Οχήματα", List.of(new Suggestion("ΑΒΕ1234", "συμβόλαιο 2100000001",
+						"/vehicles/" + insured.getId())))),
+				2, false, "2"));
+		// Found another way, the same vehicle shows its model and owner.
+		assertThat(searchService.suggest("ΑΒΕ-1234").groups()).singleElement()
+				.satisfies(group -> assertThat(group.suggestions()).extracting(Suggestion::detail)
+						.containsExactly("Volkswagen Golf · Δημητρίου Ελένη"));
+	}
+
+	// However the input is read, the suggestions are the first rows of each
+	// group of the results page, and the total is the page's row count.
+	@ParameterizedTest(name = "«{0}»")
+	@ValueSource(strings = { "αλεξ", "golf", "renault", "example", "ΑΒΕ-1234", "abe1234", "900000017",
+			"6900000001", "2100000001", "2990000000", "WVWZZZ1KZAW100001", "ηκν 10", "Ζωγράφου" })
+	void suggestsTheFirstRowsOfTheResultsPage(String input) {
+		for (int i = 0; i < 12; i++) {
+			Customer customer = saveCustomer("Αλεξίου", String.format("Όνομα %02d", i), String.format("9000001%02d", i));
+			customer.setMobile("6900000001");
+			customer.setEmail(String.format("alexiou%02d@example.gr", i));
+			customerRepository.save(customer);
+			Vehicle golf = saveVehicle(String.format("WVWZZZ1KZAW1000%02d", i), String.format("ΗΚΝ-10%02d", i),
+					"Volkswagen", "Golf");
+			saveOwnership(golf, customer, "100", true);
+		}
+		for (int i = 0; i < 3; i++) {
+			Customer customer = saveCustomer("Renault", "Όνομα " + i, null);
+			customer.setPhone("2990000000");
+			customerRepository.save(customer);
+			saveVehicle("VF1RFB0000000000" + i, "ΥΧΒ-200" + i, "Renault", "Clio");
+		}
+		Customer owner = saveCustomer("Δημητρίου", "Ελένη", "900000017");
+		owner.setPhone("2100000001");
+		customerRepository.save(owner);
+		Vehicle insured = saveVehicle("WVWZZZ1KZAW123456", "ΑΒΕ-1234", "Volkswagen", "Golf");
+		saveOwnership(insured, owner, "100", true);
+		savePolicy(insured, "2100000001");
+
+		SearchResultDto page = searchService.search(input);
+		SearchSuggestionsDto suggestions = searchService.suggest(input);
+
+		// The page's groups, in its order; one without rows is left out.
+		List<String> labels = new ArrayList<>();
+		if (!page.customers().isEmpty()) {
+			labels.add("Πελάτες");
+		}
+		if (!page.vehicles().isEmpty()) {
+			labels.add("Οχήματα");
+		}
+		assertThat(suggestions.groups()).extracting(Group::label).containsExactlyElementsOf(labels);
+		List<String> customers = urls(suggestions, "Πελάτες");
+		List<String> vehicles = urls(suggestions, "Οχήματα");
+		assertThat(customers).containsExactlyElementsOf(page.customers().stream()
+				.map(hit -> "/customers/" + hit.id()).limit(customers.size()).toList());
+		assertThat(vehicles).containsExactlyElementsOf(page.vehicles().stream()
+				.map(hit -> "/vehicles/" + hit.id()).limit(vehicles.size()).toList());
+		// As many as there are, up to eight.
+		int total = page.customers().size() + page.vehicles().size();
+		assertThat(customers.size() + vehicles.size()).isEqualTo(Math.min(total, SearchService.MAX_SUGGESTIONS));
+		assertThat(suggestions.total()).isEqualTo(total);
+		assertThat(suggestions.truncated()).isEqualTo(page.truncated());
+	}
+
+	private static List<String> urls(SearchSuggestionsDto suggestions, String label) {
+		return suggestions.groups().stream()
+				.filter(group -> group.label().equals(label))
+				.flatMap(group -> group.suggestions().stream())
+				.map(Suggestion::url)
+				.toList();
+	}
+
+	@ParameterizedTest(name = "{0} customers, {1} vehicles → {2} + {3}")
+	@MethodSource
+	void sharesTheEightSuggestionsBetweenTheGroups(int customers, int vehicles, int shownCustomers,
+			int shownVehicles) {
+		for (int i = 0; i < customers; i++) {
+			Customer customer = saveCustomer("Αλεξίου", String.format("Όνομα %02d", i), null);
+			customer.setEmail(String.format("c%02d@lancia.example", i));
+			customerRepository.save(customer);
+		}
+		for (int i = 0; i < vehicles; i++) {
+			saveVehicle(String.format("ZLA0000000000%04d", i), String.format("LNC-1%03d", i), "Lancia", "Delta");
+		}
+
+		SearchSuggestionsDto suggestions = searchService.suggest("lancia");
+
+		assertThat(urls(suggestions, "Πελάτες")).hasSize(shownCustomers);
+		assertThat(urls(suggestions, "Οχήματα")).hasSize(shownVehicles);
+		assertThat(suggestions.groups()).allSatisfy(group -> assertThat(group.suggestions()).isNotEmpty());
+		assertThat(suggestions.total()).isEqualTo(customers + vehicles);
+		assertThat(suggestions.totalLabel()).isEqualTo(String.valueOf(customers + vehicles));
+	}
+
+	static Stream<Arguments> sharesTheEightSuggestionsBetweenTheGroups() {
+		return Stream.of(
+				arguments(10, 10, 4, 4),
+				arguments(2, 10, 2, 6),
+				arguments(10, 1, 7, 1),
+				arguments(0, 10, 0, 8),
+				arguments(9, 0, 8, 0),
+				arguments(3, 3, 3, 3),
+				arguments(4, 5, 4, 4),
+				arguments(0, 0, 0, 0));
+	}
+
+	// The total is what the page shows, 50 per group at most, and «N+» says
+	// a group was cut, as «Πάρα πολλά αποτελέσματα» does on the page.
+	@Test
+	void countsWhatThePageShowsAndMarksACutGroup() {
+		for (int i = 0; i <= SearchService.MAX_HITS; i++) {
+			saveCustomer("Παπαδόπουλος", String.format("Όνομα %03d", i), null);
+		}
+		// Found by the plate form of the input: ΠΑΠ is stored as ΠAΠ.
+		saveVehicle("WVWZZZ1KZAW123456", "ΠΑΠ-1234", "Volkswagen", "Golf");
+		saveVehicle("WVWZZZ1KZAW123457", "ΠΑΠ-1235", "Volkswagen", "Polo");
+
+		SearchSuggestionsDto suggestions = searchService.suggest("ΠΑΠ");
+
+		assertThat(suggestions.groups()).extracting(group -> group.suggestions().size()).containsExactly(6, 2);
+		assertThat(suggestions.total()).isEqualTo(SearchService.MAX_HITS + 2);
+		assertThat(suggestions.truncated()).isTrue();
+		assertThat(suggestions.totalLabel()).isEqualTo((SearchService.MAX_HITS + 2) + "+");
+		SearchResultDto page = searchService.search("ΠΑΠ");
+		assertThat(page.customers().size() + page.vehicles().size()).isEqualTo(suggestions.total());
+		assertThat(page.truncated()).isTrue();
+	}
+
+	// The search keeps up to 51 rows per group, but vehicle counts and owners
+	// are loaded only for the rows suggested.
+	@Test
+	void loadsCountsAndOwnersOnlyForTheSuggestedRows() {
+		for (int i = 0; i < 30; i++) {
+			Customer customer = saveCustomer("Παπαδόπουλος", String.format("Όνομα %02d", i), null);
+			Vehicle vehicle = saveVehicle(String.format("WVWZZZ1KZAW1000%02d", i), String.format("ΗΚΝ-10%02d", i),
+					"Volkswagen", "Golf");
+			saveOwnership(vehicle, customer, "100", true);
+		}
+
+		assertThat(ownershipsLoadedBy(() -> searchService.suggest("golf"))).isEqualTo(SearchService.MAX_SUGGESTIONS);
+		assertThat(ownershipsLoadedBy(() -> searchService.search("golf"))).isEqualTo(30);
+		assertThat(customersCountedBy(() -> searchService.suggest("Παπαδόπουλος")))
+				.isEqualTo(SearchService.MAX_SUGGESTIONS);
+		assertThat(customersCountedBy(() -> searchService.search("Παπαδόπουλος"))).isEqualTo(30);
+	}
+
+	// Ownership rows read to name the vehicles' primary owners.
+	private long ownershipsLoadedBy(Runnable search) {
+		return statisticsOf(search).getEntityStatistics(Ownership.class.getName()).getLoadCount();
+	}
+
+	// Customers whose vehicles were counted: one row each, as every one owns one.
+	private long customersCountedBy(Runnable search) {
+		Statistics statistics = statisticsOf(search);
+		return Arrays.stream(statistics.getQueries())
+				.filter(query -> query.contains("count(distinct o.vehicle.id)"))
+				.map(statistics::getQueryStatistics)
+				.mapToLong(QueryStatistics::getExecutionRowCount)
+				.sum();
+	}
+
+	private Statistics statisticsOf(Runnable action) {
+		Statistics statistics = entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
+		statistics.clear();
+		statistics.setStatisticsEnabled(true);
+		try {
+			action.run();
+			return statistics;
+		} finally {
+			statistics.setStatisticsEnabled(false);
+		}
 	}
 
 	// LIKE conditions in the last search's statement against this table.

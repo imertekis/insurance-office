@@ -41,6 +41,86 @@
     reopens rows from the ownership form, not from the import. The limit
     stays until the import learns about transfers.
 
+## Search suggestions: timing and indexes (Task 21a)
+
+**Conclusion: no new index.** Every input answers in well under the
+100 ms target (worst p95 24 ms, most 3–10 ms), so the schema is unchanged.
+
+**Setup.** A throwaway `postgres:18` container with the image's defaults
+(`shared_buffers` 128 MB), migrated by the application itself, on the
+same machine as the application: Intel i5-6500 (4 cores, 3.2 GHz), 23 GB.
+Synthetic data made with `generate_series` at the volume of SPEC §14.1:
+8,000 customers, 10,000 vehicles, 11,000 ownerships, 25,000 policies, then
+`VACUUM ANALYZE`. Common Greek surnames skewed towards the first ones (so
+«παπ» matches 23% of customers), 55% with an email, 90% with a mobile, a
+fleet company with 152 vehicles, plates half Greek and half Latin, 60% in
+five local Η- series, and the `ZZZ` filler in Volkswagen, Seat and Skoda
+VINs. The script is not in the repository.
+
+**Timing.** The server's own time per request (Tomcat access log, `%D`),
+logged in and with `Accept: application/json`: 30 warm-up rounds, then 50
+calls per input, the inputs interleaved. In ms:
+
+| Input | Kind | Matches (customers / vehicles) | Median | p95 | Max |
+|---|---|---|---|---|---|
+| «παπ» | common surname prefix | 1,871 / 0 | 9.2 | 12.9 | 14.9 |
+| «παπαδ» | longer prefix | 1,027 / 0 | 9.5 | 11.6 | 13.7 |
+| «toy» | brand | 0 / 1,517 | 5.8 | 7.0 | 10.9 |
+| «ηοκ» | plate start, Greek | 0 / 76 | 5.8 | 7.7 | 14.5 |
+| «hok» | plate start, Latin | 0 / 76 | 5.7 | 8.7 | 14.1 |
+| «com» | email domain, the broadest | 3,392 / 0 | 5.4 | 7.2 | 12.5 |
+| «697» | three digits, both groups | 1,110 / 37 | 7.1 | 8.8 | 10.9 |
+| «zzz» | VIN filler | 0 / 1,627 | 5.8 | 6.7 | 7.5 |
+| «α β» | two one-letter words | 690 / 6,339 | 22.1 | 24.0 | 25.3 |
+| «101057138» | ΑΦΜ | 1 / 0 | 2.9 | 4.0 | 4.2 |
+| «ΜΟΟ-9733» | plate, Greek | 0 / 1 | 3.1 | 5.6 | 7.8 |
+| «PKP3797» | plate, Latin | 0 / 1 | 3.1 | 5.2 | 8.6 |
+| «2100001001» | policy number, and landline | 0 / 1 | 4.6 | 6.7 | 8.6 |
+| «6941121570» | mobile | 1 / 0 | 4.0 | 5.2 | 10.7 |
+| «ψωξ» | no results | 0 / 0 | 3.7 | 6.5 | 10.3 |
+| «πα» | 2 characters, no database | — | 1.0 | 2.0 | 4.0 |
+
+The first request after the application starts took 197 ms (cold JVM),
+the first call of each other input 8–57 ms; from then on, the table.
+
+**Plans.** `EXPLAIN (ANALYZE, BUFFERS)` of the endpoint's own statements,
+with their bind values, logged by `auto_explain` on the 12th call of each
+input, past the five calls after which pgjdbc switches to server-prepared
+statements. PostgreSQL still planned each LIKE pattern on its own (the
+plans show the pattern, not `$1`). All pages came from shared buffers (no
+disk reads); `customer` and `vehicle` together are 18 MB.
+- **Free text, customers.** Few matches: Bitmap Index Scan on
+  `idx_customer_search` (GIN), then a sort by `name_sort`, ≤ 0.03 ms when
+  nothing matches. Many matches: the planner walks `idx_customer_name_sort`
+  in order and filters until it has 51 rows: «παπ» 4.4 ms (4,990
+  buffers), «697» 3.2 ms, «com» 0.35 ms. Its worst case, matches only at
+  the end of the alphabet («ψαρρ», with bitmap and sequential scans turned
+  off to force the plan), scans the whole index: 7.1 ms.
+- **Free text, vehicles.** A GIN bitmap (a BitmapOr with the plate form),
+  or `idx_vehicle_plate` in order with an incremental sort by id when many
+  match: under 0.6 ms.
+- **One-letter words («α β»).** The slowest statement, 20.2 ms: a word
+  under three characters gives the trigram index nothing to filter on, so
+  the GIN scan returns every customer and 690 rows are sorted by the ICU
+  collation. The only statement that grows with the whole customer table;
+  by estimate, not measured, some ten times the volume of SPEC §14.1 would
+  take it past the target.
+- **Exact types.** `idx_customer_tax_id`, `idx_vehicle_plate`, and
+  `idx_policy_number` then `vehicle_pkey`: ≤ 0.04 ms each. Landline and
+  mobile have no index: a Seq Scan of `customer` (307 buffers), 1.1 ms.
+- **The shown rows (`HitAssembler`, at most 8).** `idx_ownership_customer`
+  for the vehicle counts, `idx_ownership_vehicle` for the primary owners:
+  under 0.25 ms.
+
+The remaining ~3 ms of each request is the application: session and
+login check, Hibernate, JSON. Below three characters no statement runs
+(1.0 ms, all application).
+
+**For Task 21b.** The script should send `Accept: application/json`. With
+it, an expired session gets the redirect to the login page and nothing is
+remembered; with the default `*/*`, Spring Security remembers the
+suggestions address, and a login right after would open the JSON.
+
 ## Manual checks before deployment
 
 What an automated run cannot show, to check by hand in the office's own
@@ -103,6 +183,16 @@ an item leaves this list once it has been checked.
   6.78:1 in the light theme and 7.29:1 in the dark one. On the office
   monitors, at their usual brightness, those rows still read easily, and
   are clearly fainter than current ones.
+
+### Task 21a
+- **Search suggestions, on the office server with the imported data.** The
+  measurement («Search suggestions: timing and indexes», above) ran on a
+  2015 desktop (i5-6500); the office server may be a Raspberry Pi 5, and
+  the real names and emails are not the synthetic ones. Logged in, open `/search/suggestions?q=παπ` (or the office's most
+  common surname prefix, and «com») and reload it five times; in the
+  browser's developer tools, Network tab, the request's «Waiting for server
+  response» stays under 100 ms after the first load. The first request
+  after the application starts is slower (197 ms here) and does not count.
 
 ## Open questions
 

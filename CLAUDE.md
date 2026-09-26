@@ -140,7 +140,12 @@ These override any older wording in `docs/`.
    infrastructure, and Thymeleaf replaced them: `GET /api/customers` in
    Task 8, `/api/search` in Task 9, and `POST`/`PUT /api/customers` in
    Task 11a, whose form is now the only way to save a customer. The
-   application serves HTML only.
+   application serves HTML, with one exception since Task 21a:
+   `GET /search/suggestions` answers JSON, for the header's own script
+   (Task 21b). It is not an API: it needs a login like every page (without
+   one it redirects to the login page, not JSON), it is sent `no-store`,
+   and its texts are written by `SearchService`, so the script holds no
+   wording.
 3. **10 digits starting with `21` searches BOTH landline and policy
    number.** The clerk should not have to know the difference: run two
    queries and group the results by type.
