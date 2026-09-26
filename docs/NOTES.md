@@ -124,6 +124,19 @@ JSON. The Task 21b headless check logged out in a second tab, typed in
 the first (no list), pressed Enter (the login page) and logged in: back
 on the search page, not on the JSON.
 
+## Deployment requirements
+
+What the installation in the office must provide, recorded as decisions
+come up; the deployment task starts from this list.
+
+- **All access goes through Tailscale, also inside the office** (TASKS,
+  Task 22, decision 9). SPEC §12 asks for HTTPS even on the LAN; the
+  encryption of the connection is a deployment matter. Every browser, the
+  office PCs included, reaches the application over Tailscale, whose
+  WireGuard tunnel encrypts it, and the application is not reachable on the
+  office LAN outside it. Until then, passwords cross the office network in
+  the clear.
+
 ## Manual checks before deployment
 
 What an automated run cannot show, to check by hand in the office's own
@@ -226,6 +239,9 @@ entry leaves this list when the decision is recorded (in DECISIONS, CLAUDE.md
 or the task). Details that live elsewhere in this file are linked, not
 repeated.
 
+- **Tasks 25–27 (stubs) end with «Ανοιχτά ερωτήματα»** in `docs/TASKS.md`,
+  kept there beside the task they belong to. To be decided after the first
+  week of use in the office. (Tasks 22–24 have their decisions recorded.)
 - **How should a re-import treat existing data?** Insert-only, an explicit
   "overwrite existing" confirmation, or an import that knows about
   transfers. Today the only guard is `--import.allow-existing-data=true`.

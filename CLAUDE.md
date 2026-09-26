@@ -21,6 +21,9 @@ Source of truth, read before any task:
    Testcontainers integration tests green) and the task's acceptance
    criteria are met. Never report a task done with failing, skipped or
    `@Disabled` tests. If a test cannot pass, stop and report why.
+   From Task 24 on, a task that touches `static/js/app.js`, or the markup
+   it relies on in the templates (ids, `data-*` attributes), is done only
+   when `./mvnw verify -Pbrowser` passes too.
 4. When the task is done: summarize what changed, show the test result,
    and **STOP**. Do not start the next task without being asked.
 5. If the docs conflict or are ambiguous for the current task, stop and
@@ -36,6 +39,10 @@ Source of truth, read before any task:
   add a new one.
 - Spring Data JPA / Hibernate. MapStruct for Entity↔DTO mapping.
 - Thymeleaf (+ a little vanilla JS/HTMX) for UI. No SPA, no Node.js build.
+  The rule covers the application and its build: nothing the app ships,
+  and nothing `./mvnw verify` needs, may require Node or npm. A test tool
+  in a separate Maven profile may carry its own runtime, as Playwright's
+  embedded Node does in the `browser` profile (Task 24).
 - Tests: JUnit 5, AssertJ, Testcontainers (real PostgreSQL, never H2).
 - Apache POI for the Excel import.
 
