@@ -105,6 +105,31 @@ public final class VehicleValues {
 	}
 
 	/**
+	 * A colour as the form's two choices (Task 23b, decision 3): «Λευκό-Μαύρο»
+	 * is Λευκό and Μαύρο. A value outside the list stays whole, as the first
+	 * choice, so the form offers it as it is (decision 7).
+	 *
+	 * @param first  the colour, or «Πολύχρωμο», or an old value outside the list
+	 * @param second the second colour, or null
+	 */
+	public record ColorChoices(String first, String second) {
+
+		public static ColorChoices of(String stored) {
+			if (stored != null && isColor(stored) && !COLORS.contains(stored) && !MULTICOLOURED.equals(stored)) {
+				String[] two = stored.split(SECOND_COLOR);
+				return new ColorChoices(two[0], two[1]);
+			}
+			return new ColorChoices(stored, null);
+		}
+
+		/** The one column's value: the first alone, or both joined. */
+		public String stored() {
+			return first == null || second == null ? first : first + SECOND_COLOR + second;
+		}
+
+	}
+
+	/**
 	 * Compared as plates are (SPEC §6), so «Μ1» with a Greek Μ is M1, and «l3e»
 	 * is L3e. «Ι.Χ.» is a use, not a category, and matches nothing: it may be
 	 * M1 or N1 (decision 6).

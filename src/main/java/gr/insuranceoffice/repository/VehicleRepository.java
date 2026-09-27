@@ -1,5 +1,6 @@
 package gr.insuranceoffice.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
@@ -29,5 +30,20 @@ public interface VehicleRepository extends JpaRepository<Vehicle, Long>, JpaSpec
 	@Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
 	@Query("select v from Vehicle v where v.id = :id")
 	Optional<Vehicle> findForOwnersChange(Long id);
+
+	/**
+	 * Every brand and model stored, each pair once, for the vehicle form's
+	 * suggestions (Task 23b): two columns, not the vehicles.
+	 */
+	@Query("select distinct v.brand as brand, v.model as model from Vehicle v order by v.brand, v.model")
+	List<BrandModel> findBrandModels();
+
+	interface BrandModel {
+
+		String getBrand();
+
+		String getModel();
+
+	}
 
 }

@@ -27,11 +27,43 @@
 						<!-- In capitals while typed, as they are stored (Task 17). -->
 						<div th:replace="~{fragments/form-fields :: field('plate', 'Αρ. Κυκλοφορίας (A) *', 'uppercase', ${v.plate}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('vin', 'Αρ. Πλαισίου / VIN (E) *', 'uppercase', ${v.vin}, 'col-md-4')}"></div>
-						<div th:replace="~{fragments/form-fields :: field('brand', 'Μάρκα (D.1) *', 'text', ${v.brand}, 'col-md-4')}"></div>
+						<!-- Task 23b: the brand is searched in the list below while typed,
+						     without asking the server: app.js makes the field a combobox
+						     (WAI-ARIA, as the header's search, Task 21b), places the list
+						     under it, and keeps no brand outside the list. Without
+						     JavaScript it is a text field, and the server answers a brand
+						     outside the list beside it (Task 23a). -->
+						<div class="col-md-4 position-relative" th:with="brandRefused=${errors != null and errors.containsKey('brand')},
+							brandOutside=${!#strings.isEmpty(v.brand) and !#lists.contains(brands, v.brand)}">
+							<label class="form-label" for="brand">Μάρκα (D.1) *</label>
+							<input class="form-control" type="text" id="brand" name="brand" th:value="${v.brand}"
+								autocomplete="off" data-brand-options="brand-options" data-models-for="model"
+								th:attr="aria-describedby=${brandOutside and !brandRefused} ? 'brand-outside' : null"
+								th:classappend="${brandRefused} ? 'is-invalid'">
+							<div class="dropdown-menu brand-options" id="brand-options" role="listbox" aria-label="Μάρκες">
+								<div class="dropdown-item" role="option" aria-selected="false"
+									th:each="brand, brandStat : ${brands}" th:id="|brand-option-${brandStat.index}|"
+									th:text="${brand}">Volkswagen</div>
+								<div class="dropdown-item-text text-body-secondary" role="option" aria-disabled="true"
+									data-brand-none hidden>Καμία μάρκα της λίστας</div>
+							</div>
+							<div class="invalid-feedback" th:if="${brandRefused}" th:text="${errors.get('brand')}">Μήνυμα</div>
+							<th:block th:if="${brandOutside and !brandRefused}">
+								<div th:replace="~{fragments/form-fields :: outsideNote('brand')}"></div>
+							</th:block>
+						</div>
+						<!-- Suggests the models stored for the brand (decision 5): app.js
+						     gives it the brand's datalist, below. -->
 						<div th:replace="~{fragments/form-fields :: field('model', 'Μοντέλο (D.3) *', 'text', ${v.model}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('firstRegistration', '1η Άδεια (B) *', 'date', ${v.firstRegistration}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('licenseIssueDate', 'Έκδοση (I)', 'date', ${v.licenseIssueDate}, 'col-md-4')}"></div>
 					</div>
+					<!-- The models already stored, one list per brand (Task 23b,
+					     decision 5). A suggestion only: any model can be typed. -->
+					<datalist th:each="entry, entryStat : ${modelsByBrand}" th:id="|models-${entryStat.index}|"
+						th:data-brand="${entry.key}">
+						<option th:each="model : ${entry.value}" th:value="${model}"></option>
+					</datalist>
 				</div>
 			</section>
 
@@ -39,10 +71,17 @@
 				<div class="card-header"><h2>Τεχνικά</h2></div>
 				<div class="card-body">
 					<div class="row g-3">
-						<div th:replace="~{fragments/form-fields :: field('category', 'Κατηγορία (J) *', 'text', ${v.category}, 'col-md-4')}"></div>
+						<!-- Category, colour and Euro from their lists (Task 23b). -->
+						<div th:replace="~{fragments/form-fields :: listChoice('category', 'Κατηγορία (J) *', ${categories}, ${v.category}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: choice('usageType', 'Χρήση Οχήματος *', ${usageTypes}, ${v.usageType}, 'col-md-4')}"></div>
-						<div th:replace="~{fragments/form-fields :: field('color', 'Χρώμα (R) *', 'text', ${v.color}, 'col-md-4')}"></div>
-						<div th:replace="~{fragments/form-fields :: field('seats', 'Θέσεις (S.1)', 'integer', ${v.seats}, 'col-md-4')}"></div>
+						<!-- Two colours are stored as «Λευκό-Μαύρο»; more, «Πολύχρωμο». -->
+						<div th:replace="~{fragments/form-fields :: listChoice('color', 'Χρώμα (R) *', ${colors}, ${v.color}, 'col-md-4')}"></div>
+						<div th:replace="~{fragments/form-fields :: listChoice('secondColor', 'Δεύτερο χρώμα', ${secondColors}, ${v.secondColor}, 'col-md-4')}"></div>
+						<!-- A text field like every number (Task 16d-1), with the range
+						     under it; the server answers a number outside it (Task 23b,
+						     decided with the office instead of min/max). -->
+						<div th:replace="~{fragments/form-fields :: fieldWithHint('seats', 'Θέσεις (S.1)', 'integer', ${v.seats}, 'col-md-4',
+							'Από 1 έως 99.')}"></div>
 						<div th:replace="~{fragments/form-fields :: choice('fuelType', 'Καύσιμο (P.3) *', ${fuelTypes}, ${v.fuelType}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: fieldWithHint('engineCc', 'Κυβικά (P.1)', 'integer', ${v.engineCc}, 'col-md-4',
 							'Τα κυβικά μένουν κενά μόνο σε ηλεκτρικό όχημα.')}"></div>
@@ -50,7 +89,7 @@
 						<div th:replace="~{fragments/form-fields :: field('powerKw', 'Ισχύς kW (P.2) *', 'decimal', ${v.powerKw}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('engineNumber', 'Αρ. Κινητήρα (P.5)', 'text', ${v.engineNumber}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('co2', 'CO2 (V.7)', 'integer', ${v.co2}, 'col-md-4')}"></div>
-						<div th:replace="~{fragments/form-fields :: field('emissionStandard', 'Euro (V.9)', 'text', ${v.emissionStandard}, 'col-md-4')}"></div>
+						<div th:replace="~{fragments/form-fields :: listChoice('emissionStandard', 'Euro (V.9)', ${emissionStandards}, ${v.emissionStandard}, 'col-md-4')}"></div>
 						<div th:replace="~{fragments/form-fields :: field('weightKg', 'Βάρος kg (G)', 'integer', ${v.weightKg}, 'col-md-4')}"></div>
 					</div>
 				</div>

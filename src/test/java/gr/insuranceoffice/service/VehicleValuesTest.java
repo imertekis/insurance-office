@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import gr.insuranceoffice.entity.Vehicle;
 import gr.insuranceoffice.service.VehicleValues.Brands;
+import gr.insuranceoffice.service.VehicleValues.ColorChoices;
 import gr.insuranceoffice.service.VehicleValues.Match;
 
 /**
@@ -121,6 +122,25 @@ class VehicleValuesTest {
 		assertThat(VehicleValues.isColor("Λευκό-Λευκό")).isFalse();
 		assertThat(VehicleValues.isColor("Λευκό / Μαύρο")).isFalse();
 		assertThat(VehicleValues.isColor("Λευκό-Μαύρο-Κόκκινο")).isFalse();
+	}
+
+	// Task 23b: the form's two choices for a stored colour, and back.
+	@ParameterizedTest(name = "{0} -> {1} + {2}")
+	@CsvSource({ "Λευκό-Μαύρο, Λευκό, Μαύρο", "Λευκό, Λευκό, ", "Πολύχρωμο, Πολύχρωμο, ", "ΛΑΔΙ, ΛΑΔΙ, ",
+			"Λευκό-ΛΑΔΙ, Λευκό-ΛΑΔΙ, ", "Λευκό-Λευκό, Λευκό-Λευκό, " })
+	void splitsAStoredColourIntoTheFormsTwoChoices(String stored, String first, String second) {
+		ColorChoices choices = ColorChoices.of(stored);
+
+		assertThat(choices).isEqualTo(new ColorChoices(first, second));
+		assertThat(choices.stored()).isEqualTo(stored);
+	}
+
+	@Test
+	void joinsTheFormsTwoChoices() {
+		assertThat(new ColorChoices("Λευκό", "Μαύρο").stored()).isEqualTo("Λευκό-Μαύρο");
+		assertThat(new ColorChoices("Λευκό", null).stored()).isEqualTo("Λευκό");
+		assertThat(new ColorChoices(null, "Μαύρο").stored()).isNull();
+		assertThat(ColorChoices.of(null)).isEqualTo(new ColorChoices(null, null));
 	}
 
 	// Decision 3: two colours fit the colour column.

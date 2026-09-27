@@ -52,5 +52,37 @@
 		<div class="invalid-feedback" th:if="${errors != null and errors.containsKey(name)}"
 			th:text="${errors.get(name)}">Μήνυμα</div>
 	</div>
+
+	<!-- Task 23b: one value of a list of Task 23a (VehicleValues), with the
+	     empty first choice «— Επιλέξτε —». A value from before the list, or
+	     imported from outside it, comes first instead, selected, marked
+	     «(εκτός λίστας)», with the note below: it is saved again as it is
+	     while left alone (decision 7). A value is outside the list when it is
+	     not among the values; a new one never gets that far, because the
+	     server refuses it with a message, which then takes the note's place. -->
+	<div th:fragment="listChoice(name, label, values, selected, colClass)" th:class="${colClass}"
+		th:with="refused=${errors != null and errors.containsKey(name)},
+			outside=${!#strings.isEmpty(selected) and !#lists.contains(values, selected)}">
+		<label class="form-label" th:for="${name}" th:text="${label}">Ετικέτα</label>
+		<select class="form-select" th:id="${name}" th:name="${name}"
+			th:attr="aria-describedby=${outside and !refused} ? |${name}-outside| : null"
+			th:classappend="${refused} ? 'is-invalid'">
+			<option th:if="${outside}" th:value="${selected}" th:text="|${selected} (εκτός λίστας)|"
+				selected>ΛΑΔΙ (εκτός λίστας)</option>
+			<option value="">— Επιλέξτε —</option>
+			<option th:each="value : ${values}" th:value="${value}" th:text="${value}"
+				th:selected="${value == selected}">Λευκό</option>
+		</select>
+		<div class="invalid-feedback" th:if="${refused}" th:text="${errors.get(name)}">Μήνυμα</div>
+		<th:block th:if="${outside and !refused}">
+			<div th:replace="~{fragments/form-fields :: outsideNote(${name})}"></div>
+		</th:block>
+	</div>
+
+	<!-- The note under a value outside its list (Task 23b), shared with the
+	     brand field of the vehicle form; the field names it in
+	     aria-describedby="<name>-outside". -->
+	<div th:fragment="outsideNote(name)" class="form-text text-warning-emphasis" th:id="|${name}-outside|">
+		Εκτός λίστας. Μια παλιά τιμή σώζεται όπως είναι· μια νέα πρέπει να είναι της λίστας.</div>
 </body>
 </html>

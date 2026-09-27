@@ -289,6 +289,28 @@ an item leaves this list once it has been checked.
     form afterwards. If there are many, correct them in the Excel first.
   Then drop the throwaway database.
 
+### Task 23b
+- **The brand, with the office's keyboards, in each browser the office
+  uses.** The check ran in headless Chrome only, and its key events gave
+  each letter directly, never through a keyboard layout. With the Greek
+  layout on, type the keys b, m, w («βμς»): the list under the field shows
+  BMW; Down, Enter takes it. With the Latin layout, «skoda» and Tab gives
+  «Škoda». A click on a brand of the list takes it. Typing something that
+  is no brand and leaving the field puts the last brand back.
+- **The model suggestions, in each browser.** The browser draws a
+  datalist's list itself, and headless Chrome drew none: the check only
+  saw the model field point at the brand's list. Choose a brand the office
+  has vehicles of, click in «Μοντέλο»: the browser offers that brand's
+  models (after a first letter, in some browsers); choose another brand,
+  and the offer follows it.
+- **The lists on a real phone.** The check emulated 375px, without an
+  on-screen keyboard. On a phone: the brand list ends above the keyboard
+  and scrolls inside itself; «Κατηγορία», «Χρώμα», «Δεύτερο χρώμα» and
+  «Euro» open the phone's own picker.
+- **The brand with a screen reader** (NVDA or Narrator). The field is a
+  WAI-ARIA combobox, as the header's search (Task 21b): it is read as one,
+  and Down reads each brand.
+
 ### Task 28
 - **The first import of the office's two files.** The check used synthetic
   files only (CLAUDE.md), with long cells in three rows of each: one run

@@ -5,7 +5,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -37,6 +39,7 @@ import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleBrandRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
 import gr.insuranceoffice.security.Roles;
+import gr.insuranceoffice.service.VehicleValues.ColorChoices;
 import gr.insuranceoffice.util.TextNormalizationUtils;
 
 /** The vehicle card (SPEC §7.2) and the rules its form must satisfy. */
@@ -113,15 +116,40 @@ public class VehicleService {
 	}
 
 	/**
-	 * The vehicle's own fields, for the edit form.
+	 * The vehicle's own fields, for the edit form: a colour of two is its two
+	 * choices, «Λευκό-Μαύρο» as Λευκό and Μαύρο (Task 23b).
 	 *
 	 * @throws NotFoundException if the vehicle does not exist
 	 */
 	@Transactional(readOnly = true)
 	public VehicleDto find(Long id) {
 		return vehicleRepository.findById(id)
-				.map(vehicleMapper::toDto)
+				.map(vehicle -> withColors(vehicleMapper.toDto(vehicle), ColorChoices.of(vehicle.getColor())))
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν βρέθηκε."));
+	}
+
+	/**
+	 * The brands the form offers (Task 23b), in the order of the alphabet,
+	 * case and accents aside: Škoda among the S.
+	 */
+	@Transactional(readOnly = true)
+	public List<String> brandNames() {
+		return vehicleBrandRepository.findAll().stream()
+				.map(VehicleBrand::getName)
+				.sorted(Comparator.comparing(TextNormalizationUtils::normalizeText))
+				.toList();
+	}
+
+	/**
+	 * The models already stored, by brand, for the form's suggestions (Task
+	 * 23b, decision 5). A suggestion only: any model can be typed.
+	 */
+	@Transactional(readOnly = true)
+	public Map<String, List<String>> modelsByBrand() {
+		Map<String, List<String>> models = new LinkedHashMap<>();
+		vehicleRepository.findBrandModels().forEach(pair -> models
+				.computeIfAbsent(pair.getBrand(), brand -> new ArrayList<>()).add(pair.getModel()));
+		return models;
 	}
 
 	/**
@@ -133,7 +161,7 @@ public class VehicleService {
 		checkFields(values, null).throwIfAny();
 
 		Vehicle vehicle = new Vehicle();
-		vehicleMapper.updateEntity(values, vehicle);
+		store(values, vehicle);
 		return vehicleMapper.toDto(vehicleRepository.saveAndFlush(vehicle));
 	}
 
@@ -155,7 +183,7 @@ public class VehicleService {
 		VehicleDto values = cleaned(dto);
 		checkFields(values, vehicle).throwIfAny();
 
-		vehicleMapper.updateEntity(values, vehicle);
+		store(values, vehicle);
 		// Flushed here so that a concurrent change fails inside this call and
 		// the returned version is the new one.
 		vehicleRepository.flush();
@@ -241,10 +269,26 @@ public class VehicleService {
 		String plate = vehicleMapper.blankToNull(TextNormalizationUtils.storedPlate(values.plate()));
 		return new VehicleDto(values.id(), TextNormalizationUtils.storedVin(values.vin()),
 				plate, values.brand(), values.model(), values.firstRegistration(),
-				values.licenseIssueDate(), values.category(), values.usageType(), values.color(), values.seats(),
-				values.engineCc(), values.powerKw(), values.fuelType(), values.engineNumber(), values.co2(),
-				values.emissionStandard(), values.weightKg(), values.licenseStreet(), values.licenseCity(),
-				values.licensePostalCode(), values.version());
+				values.licenseIssueDate(), values.category(), values.usageType(), values.color(), values.secondColor(),
+				values.seats(), values.engineCc(), values.powerKw(), values.fuelType(), values.engineNumber(),
+				values.co2(), values.emissionStandard(), values.weightKg(), values.licenseStreet(),
+				values.licenseCity(), values.licensePostalCode(), values.version());
+	}
+
+	// The same values with the colour as its two choices.
+	private static VehicleDto withColors(VehicleDto values, ColorChoices colors) {
+		return new VehicleDto(values.id(), values.vin(), values.plate(), values.brand(), values.model(),
+				values.firstRegistration(), values.licenseIssueDate(), values.category(), values.usageType(),
+				colors.first(), colors.second(), values.seats(), values.engineCc(), values.powerKw(),
+				values.fuelType(), values.engineNumber(), values.co2(), values.emissionStandard(),
+				values.weightKg(), values.licenseStreet(), values.licenseCity(), values.licensePostalCode(),
+				values.version());
+	}
+
+	// The form's two colours go into the one column (Task 23b, decision 3).
+	private void store(VehicleDto values, Vehicle vehicle) {
+		vehicleMapper.updateEntity(values, vehicle);
+		vehicle.setColor(new ColorChoices(values.color(), values.secondColor()).stored());
 	}
 
 	/**
@@ -279,8 +323,13 @@ public class VehicleService {
 		listed(violations, "category", values.category(), stored == null ? null : stored.getCategory(),
 				VehicleValues::isCategory, "Επιλέξτε κατηγορία από τη λίστα.");
 		violations.required("color", values.color(), "Το χρώμα είναι υποχρεωτικό.");
-		listed(violations, "color", values.color(), stored == null ? null : stored.getColor(),
-				VehicleValues::isColor, "Επιλέξτε χρώμα από τη λίστα.");
+		String color = new ColorChoices(values.color(), values.secondColor()).stored();
+		// A second colour that cannot go with the first is its own message;
+		// otherwise the pair as stored must be of the list, or unchanged.
+		if (!secondColorRefused(values, violations)) {
+			listed(violations, "color", color, stored == null ? null : stored.getColor(), VehicleValues::isColor,
+					"Επιλέξτε χρώμα από τη λίστα.");
+		}
 		listed(violations, "emissionStandard", values.emissionStandard(),
 				stored == null ? null : stored.getEmissionStandard(), VehicleValues::isEmissionStandard,
 				"Επιλέξτε Euro από τη λίστα.");
@@ -318,12 +367,36 @@ public class VehicleService {
 		violations.fitsColumn("brand", values.brand(), Vehicle.class);
 		violations.fitsColumn("model", values.model(), Vehicle.class);
 		violations.fitsColumn("category", values.category(), Vehicle.class);
-		violations.fitsColumn("color", values.color(), Vehicle.class);
+		violations.fitsColumn("color", color, Vehicle.class);
 		violations.fitsColumn("engineNumber", values.engineNumber(), Vehicle.class);
 		violations.fitsColumn("emissionStandard", values.emissionStandard(), Vehicle.class);
 		violations.fitsColumn("licenseStreet", values.licenseStreet(), Vehicle.class);
 		violations.fitsColumn("licenseCity", values.licenseCity(), Vehicle.class);
 		return violations;
+	}
+
+	/**
+	 * Task 23b: the second colour is one of the list, differs from the first,
+	 * and does not follow «Πολύχρωμο», which says it all.
+	 *
+	 * @return whether it was refused
+	 */
+	private static boolean secondColorRefused(VehicleDto values, Violations violations) {
+		String first = values.color();
+		String second = values.secondColor();
+		if (second == null) {
+			return false;
+		}
+		if (!VehicleValues.COLORS.contains(second)) {
+			violations.add("secondColor", "Επιλέξτε δεύτερο χρώμα από τη λίστα.");
+		} else if (VehicleValues.MULTICOLOURED.equals(first)) {
+			violations.add("secondColor", "Το «Πολύχρωμο» δεν έχει δεύτερο χρώμα.");
+		} else if (second.equals(first)) {
+			violations.add("secondColor", "Το δεύτερο χρώμα πρέπει να είναι άλλο από το πρώτο.");
+		} else {
+			return false;
+		}
+		return true;
 	}
 
 	/**

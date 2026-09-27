@@ -69,6 +69,16 @@
 	// Space kept free under the list, in pixels.
 	var ROOM_BELOW = 8;
 
+	// How tall a list under a field may be: to the bottom of what is in view,
+	// above a phone's on-screen keyboard too, which shrinks the visual
+	// viewport, not the page. The CSS reads it from the property named.
+	function fitBelow(list, property) {
+		var view = window.visualViewport;
+		var bottom = view ? view.offsetTop + view.height : window.innerHeight;
+		var room = Math.floor(bottom - list.getBoundingClientRect().top - ROOM_BELOW);
+		list.style.setProperty(property, room + "px");
+	}
+
 	function suggestions(field, list) {
 		var timer = null;
 		var request = null;
@@ -108,10 +118,7 @@
 		}
 
 		function fit() {
-			var view = window.visualViewport;
-			var bottom = view ? view.offsetTop + view.height : window.innerHeight;
-			var room = Math.floor(bottom - list.getBoundingClientRect().top - ROOM_BELOW);
-			list.style.setProperty("--search-suggestions-room", room + "px");
+			fitBelow(list, "--search-suggestions-room");
 		}
 
 		function refit() {
@@ -254,6 +261,246 @@
 	var suggestionList = document.getElementById("search-suggestions");
 	if (searchField && suggestionList && searchField.hasAttribute("data-suggestions")) {
 		suggestions(searchField, suggestionList);
+	}
+
+	// Task 23b: the vehicle form's brand, searched in the list of the page
+	// while typed, without a request to the server, and never left with a
+	// value outside it. The combobox of WAI-ARIA, as the header's search
+	// above: the cursor stays in the field, and the arrows move
+	// aria-activedescendant through the brands shown.
+	// - A brand is shown when its name, or a word of it, starts with what is
+	//   typed, case and accents aside: «benz» finds Mercedes-Benz, «skoda»
+	//   Škoda. A Greek letter counts as the Latin one of its key, for a clerk
+	//   who did not switch the keyboard (decided with the office): «βμς» is
+	//   bmw, «αθδι» audi.
+	// - The list opens as the clerk types, and on a click in the field or
+	//   Down, then with every brand and the field's own one chosen. Down and
+	//   Up go through the brands shown; Enter or a click takes one, and Enter
+	//   also takes the one brand shown, or the brand typed out in full. Esc
+	//   closes the list.
+	// - Leaving the field, or sending the form, keeps only a brand of the
+	//   list: what was typed becomes the brand it names in full
+	//   («volkswagen» is Volkswagen), or the field goes back to its last
+	//   brand. Emptied, it stays empty, and the server asks for a brand. A
+	//   value from before the list stays while it is not typed over (Task
+	//   23a, decision 7).
+	// - The model field suggests the models stored for the brand in the
+	//   field (<datalist data-brand>, decision 5).
+	// - Without JavaScript this is a text field (the combobox roles are only
+	//   given here), and the server answers a brand outside the list.
+	var GREEK_KEYS = {
+		α: "a", β: "b", ψ: "c", δ: "d", ε: "e", φ: "f", γ: "g", η: "h", ι: "i", ξ: "j", κ: "k", λ: "l", μ: "m",
+		ν: "n", ο: "o", π: "p", ρ: "r", σ: "s", τ: "t", θ: "u", ω: "v", ς: "w", χ: "x", υ: "y", ζ: "z"
+	};
+	var BRAND_WORDS = /[\s&.-]+/;
+
+	function brandKey(text) {
+		return Array.from(text.normalize("NFD").replace(MARKS, "").toLowerCase().trim(), function (letter) {
+			return GREEK_KEYS[letter] || letter;
+		}).join("");
+	}
+
+	function brandChooser(field, list) {
+		var none = list.querySelector("[data-brand-none]");
+		var brands = Array.from(list.querySelectorAll("[role=option]:not([aria-disabled])"), function (option) {
+			var key = brandKey(option.textContent);
+			return { option: option, name: option.textContent, key: key, words: key.split(BRAND_WORDS) };
+		});
+		var models = document.getElementById(field.getAttribute("data-models-for"));
+		var shown = [];
+		var chosen = -1;
+		// The value the field keeps, and whether the clerk has typed since.
+		var kept = field.value;
+		var typing = false;
+
+		field.setAttribute("role", "combobox");
+		field.setAttribute("aria-autocomplete", "list");
+		field.setAttribute("aria-expanded", "false");
+		field.setAttribute("aria-controls", list.id);
+
+		function isOpen() {
+			return list.classList.contains("show");
+		}
+
+		function choose(index) {
+			if (chosen >= 0) {
+				shown[chosen].option.classList.remove("active");
+				shown[chosen].option.setAttribute("aria-selected", "false");
+			}
+			chosen = index;
+			if (chosen < 0) {
+				field.removeAttribute("aria-activedescendant");
+				return;
+			}
+			shown[chosen].option.classList.add("active");
+			shown[chosen].option.setAttribute("aria-selected", "true");
+			field.setAttribute("aria-activedescendant", shown[chosen].option.id);
+			shown[chosen].option.scrollIntoView({ block: "nearest" });
+		}
+
+		function place() {
+			list.style.top = field.offsetTop + field.offsetHeight + "px";
+			list.style.left = field.offsetLeft + "px";
+			list.style.width = field.offsetWidth + "px";
+			fitBelow(list, "--brand-options-room");
+		}
+
+		function open() {
+			var typed = typing ? brandKey(field.value) : "";
+			choose(-1);
+			shown = brands.filter(function (brand) {
+				var match = brand.key.startsWith(typed) || brand.words.some(function (word) {
+					return word.startsWith(typed);
+				});
+				brand.option.hidden = !match;
+				return match;
+			});
+			none.hidden = shown.length > 0;
+			list.classList.add("show");
+			field.setAttribute("aria-expanded", "true");
+			place();
+			if (!typing) {
+				choose(shown.findIndex(function (brand) {
+					return brand.name === field.value;
+				}));
+			}
+		}
+
+		function close() {
+			choose(-1);
+			list.classList.remove("show");
+			field.setAttribute("aria-expanded", "false");
+		}
+
+		// The model field gets the datalist of the brand in the field, if any.
+		function follow() {
+			if (!models) {
+				return;
+			}
+			var datalist = Array.from(document.querySelectorAll("datalist[data-brand]")).find(function (element) {
+				return element.getAttribute("data-brand") === field.value;
+			});
+			if (datalist) {
+				models.setAttribute("list", datalist.id);
+			} else {
+				models.removeAttribute("list");
+			}
+		}
+
+		function keep(value) {
+			field.value = value;
+			kept = value;
+			typing = false;
+			follow();
+		}
+
+		function named(text) {
+			var key = brandKey(text);
+			return brands.find(function (brand) {
+				return brand.key === key;
+			});
+		}
+
+		function take(brand) {
+			close();
+			keep(brand.name);
+		}
+
+		// What was typed becomes a brand of the list, or goes.
+		function settle() {
+			close();
+			if (!typing) {
+				return;
+			}
+			var text = field.value.trim();
+			var brand = text ? named(text) : null;
+			keep(text ? (brand ? brand.name : kept) : "");
+		}
+
+		field.addEventListener("input", function () {
+			typing = true;
+			open();
+		});
+
+		field.addEventListener("click", function () {
+			if (!isOpen()) {
+				open();
+			}
+		});
+
+		field.addEventListener("keydown", function (event) {
+			if (event.isComposing || event.ctrlKey || event.metaKey) {
+				return;
+			}
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				if (!isOpen()) {
+					open();
+				} else if (!event.altKey) {
+					choose(chosen + 1 < shown.length ? chosen + 1 : -1);
+				}
+			} else if (event.key === "ArrowUp" && isOpen()) {
+				event.preventDefault();
+				choose(chosen < 0 ? shown.length - 1 : chosen - 1);
+			} else if (event.key === "Enter" && isOpen()) {
+				// Enter never sends the form while the list is open.
+				event.preventDefault();
+				var brand = chosen >= 0 ? shown[chosen] : shown.length === 1 ? shown[0] : named(field.value);
+				if (brand) {
+					take(brand);
+				}
+			} else if (event.key === "Escape" && isOpen()) {
+				event.preventDefault();
+				close();
+			}
+		});
+
+		// Pressing the mouse on the list keeps the focus in the field, so the
+		// list is still there when the click lands.
+		list.addEventListener("mousedown", function (event) {
+			event.preventDefault();
+		});
+
+		list.addEventListener("click", function (event) {
+			var option = event.target.closest("[role=option]");
+			var brand = brands.find(function (candidate) {
+				return candidate.option === option;
+			});
+			if (brand) {
+				take(brand);
+			}
+		});
+
+		field.addEventListener("blur", settle);
+		field.form.addEventListener("submit", settle);
+
+		function refit() {
+			if (isOpen()) {
+				place();
+			}
+		}
+		if (window.visualViewport) {
+			window.visualViewport.addEventListener("resize", refit);
+			window.visualViewport.addEventListener("scroll", refit);
+		}
+		window.addEventListener("resize", refit);
+		window.addEventListener("scroll", refit, { passive: true });
+
+		// Back to a page the browser kept: the field as it came back is kept.
+		window.addEventListener("pageshow", function (event) {
+			if (event.persisted) {
+				close();
+				kept = field.value;
+				typing = false;
+			}
+		});
+
+		follow();
+	}
+
+	var brandField = document.querySelector("input[data-brand-options]");
+	if (brandField) {
+		brandChooser(brandField, document.getElementById(brandField.getAttribute("data-brand-options")));
 	}
 
 	// Task 16f-2, part 1: one submit per form. A double click would send a

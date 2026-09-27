@@ -132,7 +132,14 @@ class TextLengthFormTest {
 				.andExpect(status().isOk())
 				.andExpect(view().name("vehicle-form"))
 				.andReturn().getResponse().getContentAsString();
-		assertThat(input(html, field)).contains("is-invalid", "value=\"" + text(field, limit + 1) + "\"");
+		// The brand is a text field; the others are lists since Task 23b, which
+		// offer what was sent back as their first choice, «(εκτός λίστας)».
+		if (field.equals("brand")) {
+			assertThat(input(html, field)).contains("is-invalid", "value=\"" + text(field, limit + 1) + "\"");
+		} else {
+			assertThat(select(html, field)).contains("is-invalid");
+			assertThat(html).contains("<option value=\"" + text(field, limit + 1) + "\" selected");
+		}
 		assertThat(message(html, field)).isEqualTo(listMessage);
 
 		values.set(field, text(field, limit));
@@ -270,9 +277,17 @@ class TextLengthFormTest {
 		return input.group();
 	}
 
-	/** The message right after the field's input, before any other field. */
+	/** The select tag of one field. */
+	private static String select(String html, String name) {
+		Matcher select = Pattern.compile("<select[^>]*name=\"" + name + "\"[^>]*>").matcher(html);
+		assertThat(select.find()).as(name).isTrue();
+		return select.group();
+	}
+
+	/** The message right after the field's input or list, before any other field. */
 	private static String message(String html, String name) {
-		Matcher message = Pattern.compile("<input[^>]*name=\"" + name + "\"[^>]*>"
+		Matcher message = Pattern.compile("(?:<input[^>]*name=\"" + name + "\"[^>]*>|<select[^>]*name=\"" + name
+				+ "\"[^>]*>.*?</select>)"
 				+ "(?:(?!<input|<select|<textarea).)*?<div class=\"invalid-feedback\">([^<]*)</div>", Pattern.DOTALL)
 				.matcher(html);
 		assertThat(message.find()).as("message beside " + name).isTrue();

@@ -3,6 +3,7 @@ package gr.insuranceoffice.mapper;
 import java.util.List;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 import gr.insuranceoffice.dto.VehicleDto;
@@ -11,6 +12,8 @@ import gr.insuranceoffice.entity.Vehicle;
 @Mapper(componentModel = "spring")
 public interface VehicleMapper {
 
+	// The colour as stored, whole: VehicleService splits it for the form.
+	@Mapping(target = "secondColor", ignore = true)
 	VehicleDto toDto(Vehicle vehicle);
 
 	List<VehicleDto> toDtoList(List<Vehicle> vehicles);

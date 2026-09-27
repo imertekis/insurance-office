@@ -14,6 +14,9 @@ public record VehicleDto(
 		String category,
 		String usageType,
 		String color,
+		// The form's «Δεύτερο χρώμα» (Task 23b): stored with the first in the
+		// one colour column, "Λευκό-Μαύρο", and null everywhere but the form.
+		String secondColor,
 		Short seats,
 		Integer engineCc,
 		BigDecimal powerKw,

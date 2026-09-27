@@ -2,9 +2,11 @@ package gr.insuranceoffice.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.entry;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -131,6 +133,73 @@ class VehicleServiceTest {
 		assertThat(vehicleRepository.findById(old.getId())).get().extracting(Vehicle::getCategory).isEqualTo("N1");
 	}
 
+	// Task 23b, decision 3: the form's two colours, one column.
+	@Test
+	void storesTwoColoursInOneColumnAndGivesThemBackAsTwoChoices() {
+		Long id = vehicleService.create(with(with(valid(), "color", "Λευκό"), "secondColor", "Μαύρο")).id();
+
+		assertThat(vehicleRepository.findById(id)).get().extracting(Vehicle::getColor).isEqualTo("Λευκό-Μαύρο");
+		assertThat(vehicleService.find(id)).extracting(VehicleDto::color, VehicleDto::secondColor)
+				.containsExactly("Λευκό", "Μαύρο");
+		// The card shows it as stored.
+		assertThat(vehicleService.findDetail(id).vehicle()).extracting(VehicleDto::color, VehicleDto::secondColor)
+				.containsExactly("Λευκό-Μαύρο", null);
+	}
+
+	@ParameterizedTest(name = "{0} + {1}")
+	@CsvSource(delimiter = '|', value = {
+			"Λευκό | Λευκό | Το δεύτερο χρώμα πρέπει να είναι άλλο από το πρώτο.",
+			"Πολύχρωμο | Μαύρο | Το «Πολύχρωμο» δεν έχει δεύτερο χρώμα.",
+			"Λευκό | Πολύχρωμο | Επιλέξτε δεύτερο χρώμα από τη λίστα.",
+			"Λευκό | ΜΑΥΡΟ | Επιλέξτε δεύτερο χρώμα από τη λίστα." })
+	void refusesASecondColourThatCannotGoWithTheFirst(String first, String second, String message) {
+		assertThatThrownBy(() -> vehicleService.create(with(with(valid(), "color", first), "secondColor", second)))
+				.isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getViolations())
+						.containsExactly(new Violation("secondColor", message)));
+	}
+
+	// An old colour is kept only as it is: with a second one it is a new
+	// value, and must be of the list.
+	@Test
+	void refusesASecondColourAfterAnOldOne() {
+		Vehicle old = storedWithOldValues();
+
+		assertThatThrownBy(() -> vehicleService.update(old.getId(), with(vehicleService.find(old.getId()),
+				"secondColor", "Μαύρο")))
+				.isInstanceOfSatisfying(BusinessException.class, exception -> assertThat(exception.getViolations())
+						.containsExactly(new Violation("color", "Επιλέξτε χρώμα από τη λίστα.")));
+	}
+
+	// A pair outside the list stays whole, as the form's first choice.
+	@Test
+	void keepsAnOldPairOutsideTheListWhole() {
+		Vehicle old = storedWithOldValues();
+		old.setColor("Λευκό-ΛΑΔΙ");
+		vehicleRepository.saveAndFlush(old);
+
+		VehicleDto values = vehicleService.find(old.getId());
+		assertThat(values).extracting(VehicleDto::color, VehicleDto::secondColor).containsExactly("Λευκό-ΛΑΔΙ", null);
+
+		vehicleService.update(old.getId(), values);
+		assertThat(vehicleRepository.findById(old.getId())).get().extracting(Vehicle::getColor)
+				.isEqualTo("Λευκό-ΛΑΔΙ");
+	}
+
+	// The form's lists (Task 23b): the brands in the alphabet's order, and
+	// the models stored, by brand.
+	@Test
+	void givesTheFormTheBrandsAndTheModelsStored() {
+		vehicleService.create(valid());
+		vehicleService.create(new VehicleDto(null, "WVWZZZ1KZAW654321", "ΑΒΕ-4321", "Volkswagen", "Polo",
+				LocalDate.of(2015, 1, 1), null, "M1", "ΕΙΧ", "Μπλε", null, (short) 5, 1200, new BigDecimal("60"),
+				"ΒΕΝΖΙΝΗ", null, null, null, null, null, null, null, null));
+
+		assertThat(vehicleService.brandNames()).hasSize(100).startsWith("Abarth", "Aixam", "Alfa Romeo")
+				.containsSubsequence("Saab", "SEAT", "Škoda", "Smart");
+		assertThat(vehicleService.modelsByBrand()).containsExactly(
+				entry("Volkswagen", List.of("Golf", "Polo")));
+	}
+
 	@ParameterizedTest
 	@ValueSource(shorts = { 0, 100, -1 })
 	void refusesSeatsOutsideOneToNinetyNine(short seats) {
@@ -167,7 +236,7 @@ class VehicleServiceTest {
 
 	private static VehicleDto valid() {
 		return new VehicleDto(null, "WVWZZZ1KZAW123456", "ΑΒΕ-1234", "Volkswagen", "Golf", LocalDate.of(2012, 5, 14),
-				null, "M1", "ΕΙΧ", "Λευκό", (short) 5, 1598, new BigDecimal("81"), "ΒΕΝΖΙΝΗ", null, null, "Euro 6",
+				null, "M1", "ΕΙΧ", "Λευκό", null, (short) 5, 1598, new BigDecimal("81"), "ΒΕΝΖΙΝΗ", null, null, "Euro 6",
 				null, null, null, null, null);
 	}
 
@@ -180,6 +249,7 @@ class VehicleServiceTest {
 				field.equals("category") ? (String) value : v.category(),
 				v.usageType(),
 				field.equals("color") ? (String) value : v.color(),
+				field.equals("secondColor") ? (String) value : v.secondColor(),
 				field.equals("seats") ? (Short) value : v.seats(),
 				v.engineCc(), v.powerKw(), v.fuelType(), v.engineNumber(), v.co2(),
 				field.equals("emissionStandard") ? (String) value : v.emissionStandard(),

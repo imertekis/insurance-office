@@ -2,6 +2,8 @@ package gr.insuranceoffice.controller;
 
 import java.beans.PropertyEditorSupport;
 import java.math.BigDecimal;
+import java.util.List;
+import java.util.stream.Stream;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -23,10 +25,15 @@ import gr.insuranceoffice.entity.Vehicle.FuelType;
 import gr.insuranceoffice.entity.Vehicle.UsageType;
 import gr.insuranceoffice.service.BusinessException;
 import gr.insuranceoffice.service.VehicleService;
+import gr.insuranceoffice.service.VehicleValues;
 
 /** The vehicle card (SPEC §7.2) and the form that fills it. */
 @Controller
 public class VehicleController {
+
+	// «Πολύχρωμο» is a first colour, never a second (decision 3).
+	private static final List<String> FIRST_COLORS = Stream.concat(VehicleValues.COLORS.stream(),
+			Stream.of(VehicleValues.MULTICOLOURED)).toList();
 
 	private final VehicleService vehicleService;
 
@@ -142,12 +149,20 @@ public class VehicleController {
 		model.addAttribute("vehicle", vehicle);
 		model.addAttribute("usageTypes", UsageType.values());
 		model.addAttribute("fuelTypes", FuelType.values());
+		// Task 23b: the lists of Task 23a, and the models stored for each
+		// brand, all in the page: the form asks the server nothing more.
+		model.addAttribute("brands", vehicleService.brandNames());
+		model.addAttribute("modelsByBrand", vehicleService.modelsByBrand());
+		model.addAttribute("categories", VehicleValues.CATEGORIES);
+		model.addAttribute("colors", FIRST_COLORS);
+		model.addAttribute("secondColors", VehicleValues.COLORS);
+		model.addAttribute("emissionStandards", VehicleValues.EMISSION_STANDARDS);
 		return "vehicle-form";
 	}
 
 	private static VehicleDto empty() {
 		return new VehicleDto(null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-				null, null, null, null, null, null, null, null);
+				null, null, null, null, null, null, null, null, null);
 	}
 
 }

@@ -234,6 +234,18 @@ a:focus-visible,
 }
 
 /*
+ * Task 23b: the brands under their field in the vehicle form, placed there
+ * by app.js. As the header's suggestions: no taller than what is in view
+ * under the field, which app.js measures, and the rest scrolls inside.
+ */
+.brand-options {
+	min-width: 0;
+	max-height: max(var(--brand-options-room, 50vh), 3rem);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+
+/*
  * Task 16f-1: the theme button shows the icon of the clerk's choice, read
  * from data-chosen-theme, which the inline script of layout.html puts on
  * <html> before the page is drawn. Without it (no script) the half circle

@@ -184,6 +184,13 @@ These override any older wording in `docs/`.
    one line showed a cut name and «ΑΦΜ 1…». Below 576px each suggestion is
    two lines, the name and then its second part, each cut with «…»; from
    576px up, one line. The list stays as wide as the field.
+10. **Θέσεις stays a text field, with its range as a hint.** TASKS Task 23b
+    asked for `min="1"` and `max="99"` on the field; Task 16d-1 made every
+    number field `type="text"` with `inputmode`, where min/max do nothing,
+    so that the browser never blocks what is typed and the server answers
+    beside the field. Decided with the office: 16d-1 wins, and the field has
+    the hint «Από 1 έως 99.» under it; 0 or 100 get the server's message
+    (Task 23a).
 
 ## Open questions (ask before implementing)
 

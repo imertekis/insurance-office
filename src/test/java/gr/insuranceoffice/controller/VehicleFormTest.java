@@ -281,7 +281,8 @@ class VehicleFormTest {
 	}
 
 	// Task 16f-1: the hint of Κυβικά is under that field, in its column, and
-	// the input names it for a screen reader; no other field has one.
+	// the input names it for a screen reader. Since Task 23b Θέσεις has one
+	// too, its range; no other field of a new vehicle has one.
 	@Test
 	void showsTheEngineCapacityHintUnderItsField() throws Exception {
 		String html = html(get("/vehicles/new"));
@@ -290,7 +291,10 @@ class VehicleFormTest {
 		assertThat(html).containsPattern("name=\"engineCc\"[^>]*>\\s*<div class=\"form-text\" id=\"engineCc-hint\">"
 				+ "Τα κυβικά μένουν κενά μόνο σε ηλεκτρικό όχημα\\.</div>\\s*</div>");
 		assertThat(html.split("Τα κυβικά μένουν κενά", -1)).hasSize(2);
-		assertThat(html.split("aria-describedby", -1)).hasSize(2);
+		assertThat(input(html, "seats")).contains("aria-describedby=\"seats-hint\"");
+		assertThat(html).containsPattern("name=\"seats\"[^>]*>\\s*<div class=\"form-text\" id=\"seats-hint\">"
+				+ "Από 1 έως 99\\.</div>\\s*</div>");
+		assertThat(html.split("aria-describedby", -1)).hasSize(3);
 	}
 
 	// With an error, the message stays right under the input and the hint follows.
@@ -395,7 +399,7 @@ class VehicleFormTest {
 				.andExpect(view().name("vehicle-form"))
 				.andReturn().getResponse().getContentAsString();
 
-		assertThat(html).contains("άλλαξε από άλλον χρήστη", "value=\"Κόκκινο\"");
+		assertThat(html).contains("άλλαξε από άλλον χρήστη", "<option value=\"Κόκκινο\" selected=\"selected\">");
 		assertThat(vehicleRepository.findById(stored.getId())).get().extracting(Vehicle::getColor)
 				.isEqualTo("Μαύρο");
 	}
