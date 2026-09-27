@@ -30,6 +30,7 @@ import gr.insuranceoffice.repository.IntermediaryRepository;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
+import gr.insuranceoffice.service.ColumnLimits;
 import gr.insuranceoffice.service.OwnershipService;
 import gr.insuranceoffice.service.OwnershipService.Share;
 import gr.insuranceoffice.service.UniqueConstraint;
@@ -50,8 +51,10 @@ import gr.insuranceoffice.util.TextNormalizationUtils;
  * normalized by {@link Vehicle}'s setters and callbacks through
  * {@link TextNormalizationUtils}, search columns by the database, the VIN
  * format is {@link VehicleService#isVin}, the ownership rule is checked by
- * {@link OwnershipService}, and a rule the database enforces, such as a policy
- * ending after it starts, is reported as a refused row.
+ * {@link OwnershipService}, the length of every text cell against its column
+ * by {@link ExcelRow} through {@link ColumnLimits} (Task 28), and a rule the
+ * database enforces, such as a policy ending after it starts, is reported as
+ * a refused row.
  */
 @Service
 public class ExcelImporterService {
@@ -214,6 +217,9 @@ public class ExcelImporterService {
 
 	private void importCustomer(ExcelRow row, Run run) {
 		String taxId = row.requiredText(TAX_ID);
+		// Kept as the key even when too long, so that the archive rows naming
+		// this customer are not reported a second time.
+		row.fits(TAX_ID, taxId, Customer.class, "taxId");
 		Consumer<Customer> fields = readCustomerFields(row, taxId);
 		if (taxId != null && !run.customerTaxIds.add(taxId)) {
 			row.reject(TAX_ID, "ο ίδιος ΑΦΜ υπάρχει σε προηγούμενη γραμμή");
@@ -230,17 +236,17 @@ public class ExcelImporterService {
 	// Reads the whole row before anything is written, so that a managed
 	// entity is never left half-updated with an invalid value.
 	private static Consumer<Customer> readCustomerFields(ExcelRow row, String taxId) {
-		String lastName = row.requiredText(LAST_NAME);
-		String firstName = row.text(FIRST_NAME);
-		String fatherName = row.text(FATHER_NAME);
-		String street = row.text(STREET);
-		String city = row.text(CITY);
-		String postalCode = row.text(POSTAL_CODE);
+		String lastName = row.requiredText(LAST_NAME, Customer.class, "lastName");
+		String firstName = row.text(FIRST_NAME, Customer.class, "firstName");
+		String fatherName = row.text(FATHER_NAME, Customer.class, "fatherName");
+		String street = row.text(STREET, Customer.class, "street");
+		String city = row.text(CITY, Customer.class, "city");
+		String postalCode = row.text(POSTAL_CODE, Customer.class, "postalCode");
 		LocalDate birthDate = row.date(BIRTH_DATE);
-		String taxOffice = row.text(TAX_OFFICE);
-		String mobile = row.text(MOBILE);
-		String phone = row.text(PHONE);
-		String email = row.text(EMAIL);
+		String taxOffice = row.text(TAX_OFFICE, Customer.class, "taxOffice");
+		String mobile = row.text(MOBILE, Customer.class, "mobile");
+		String phone = row.text(PHONE, Customer.class, "phone");
+		String email = row.text(EMAIL, Customer.class, "email");
 		LocalDate licenseDate = row.date(LICENSE_DATE);
 
 		return customer -> {
@@ -262,14 +268,20 @@ public class ExcelImporterService {
 
 	private void importArchiveRow(ExcelRow row, Run run) {
 		// As Vehicle stores it, so that "wvw…" and "WVW…" are one VIN, here and
-		// against the database (Task 17).
-		String vin = TextNormalizationUtils.storedVin(row.requiredText(VIN));
-		String plate = row.requiredText(PLATE);
-		String policyNumber = row.requiredText(POLICY_NUMBER);
+		// against the database (Task 17), and measured so (Task 28).
+		String storedVin = TextNormalizationUtils.storedVin(row.requiredText(VIN));
+		String vin = row.fits(VIN, storedVin, Vehicle.class, "vin") ? storedVin : null;
+		// Measured as Vehicle stores it, without dashes or spaces, as the form
+		// measures it (Task 28).
+		String typedPlate = row.requiredText(PLATE);
+		String plate = row.fits(PLATE, TextNormalizationUtils.storedPlate(typedPlate), Vehicle.class, "plate")
+				? typedPlate
+				: null;
+		String policyNumber = row.requiredText(POLICY_NUMBER, Policy.class, "policyNumber");
 		Consumer<Vehicle> vehicleFields = readVehicleFields(row, vin, plate);
 		Consumer<Policy> policyFields = readPolicyFields(row, policyNumber);
 		List<Owner> owners = readOwners(row, run);
-		String intermediaryName = row.text(INTERMEDIARY);
+		String intermediaryName = row.text(INTERMEDIARY, Intermediary.class, "fullName");
 		if (vin != null && !VehicleService.isVin(vin)) {
 			row.reject(VIN, "το VIN έχει 17 χαρακτήρες, χωρίς τα γράμματα I, O και Q");
 		}
@@ -309,24 +321,24 @@ public class ExcelImporterService {
 	}
 
 	private static Consumer<Vehicle> readVehicleFields(ExcelRow row, String vin, String plate) {
-		String brand = row.requiredText(BRAND);
-		String model = row.requiredText(MODEL);
+		String brand = row.requiredText(BRAND, Vehicle.class, "brand");
+		String model = row.requiredText(MODEL, Vehicle.class, "model");
 		LocalDate firstRegistration = row.requiredDate(FIRST_REGISTRATION);
 		LocalDate licenseIssueDate = row.date(LICENSE_ISSUE_DATE);
-		String category = row.requiredText(CATEGORY);
+		String category = row.requiredText(CATEGORY, Vehicle.class, "category");
 		UsageType usageType = row.requiredValue(USAGE, text -> ExcelValues.parseEnum(text, UsageType.class));
-		String color = row.requiredText(COLOR);
+		String color = row.requiredText(COLOR, Vehicle.class, "color");
 		Short seats = row.value(SEATS, ExcelValues::parseShort);
 		Integer engineCc = row.value(ENGINE_CC, ExcelValues::parseInteger);
 		BigDecimal powerKw = row.requiredValue(POWER_KW, ExcelValues::parseDecimal);
 		FuelType fuelType = row.requiredValue(FUEL, text -> ExcelValues.parseEnum(text, FuelType.class));
-		String engineNumber = row.text(ENGINE_NUMBER);
+		String engineNumber = row.text(ENGINE_NUMBER, Vehicle.class, "engineNumber");
 		Integer co2 = row.value(CO2, ExcelValues::parseInteger);
-		String emissionStandard = row.text(EMISSION_STANDARD);
+		String emissionStandard = row.text(EMISSION_STANDARD, Vehicle.class, "emissionStandard");
 		Integer weightKg = row.value(WEIGHT, ExcelValues::parseInteger);
-		String licenseStreet = row.text(LICENSE_STREET);
-		String licenseCity = row.text(LICENSE_CITY);
-		String licensePostalCode = row.text(LICENSE_POSTAL_CODE);
+		String licenseStreet = row.text(LICENSE_STREET, Vehicle.class, "licenseStreet");
+		String licenseCity = row.text(LICENSE_CITY, Vehicle.class, "licenseCity");
+		String licensePostalCode = row.text(LICENSE_POSTAL_CODE, Vehicle.class, "licensePostalCode");
 		// SPEC §10: an electric vehicle's 0 cc means "no engine" and is stored as NULL.
 		Integer storedEngineCc = fuelType == FuelType.ΗΛΕΚΤΡΙΣΜΟΣ && Integer.valueOf(0).equals(engineCc)
 				? null
@@ -357,7 +369,7 @@ public class ExcelImporterService {
 	}
 
 	private static Consumer<Policy> readPolicyFields(ExcelRow row, String policyNumber) {
-		String insuranceCompany = row.requiredText(INSURANCE_COMPANY);
+		String insuranceCompany = row.requiredText(INSURANCE_COMPANY, Policy.class, "insuranceCompany");
 		LocalDate startDate = row.requiredDate(START_DATE);
 		LocalDate endDate = row.requiredDate(END_DATE);
 		BigDecimal premium = row.requiredValue(PREMIUM, ExcelValues::parseMoney);

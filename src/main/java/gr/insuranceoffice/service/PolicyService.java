@@ -243,13 +243,13 @@ public class PolicyService {
 
 	private void checkFields(PolicyFormDto values, Long vehicleId, Long policyId, Violations violations) {
 		violations.required("policyNumber", values.policyNumber(), "Ο αριθμός συμβολαίου είναι υποχρεωτικός.");
-		violations.addIf(values.policyNumber() != null && values.policyNumber().length() > 30,
-				"policyNumber", "Ο αριθμός συμβολαίου έχει το πολύ 30 χαρακτήρες.");
+		violations.fitsColumn("policyNumber", values.policyNumber(), Policy.class);
 		if (values.policyNumber() != null) {
 			violations.addIf(policyRepository.findByPolicyNumber(values.policyNumber())
 					.filter(other -> !other.getId().equals(policyId)).isPresent(), UniqueConstraint.POLICY_NUMBER);
 		}
 		violations.required("insuranceCompany", values.insuranceCompany(), "Η ασφαλιστική εταιρεία είναι υποχρεωτική.");
+		violations.fitsColumn("insuranceCompany", values.insuranceCompany(), Policy.class);
 
 		if (values.intermediaryId() != null) {
 			violations.addIf(!intermediaryRepository.existsById(values.intermediaryId()),

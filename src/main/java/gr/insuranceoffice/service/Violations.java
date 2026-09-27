@@ -40,6 +40,21 @@ class Violations {
 		addIf(value != null && !pattern.matcher(value).matches(), field, message);
 	}
 
+	/**
+	 * Task 28: a text longer than the column it is stored in, which the
+	 * database would refuse with an error page. The DTO field and the entity
+	 * field have the same name. Checked on the value as it will be stored,
+	 * after the service has stripped it or, for a plate, taken out its dashes.
+	 */
+	void fitsColumn(String field, String value, Class<?> entity) {
+		if (value == null) {
+			return;
+		}
+		int limit = ColumnLimits.of(entity, field);
+		int length = ColumnLimits.length(value);
+		addIf(length > limit, field, "Έως " + limit + " χαρακτήρες (γράφτηκαν " + length + ").");
+	}
+
 	void throwIfAny() {
 		if (!violations.isEmpty()) {
 			throw new BusinessException(violations);

@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import gr.insuranceoffice.service.ColumnLimits;
+
 /**
  * One data row, with typed access to its cells by column header. A value
  * that cannot be read is recorded as an {@link ImportError} and returned as
@@ -49,6 +51,38 @@ final class ExcelRow {
 
 	String requiredText(String column) {
 		return requiredValue(column, Function.identity());
+	}
+
+	/** A text cell stored as it is in the entity's field: null too when longer than its column. */
+	String text(String column, Class<?> entity, String field) {
+		String text = text(column);
+		return fits(column, text, entity, field) ? text : null;
+	}
+
+	String requiredText(String column, Class<?> entity, String field) {
+		String text = requiredText(column);
+		return fits(column, text, entity, field) ? text : null;
+	}
+
+	/**
+	 * Task 28: refuses a value longer than the column the entity's field is
+	 * stored in. Checked before the row is written, so the report lists every
+	 * such cell of both files at once; the database would stop the import at
+	 * the first one. The value is given as the entity will store it.
+	 *
+	 * @return whether it fits; an empty cell does
+	 */
+	boolean fits(String column, String value, Class<?> entity, String field) {
+		if (value == null) {
+			return true;
+		}
+		int limit = ColumnLimits.of(entity, field);
+		int length = ColumnLimits.length(value);
+		if (length <= limit) {
+			return true;
+		}
+		reject(column, "έως " + limit + " χαρακτήρες (έχει " + length + ")");
+		return false;
 	}
 
 	<T> T value(String column, Function<String, T> parser) {

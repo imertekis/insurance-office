@@ -267,6 +267,15 @@ public class CustomerService {
 				"Το σταθερό πρέπει να έχει 10 ψηφία και να αρχίζει από 2.");
 		violations.format("postalCode", values.postalCode(), POSTAL_CODE, "Ο Τ.Κ. πρέπει να έχει 5 ψηφία.");
 		violations.format("email", values.email(), EMAIL, "Μη έγκυρο email.");
+		// Task 28. ΑΦΜ, phones and Τ.Κ. are limited by their format already;
+		// the notes are TEXT, without a limit.
+		violations.fitsColumn("lastName", values.lastName(), Customer.class);
+		violations.fitsColumn("firstName", values.firstName(), Customer.class);
+		violations.fitsColumn("fatherName", values.fatherName(), Customer.class);
+		violations.fitsColumn("taxOffice", values.taxOffice(), Customer.class);
+		violations.fitsColumn("street", values.street(), Customer.class);
+		violations.fitsColumn("city", values.city(), Customer.class);
+		violations.fitsColumn("email", values.email(), Customer.class);
 		return violations;
 	}
 

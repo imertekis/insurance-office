@@ -270,6 +270,17 @@ public class VehicleService {
 				"weightKg", "Το βάρος πρέπει να είναι θετικός αριθμός.");
 		violations.format("licensePostalCode", values.licensePostalCode(), POSTAL_CODE,
 				"Ο Τ.Κ. πρέπει να έχει 5 ψηφία.");
+		// Task 28. The plate as stored, without its dashes (cleaned); the VIN
+		// and the Τ.Κ. are limited by their format already.
+		violations.fitsColumn("plate", values.plate(), Vehicle.class);
+		violations.fitsColumn("brand", values.brand(), Vehicle.class);
+		violations.fitsColumn("model", values.model(), Vehicle.class);
+		violations.fitsColumn("category", values.category(), Vehicle.class);
+		violations.fitsColumn("color", values.color(), Vehicle.class);
+		violations.fitsColumn("engineNumber", values.engineNumber(), Vehicle.class);
+		violations.fitsColumn("emissionStandard", values.emissionStandard(), Vehicle.class);
+		violations.fitsColumn("licenseStreet", values.licenseStreet(), Vehicle.class);
+		violations.fitsColumn("licenseCity", values.licenseCity(), Vehicle.class);
 		return violations;
 	}
 

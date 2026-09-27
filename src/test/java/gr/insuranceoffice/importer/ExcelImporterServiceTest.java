@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -395,6 +396,167 @@ class ExcelImporterServiceTest {
 		assertRowCounts(0, 0, 0, 0, 0);
 	}
 
+	// Task 28: before, the database refused the first long cell and stopped
+	// the import there, one cell per attempt.
+	@Test
+	void reportsEveryCellTooLongForItsColumnInBothFilesAtOnce() {
+		List<Map<String, Object>> customers = sampleCustomers();
+		customers.get(0).put("Οδός", greek(201));
+		customers.get(2).put("Επώνυμο", greek(101));
+		customers.get(2).put("Email", greek(251) + "@x.gr");
+		customers.get(5).put("Δ.Ο.Υ.", greek(101));
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(1).put("Μοντέλο (D.3)", greek(101));
+		// Eleven without the dash, as Vehicle stores it.
+		archive.get(3).put(PLATE, "ΑΒΓ-12345678");
+		archive.get(3).put("Οδός (C.1.3)", greek(215));
+		archive.get(6).put("Ασφαλιστική Εταιρεία", greek(101));
+		archive.get(6).put("Διαμεσολαβούν Πρόσωπο", greek(201));
+
+		assertThatThrownBy(() -> importFiles(customers, archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.extracting(ImportError::file, ImportError::row, ImportError::column, ImportError::message)
+						.containsExactly(
+								tuple(CUSTOMER_FILE, 2, "Οδός", "έως 200 χαρακτήρες (έχει 201)"),
+								tuple(CUSTOMER_FILE, 4, "Επώνυμο", "έως 100 χαρακτήρες (έχει 101)"),
+								tuple(CUSTOMER_FILE, 4, "Email", "έως 255 χαρακτήρες (έχει 256)"),
+								tuple(CUSTOMER_FILE, 7, "Δ.Ο.Υ.", "έως 100 χαρακτήρες (έχει 101)"),
+								tuple(ARCHIVE_FILE, 3, "Μοντέλο (D.3)", "έως 100 χαρακτήρες (έχει 101)"),
+								tuple(ARCHIVE_FILE, 5, PLATE, "έως 10 χαρακτήρες (έχει 11)"),
+								tuple(ARCHIVE_FILE, 5, "Οδός (C.1.3)", "έως 200 χαρακτήρες (έχει 215)"),
+								tuple(ARCHIVE_FILE, 8, "Ασφαλιστική Εταιρεία", "έως 100 χαρακτήρες (έχει 101)"),
+								tuple(ARCHIVE_FILE, 8, "Διαμεσολαβούν Πρόσωπο", "έως 200 χαρακτήρες (έχει 201)")));
+		assertRowCounts(0, 0, 0, 0, 0);
+	}
+
+	// One line per cell, as the import profile prints it (ExcelImportRunner).
+	@Test
+	void namesTheRowTheColumnAndBothLengths() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(3).put("Οδός (C.1.3)", greek(215));
+
+		assertThatThrownBy(() -> importFiles(sampleCustomers(), archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.map(ImportError::toString)
+						.containsExactly(
+								ARCHIVE_FILE + ", γραμμή 5, στήλη «Οδός (C.1.3)»: έως 200 χαρακτήρες (έχει 215)"));
+	}
+
+	// Every text column the import writes, one character too long. The
+	// limits are typed out from DATA_MODEL, not read from ColumnLimits.
+	@Test
+	void checksEveryTextColumnItWrites() {
+		Map<String, Object> customer = new LinkedHashMap<>(sampleCustomers().get(0));
+		Map<String, Integer> customerLimits = new LinkedHashMap<>();
+		customerLimits.put("Επώνυμο", 100);
+		customerLimits.put("Όνομα", 100);
+		customerLimits.put("Πατρώνυμο", 100);
+		customerLimits.put("Οδός", 200);
+		customerLimits.put("Πόλη", 100);
+		customerLimits.put("Δ.Ο.Υ.", 100);
+		customerLimits.put("Email", 255);
+		customerLimits.forEach((column, limit) -> customer.put(column, greek(limit + 1)));
+		// Their format is not checked on import (REVIEW-03 finding 4), so only
+		// their length stands between them and the database.
+		customer.put("Α.Φ.Μ.", "9000001031");
+		customer.put("Τ.Κ.", "990001");
+		customer.put("Κινητό Τηλέφωνο", "69000000099");
+		customer.put("Σταθερό Τηλέφωνο", "29900000099");
+		customerLimits.put("Α.Φ.Μ.", 9);
+		customerLimits.put("Τ.Κ.", 5);
+		customerLimits.put("Κινητό Τηλέφωνο", 10);
+		customerLimits.put("Σταθερό Τηλέφωνο", 10);
+
+		Map<String, Object> vehicle = new LinkedHashMap<>(sampleArchive().get(4));
+		Map<String, Integer> archiveLimits = new LinkedHashMap<>();
+		archiveLimits.put("Αρ. Συμβολαίου", 30);
+		archiveLimits.put("Μάρκα (D.1)", 50);
+		archiveLimits.put("Μοντέλο (D.3)", 100);
+		archiveLimits.put("Κατηγορία (J)", 10);
+		archiveLimits.put("Χρώμα (R)", 50);
+		archiveLimits.put("Αρ. Κινητήρα (P.5)", 50);
+		archiveLimits.put("Euro (V.9)", 20);
+		archiveLimits.put("Οδός (C.1.3)", 200);
+		archiveLimits.put("Πόλη", 100);
+		archiveLimits.put("Ασφαλιστική Εταιρεία", 100);
+		archiveLimits.put("Διαμεσολαβούν Πρόσωπο", 200);
+		archiveLimits.forEach((column, limit) -> vehicle.put(column, greek(limit + 1)));
+		vehicle.put(VIN, "SYNTHVH00000000099");
+		vehicle.put(PLATE, "ΑΒΓ-12345678");
+		vehicle.put("Τ.Κ.", "991001");
+		archiveLimits.put(VIN, 17);
+		archiveLimits.put(PLATE, 10);
+		archiveLimits.put("Τ.Κ.", 5);
+
+		List<Map<String, Object>> customers = sampleCustomers();
+		customers.add(customer);
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.add(vehicle);
+		List<ImportError> expected = new ArrayList<>();
+		customerLimits.forEach((column, limit) -> expected.add(new ImportError(CUSTOMER_FILE, 10, column,
+				"έως " + limit + " χαρακτήρες (έχει " + (limit + 1) + ")")));
+		archiveLimits.forEach((column, limit) -> expected.add(new ImportError(ARCHIVE_FILE, 10, column,
+				"έως " + limit + " χαρακτήρες (έχει " + (limit + 1) + ")")));
+
+		assertThatThrownBy(() -> importFiles(customers, archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.containsExactlyInAnyOrderElementsOf(expected));
+		assertRowCounts(0, 0, 0, 0, 0);
+	}
+
+	// As long as the column, in Greek letters: stored whole. The plate is
+	// eleven with its dash and ten as stored.
+	@Test
+	void importsCellsAsLongAsTheirColumns() {
+		Map<String, Object> customer = new LinkedHashMap<>(sampleCustomers().get(0));
+		customer.put("Α.Φ.Μ.", "900000103");
+		customer.put("Επώνυμο", greek(100));
+		customer.put("Όνομα", greek(100));
+		customer.put("Πατρώνυμο", greek(100));
+		customer.put("Οδός", greek(200));
+		customer.put("Πόλη", greek(100));
+		customer.put("Δ.Ο.Υ.", greek(100));
+		customer.put("Email", greek(250) + "@x.gr");
+		Map<String, Object> vehicle = new LinkedHashMap<>(sampleArchive().get(4));
+		vehicle.put("Α.Φ.Μ.", "900000103");
+		vehicle.put(VIN, "SYNTHVH0000000009");
+		vehicle.put(PLATE, "ΑΒΓ-1234567");
+		vehicle.put("Αρ. Συμβολαίου", greek(30));
+		vehicle.put("Μάρκα (D.1)", greek(50));
+		vehicle.put("Μοντέλο (D.3)", greek(100));
+		vehicle.put("Κατηγορία (J)", greek(10));
+		vehicle.put("Χρώμα (R)", greek(50));
+		vehicle.put("Αρ. Κινητήρα (P.5)", greek(50));
+		vehicle.put("Euro (V.9)", greek(20));
+		vehicle.put("Οδός (C.1.3)", greek(200));
+		vehicle.put("Πόλη", greek(100));
+		vehicle.put("Ασφαλιστική Εταιρεία", greek(100));
+		vehicle.put("Διαμεσολαβούν Πρόσωπο", greek(200));
+		List<Map<String, Object>> customers = sampleCustomers();
+		customers.add(customer);
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.add(vehicle);
+
+		importFiles(customers, archive);
+
+		assertThat(customerRepository.findByTaxId("900000103")).get()
+				.extracting(Customer::getLastName, Customer::getFirstName, Customer::getFatherName,
+						Customer::getStreet, Customer::getCity, Customer::getTaxOffice, Customer::getEmail)
+				.containsExactly(greek(100), greek(100), greek(100), greek(200), greek(100), greek(100),
+						greek(250) + "@x.gr");
+		Vehicle stored = vehicleRepository.findByVin("SYNTHVH0000000009").orElseThrow();
+		assertThat(stored)
+				.extracting(Vehicle::getPlate, Vehicle::getBrand, Vehicle::getModel, Vehicle::getCategory,
+						Vehicle::getColor, Vehicle::getEngineNumber, Vehicle::getEmissionStandard,
+						Vehicle::getLicenseStreet, Vehicle::getLicenseCity)
+				.containsExactly("ΑΒΓ1234567", greek(50), greek(100), greek(10), greek(50), greek(50), greek(20),
+						greek(200), greek(100));
+		assertThat(jdbcTemplate.queryForMap("""
+				SELECT p.insurance_company, i.full_name FROM policy p JOIN intermediary i ON i.id = p.intermediary_id
+				WHERE p.policy_number = ?
+				""", greek(30)).values()).containsExactly(greek(100), greek(200));
+	}
+
 	@Test
 	void refusesOwnershipSharesThatDoNotSumToAHundred() {
 		List<Map<String, Object>> archive = sampleArchive();
@@ -504,6 +666,12 @@ class ExcelImporterServiceTest {
 
 	private void truncateImportedTables() {
 		jdbcTemplate.execute("TRUNCATE ownership, policy, vehicle, intermediary, customer RESTART IDENTITY CASCADE");
+	}
+
+	// Greek letters, accented ones included.
+	private static String greek(int length) {
+		String letters = "Αλεξίου";
+		return letters.repeat(length / letters.length() + 1).substring(0, length);
 	}
 
 	private static Counts created(int count) {

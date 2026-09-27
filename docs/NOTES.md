@@ -273,6 +273,22 @@ an item leaves this list once it has been checked.
   and check they are still there after the application restarts. A restart
   itself lifts every lockout: the counts live in memory.
 
+### Task 28
+- **The first import of the office's two files.** The check used synthetic
+  files only (CLAUDE.md), with long cells in three rows of each: one run
+  listed all nine, kept nothing, and the next run was not refused for
+  existing data. The real cells may hold what the synthetic ones do not
+  (text pasted from Word or a web page, long company names). On the first
+  run: every cell too long is listed, with file, row and column, in that one
+  report, and the database stays empty (no customers, no vehicles). Fix the
+  cells in Excel and run it again. The count is the cell without the spaces
+  at its ends, so Excel's `=LEN()` of a cell with such spaces is higher.
+- **A form, in each browser the office uses.** The check sent the forms
+  over HTTP, without a browser. Paste some 250 characters into «Οδός» of a
+  customer and save: the whole text is still in the field, not cut at 200,
+  with «Έως 200 χαρακτήρες (γράφτηκαν …).» under it and the number pasted,
+  not an error page. Shorten it and save.
+
 ## Open questions
 
 Every decision still to be made in the project. CLAUDE.md points here; an
