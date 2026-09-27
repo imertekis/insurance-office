@@ -1,0 +1,76 @@
+[1mdiff --git a/src/main/java/gr/insuranceoffice/config/SecurityConfig.java b/src/main/java/gr/insuranceoffice/config/SecurityConfig.java[m
+[1mindex 61230f7..e79b7bd 100644[m
+[1m--- a/src/main/java/gr/insuranceoffice/config/SecurityConfig.java[m
+[1m+++ b/src/main/java/gr/insuranceoffice/config/SecurityConfig.java[m
+[36m@@ -1,5 +1,8 @@[m
+ package gr.insuranceoffice.config;[m
+ [m
+[32m+[m[32mimport java.time.Clock;[m
+[32m+[m[32mimport java.util.Map;[m
+[32m+[m
+ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;[m
+ import org.springframework.context.annotation.Bean;[m
+ import org.springframework.context.annotation.Configuration;[m
+[36m@@ -12,8 +15,11 @@[m [mimport org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;[m
+ import org.springframework.security.crypto.password.PasswordEncoder;[m
+ import org.springframework.security.web.SecurityFilterChain;[m
+ import org.springframework.security.web.access.intercept.AuthorizationFilter;[m
+[32m+[m[32mimport org.springframework.security.web.authentication.AuthenticationFailureHandler;[m
+[32m+[m[32mimport org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;[m
+ [m
+ import gr.insuranceoffice.security.ForcedPasswordChangeFilter;[m
+[32m+[m[32mimport gr.insuranceoffice.security.LoginAttempts;[m
+ import gr.insuranceoffice.security.PasswordCheckingAuthenticationProvider;[m
+ import gr.insuranceoffice.security.PasswordPrompt;[m
+ [m
+[36m@@ -45,10 +51,16 @@[m [mpublic class SecurityConfig {[m
+ 						// Its tab icon too (Task 16d-2): by exact path, not "/*", so[m
+ 						// nothing else put in static/ one day is public by accident.[m
+ 						.requestMatchers("/favicon.ico", "/favicon.svg").permitAll()[m
+[32m+[m						[32m// The login page with any of its messages (?error, ?locked,[m
+[32m+[m						[32m// ?logout). formLogin's permitAll() covers the failure address[m
+[32m+[m						[32m// only when it sets it itself, by its exact text, and a handler[m
+[32m+[m						[32m// of our own leaves it out (Task 22b).[m
+[32m+[m						[32m.requestMatchers("/login").permitAll()[m
+ 						.anyRequest().authenticated())[m
+ 				.formLogin(login -> login[m
+ 						.loginPage("/login")[m
+ 						.defaultSuccessUrl("/")[m
+[32m+[m						[32m.failureHandler(loginFailureHandler())[m
+ 						.permitAll())[m
+ 				.logout(logout -> logout[m
+ 						.logoutSuccessUrl("/login?logout")[m
+[36m@@ -64,13 +76,30 @@[m [mpublic class SecurityConfig {[m
+ 				.build();[m
+ 	}[m
+ [m
+[32m+[m	[32m// Task 22b: a name locked out after too many failed logins is told so;[m
+[32m+[m	[32m// any other failure gets the one message that names neither half.[m
+[32m+[m	[32mprivate static AuthenticationFailureHandler loginFailureHandler() {[m
+[32m+[m		[32mExceptionMappingAuthenticationFailureHandler handler = new ExceptionMappingAuthenticationFailureHandler();[m
+[32m+[m		[32mhandler.setDefaultFailureUrl("/login?error");[m
+[32m+[m		[32mhandler.setExceptionMappings(Map.of(LoginAttempts.LockedOutException.class.getName(), "/login?locked"));[m
+[32m+[m		[32mreturn handler;[m
+[32m+[m	[32m}[m
+[32m+[m
+ 	// The one way to log in, so Spring Security uses it instead of building[m
+ 	// its own from the UserDetailsService (Task 22a: it also checks the[m
+[31m-	// password just typed against the rule).[m
+[32m+[m	[32m// password just typed against the rule). Task 22b: before the password,[m
+[32m+[m	[32m// it asks LoginAttempts whether the name is locked out.[m
+ 	@Bean[m
+ 	AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,[m
+[31m-			PasswordEncoder passwordEncoder) {[m
+[31m-		return new PasswordCheckingAuthenticationProvider(userDetailsService, passwordEncoder);[m
+[32m+[m			[32mPasswordEncoder passwordEncoder, LoginAttempts loginAttempts) {[m
+[32m+[m		[32mreturn new PasswordCheckingAuthenticationProvider(userDetailsService, passwordEncoder, loginAttempts);[m
+[32m+[m	[32m}[m
+[32m+[m
+[32m+[m	[32m// The time of the login lockout (Task 22b), a bean so that tests can move[m
+[32m+[m	[32m// it on instead of waiting five minutes.[m
+[32m+[m	[32m@Bean[m
+[32m+[m	[32mClock clock() {[m
+[32m+[m		[32mreturn Clock.systemDefaultZone();[m
+ 	}[m
+ [m
+ 	// Task 22a: create-user asks for the password on the console, never on[m

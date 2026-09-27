@@ -1,5 +1,8 @@
 package gr.insuranceoffice.config;
 
+import java.time.Clock;
+import java.util.Map;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,8 +15,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
 
 import gr.insuranceoffice.security.ForcedPasswordChangeFilter;
+import gr.insuranceoffice.security.LoginAttempts;
 import gr.insuranceoffice.security.PasswordCheckingAuthenticationProvider;
 import gr.insuranceoffice.security.PasswordPrompt;
 
@@ -45,10 +51,16 @@ public class SecurityConfig {
 						// Its tab icon too (Task 16d-2): by exact path, not "/*", so
 						// nothing else put in static/ one day is public by accident.
 						.requestMatchers("/favicon.ico", "/favicon.svg").permitAll()
+						// The login page with any of its messages (?error, ?locked,
+						// ?logout). formLogin's permitAll() covers the failure address
+						// only when it sets it itself, by its exact text, and a handler
+						// of our own leaves it out (Task 22b).
+						.requestMatchers("/login").permitAll()
 						.anyRequest().authenticated())
 				.formLogin(login -> login
 						.loginPage("/login")
 						.defaultSuccessUrl("/")
+						.failureHandler(loginFailureHandler())
 						.permitAll())
 				.logout(logout -> logout
 						.logoutSuccessUrl("/login?logout")
@@ -64,13 +76,30 @@ public class SecurityConfig {
 				.build();
 	}
 
+	// Task 22b: a name locked out after too many failed logins is told so;
+	// any other failure gets the one message that names neither half.
+	private static AuthenticationFailureHandler loginFailureHandler() {
+		ExceptionMappingAuthenticationFailureHandler handler = new ExceptionMappingAuthenticationFailureHandler();
+		handler.setDefaultFailureUrl("/login?error");
+		handler.setExceptionMappings(Map.of(LoginAttempts.LockedOutException.class.getName(), "/login?locked"));
+		return handler;
+	}
+
 	// The one way to log in, so Spring Security uses it instead of building
 	// its own from the UserDetailsService (Task 22a: it also checks the
-	// password just typed against the rule).
+	// password just typed against the rule). Task 22b: before the password,
+	// it asks LoginAttempts whether the name is locked out.
 	@Bean
 	AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,
-			PasswordEncoder passwordEncoder) {
-		return new PasswordCheckingAuthenticationProvider(userDetailsService, passwordEncoder);
+			PasswordEncoder passwordEncoder, LoginAttempts loginAttempts) {
+		return new PasswordCheckingAuthenticationProvider(userDetailsService, passwordEncoder, loginAttempts);
+	}
+
+	// The time of the login lockout (Task 22b), a bean so that tests can move
+	// it on instead of waiting five minutes.
+	@Bean
+	Clock clock() {
+		return Clock.systemDefaultZone();
 	}
 
 	// Task 22a: create-user asks for the password on the console, never on

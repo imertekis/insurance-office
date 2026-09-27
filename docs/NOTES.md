@@ -254,6 +254,25 @@ an item leaves this list once it has been checked.
   change, the browser offers to save the new password for the application,
   and it never fills the old password into «Νέος κωδικός».
 
+### Task 22b
+- **The lockout on the office server, with its own clock.** The tests move
+  a clock of their own, and the headless check (Chrome, on the development
+  machine, zone Europe/Athens) waited the five minutes on that machine's
+  clock. On the office server, from a browser of the office: log in with an
+  office account and a wrong password five times; the sixth, with the right
+  password, shows «Πολλές αποτυχημένες προσπάθειες σύνδεσης. Δοκιμάστε ξανά
+  σε λίγα λεπτά.», and five minutes after the fifth the account logs in. The
+  application log has one line «Κλείδωμα σύνδεσης για τον λογαριασμό «…»»
+  for it, and the time in that line («στις …») is the office's local time,
+  not UTC: a Docker container runs in UTC unless its time zone is set.
+- **The same with a name no account has** (e.g. «δοκιμή»): every step shows
+  the same page as with the account, and the log line reads «άγνωστο
+  όνομα», without the name.
+- **Where the ΔΙΑΧΕΙΡΙΣΤΗΣ reads those lines.** Find both lines where the
+  deployment keeps the application log (the journal, `docker logs`, a file),
+  and check they are still there after the application restarts. A restart
+  itself lifts every lockout: the counts live in memory.
+
 ## Open questions
 
 Every decision still to be made in the project. CLAUDE.md points here; an

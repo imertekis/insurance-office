@@ -10,6 +10,8 @@
 		<!-- The same message whichever half is wrong: the page must not
 		     confirm that a username exists. -->
 		<div class="alert alert-danger" th:if="${param.error}">Λάθος όνομα χρήστη ή κωδικός.</div>
+		<!-- Task 22b: the same for every name, with an account or without. -->
+		<div class="alert alert-danger" th:if="${param.locked}">Πολλές αποτυχημένες προσπάθειες σύνδεσης. Δοκιμάστε ξανά σε λίγα λεπτά.</div>
 		<div class="alert alert-success" th:if="${param.logout}">Αποσυνδεθήκατε.</div>
 
 		<form method="post" th:action="@{/login}" class="card card-body">
