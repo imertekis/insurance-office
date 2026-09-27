@@ -273,6 +273,22 @@ an item leaves this list once it has been checked.
   and check they are still there after the application restarts. A restart
   itself lifts every lockout: the counts live in memory.
 
+### Task 23a
+- **The lists against the office's files, before the real import.** The
+  brands of `V7__vehicle_brand.sql` and the colour synonyms were compiled
+  for the Greek market, not from the office's files, and the check used
+  synthetic files only (CLAUDE.md). Run the import once with the two real
+  files into a throwaway database and read the lines «… εκτός λίστας·
+  εισήχθη όπως είναι» after the counts:
+  - a real brand the list lacks, or a spelling that plainly means one of
+    its brands (e.g. «ΜΕΡΣΕΝΤΕΣ»), goes into a new migration that adds the
+    brand or the synonym, before the real import (DATA_MODEL
+    «vehicle_brand»); a typing mistake does not;
+  - the rest (a mistyped colour, «Ι.Χ.» in the category, which may be M1
+    or N1) the real import keeps as it came, and each needs the vehicle
+    form afterwards. If there are many, correct them in the Excel first.
+  Then drop the throwaway database.
+
 ### Task 28
 - **The first import of the office's two files.** The check used synthetic
   files only (CLAUDE.md), with long cells in three rows of each: one run

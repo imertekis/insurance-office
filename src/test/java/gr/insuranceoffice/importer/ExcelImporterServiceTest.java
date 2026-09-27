@@ -108,7 +108,7 @@ class ExcelImporterServiceTest {
 		ImportResult result = importSample();
 
 		// DATA_MODEL "Αναμενόμενο αποτέλεσμα import": 9 ownerships = 7×100% + 2×50%.
-		assertThat(result).isEqualTo(new ImportResult(created(1), created(8), created(8), created(9), created(8)));
+		assertThat(result).isEqualTo(new ImportResult(created(1), created(8), created(8), created(9), created(8), List.of()));
 		assertRowCounts(1, 8, 8, 9, 8);
 	}
 
@@ -230,7 +230,7 @@ class ExcelImporterServiceTest {
 
 		ImportResult second = importSample();
 
-		assertThat(second).isEqualTo(new ImportResult(updated(1), updated(8), updated(8), updated(9), updated(8)));
+		assertThat(second).isEqualTo(new ImportResult(updated(1), updated(8), updated(8), updated(9), updated(8), List.of()));
 		assertRowCounts(1, 8, 8, 9, 8);
 	}
 
@@ -555,6 +555,87 @@ class ExcelImporterServiceTest {
 				SELECT p.insurance_company, i.full_name FROM policy p JOIN intermediary i ON i.id = p.intermediary_id
 				WHERE p.policy_number = ?
 				""", greek(30)).values()).containsExactly(greek(100), greek(200));
+	}
+
+	// Task 23a: the spellings of the office's files become the lists' own.
+	@Test
+	void mapsBrandCategoryColourAndEuroOntoTheirLists() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(0).put("Μάρκα (D.1)", "VW");
+		archive.get(0).put("Χρώμα (R)", "ΑΣΠΡΟ");
+		archive.get(0).put("Euro (V.9)", "Euro 6d-TEMP");
+		archive.get(1).put("Μάρκα (D.1)", "AUDI");
+		archive.get(1).put("Χρώμα (R)", "ΜΑΥΡΟ");
+		archive.get(1).put("Κατηγορία (J)", "\u039c1"); // Greek Mu
+		archive.get(1).put("Euro (V.9)", "Euro 5b");
+		archive.get(2).put("Μάρκα (D.1)", "MERCEDES BENZ");
+		archive.get(2).put("Χρώμα (R)", "ΑΣΗΜΕΝΙΟ / ΜΑΥΡΟ");
+
+		ImportResult result = importFiles(sampleCustomers(), archive);
+
+		assertThat(result.warnings()).isEmpty();
+		assertThat(List.of("SYNTHVH0000000001", "SYNTHVH0000000002", "SYNTHVH0000000003")).map(vin -> vehicleRepository
+				.findByVin(vin).orElseThrow())
+				.extracting(Vehicle::getBrand, Vehicle::getCategory, Vehicle::getColor, Vehicle::getEmissionStandard)
+				.containsExactly(
+						tuple("Volkswagen", "M1", "Λευκό", "Euro 6"),
+						tuple("Audi", "M1", "Μαύρο", "Euro 5"),
+						tuple("Mercedes-Benz", "M1", "Ασημί-Μαύρο", "Euro 6"));
+	}
+
+	// Decision 6: a typing mistake does not stop the import, and nothing is
+	// guessed: «Ι.Χ.» may be M1 or N1.
+	@Test
+	void importsAValueOutsideItsListAsItCameAndReportsIt() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(2).put("Κατηγορία (J)", "Ι.Χ.");
+		archive.get(4).put("Χρώμα (R)", "ΛΑΔΙ");
+		archive.get(4).put("Μάρκα (D.1)", "ΦΙΑΤ");
+		archive.get(6).put("Euro (V.9)", "Euro VI");
+
+		ImportResult result = importFiles(sampleCustomers(), archive);
+
+		assertThat(result.warnings()).map(ImportError::toString).containsExactly(
+				ARCHIVE_FILE + ", γραμμή 4, στήλη «Κατηγορία (J)»: «Ι.Χ.» εκτός λίστας· εισήχθη όπως είναι",
+				ARCHIVE_FILE + ", γραμμή 6, στήλη «Μάρκα (D.1)»: «ΦΙΑΤ» εκτός λίστας· εισήχθη όπως είναι",
+				ARCHIVE_FILE + ", γραμμή 6, στήλη «Χρώμα (R)»: «ΛΑΔΙ» εκτός λίστας· εισήχθη όπως είναι",
+				ARCHIVE_FILE + ", γραμμή 8, στήλη «Euro (V.9)»: «Euro VI» εκτός λίστας· εισήχθη όπως είναι");
+		assertThat(result.vehicles()).isEqualTo(created(8));
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000003")).get().extracting(Vehicle::getCategory)
+				.isEqualTo("Ι.Χ.");
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000005")).get()
+				.extracting(Vehicle::getBrand, Vehicle::getColor).containsExactly("ΦΙΑΤ", "ΛΑΔΙ");
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000007")).get().extracting(Vehicle::getEmissionStandard)
+				.isEqualTo("Euro VI");
+	}
+
+	// 0 means "not written", as an electric vehicle's 0 cc (SPEC §10).
+	@Test
+	void storesZeroSeatsAsEmpty() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(0).put("Θέσεις (S.1)", "0");
+
+		importFiles(sampleCustomers(), archive);
+
+		assertThat(vehicleRepository.findByVin("SYNTHVH0000000001")).get().extracting(Vehicle::getSeats).isNull();
+	}
+
+	// The form's rule, 1 to 99 (decision 8). A negative number is refused
+	// already as it is read: the file's numbers have no sign.
+	@Test
+	void refusesNegativeSeatsOrMoreThanNinetyNine() {
+		List<Map<String, Object>> archive = sampleArchive();
+		archive.get(0).put("Θέσεις (S.1)", "-2");
+		archive.get(1).put("Θέσεις (S.1)", "100");
+		archive.get(2).put("Θέσεις (S.1)", "99");
+
+		assertThatThrownBy(() -> importFiles(sampleCustomers(), archive))
+				.isInstanceOfSatisfying(ExcelImportException.class, e -> assertThat(e.getErrors())
+						.extracting(ImportError::row, ImportError::column, ImportError::message)
+						.containsExactly(
+								tuple(2, "Θέσεις (S.1)", "μη έγκυρος αριθμός «-2»"),
+								tuple(3, "Θέσεις (S.1)", "οι θέσεις πρέπει να είναι από 1 έως 99")));
+		assertRowCounts(0, 0, 0, 0, 0);
 	}
 
 	@Test

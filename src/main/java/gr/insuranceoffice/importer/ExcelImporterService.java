@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,6 +36,8 @@ import gr.insuranceoffice.service.OwnershipService;
 import gr.insuranceoffice.service.OwnershipService.Share;
 import gr.insuranceoffice.service.UniqueConstraint;
 import gr.insuranceoffice.service.VehicleService;
+import gr.insuranceoffice.service.VehicleValues;
+import gr.insuranceoffice.service.VehicleValues.Match;
 import gr.insuranceoffice.util.TextNormalizationUtils;
 
 /**
@@ -52,9 +55,16 @@ import gr.insuranceoffice.util.TextNormalizationUtils;
  * {@link TextNormalizationUtils}, search columns by the database, the VIN
  * format is {@link VehicleService#isVin}, the ownership rule is checked by
  * {@link OwnershipService}, the length of every text cell against its column
- * by {@link ExcelRow} through {@link ColumnLimits} (Task 28), and a rule the
- * database enforces, such as a policy ending after it starts, is reported as
- * a refused row.
+ * by {@link ExcelRow} through {@link ColumnLimits} (Task 28), brand,
+ * category, colour and Euro are mapped onto their lists by
+ * {@link VehicleValues} and the seats checked by
+ * {@link VehicleService#isSeatCount} (Task 23a), and a rule the database
+ * enforces, such as a policy ending after it starts, is reported as a refused
+ * row.
+ * <p>
+ * A value outside its list does not refuse the row (decision 6): it is
+ * imported as it came, and {@link ImportResult#warnings()} names it, for the
+ * clerk to correct in the application.
  */
 @Service
 public class ExcelImporterService {
@@ -127,15 +137,17 @@ public class ExcelImporterService {
 	private final OwnershipRepository ownershipRepository;
 	private final PolicyRepository policyRepository;
 	private final IntermediaryRepository intermediaryRepository;
+	private final VehicleService vehicleService;
 
 	public ExcelImporterService(CustomerRepository customerRepository, VehicleRepository vehicleRepository,
 			OwnershipRepository ownershipRepository, PolicyRepository policyRepository,
-			IntermediaryRepository intermediaryRepository) {
+			IntermediaryRepository intermediaryRepository, VehicleService vehicleService) {
 		this.customerRepository = customerRepository;
 		this.vehicleRepository = vehicleRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
 		this.intermediaryRepository = intermediaryRepository;
+		this.vehicleService = vehicleService;
 	}
 
 	/**
@@ -150,7 +162,7 @@ public class ExcelImporterService {
 			throw new ExcelImportException(errors);
 		}
 
-		Run run = new Run();
+		Run run = new Run(vehicleService.brands());
 		// Customers first, so that archive rows can link to them.
 		importRows(customerRows, row -> importCustomer(row, run), errors);
 		importRows(archiveRows, row -> importArchiveRow(row, run), errors);
@@ -278,7 +290,7 @@ public class ExcelImporterService {
 				? typedPlate
 				: null;
 		String policyNumber = row.requiredText(POLICY_NUMBER, Policy.class, "policyNumber");
-		Consumer<Vehicle> vehicleFields = readVehicleFields(row, vin, plate);
+		Consumer<Vehicle> vehicleFields = readVehicleFields(row, vin, plate, run);
 		Consumer<Policy> policyFields = readPolicyFields(row, policyNumber);
 		List<Owner> owners = readOwners(row, run);
 		String intermediaryName = row.text(INTERMEDIARY, Intermediary.class, "fullName");
@@ -320,21 +332,31 @@ public class ExcelImporterService {
 		policyRepository.save(policy);
 	}
 
-	private static Consumer<Vehicle> readVehicleFields(ExcelRow row, String vin, String plate) {
-		String brand = row.requiredText(BRAND, Vehicle.class, "brand");
+	private static Consumer<Vehicle> readVehicleFields(ExcelRow row, String vin, String plate, Run run) {
+		String brand = listed(row, BRAND, row.requiredText(BRAND), run.brands::match, "brand", run);
 		String model = row.requiredText(MODEL, Vehicle.class, "model");
 		LocalDate firstRegistration = row.requiredDate(FIRST_REGISTRATION);
 		LocalDate licenseIssueDate = row.date(LICENSE_ISSUE_DATE);
-		String category = row.requiredText(CATEGORY, Vehicle.class, "category");
+		String category = listed(row, CATEGORY, row.requiredText(CATEGORY), VehicleValues::category, "category",
+				run);
 		UsageType usageType = row.requiredValue(USAGE, text -> ExcelValues.parseEnum(text, UsageType.class));
-		String color = row.requiredText(COLOR, Vehicle.class, "color");
+		String color = listed(row, COLOR, row.requiredText(COLOR), VehicleValues::color, "color", run);
+		// 0 means "not written", as an electric vehicle's 0 cc does (SPEC
+		// §10); anything else outside the rule refuses the row.
 		Short seats = row.value(SEATS, ExcelValues::parseShort);
+		if (seats != null && seats == 0) {
+			seats = null;
+		}
+		if (seats != null && !VehicleService.isSeatCount(seats)) {
+			row.reject(SEATS, "οι θέσεις πρέπει να είναι από 1 έως 99");
+		}
 		Integer engineCc = row.value(ENGINE_CC, ExcelValues::parseInteger);
 		BigDecimal powerKw = row.requiredValue(POWER_KW, ExcelValues::parseDecimal);
 		FuelType fuelType = row.requiredValue(FUEL, text -> ExcelValues.parseEnum(text, FuelType.class));
 		String engineNumber = row.text(ENGINE_NUMBER, Vehicle.class, "engineNumber");
 		Integer co2 = row.value(CO2, ExcelValues::parseInteger);
-		String emissionStandard = row.text(EMISSION_STANDARD, Vehicle.class, "emissionStandard");
+		String emissionStandard = listed(row, EMISSION_STANDARD, row.text(EMISSION_STANDARD),
+				VehicleValues::emissionStandard, "emissionStandard", run);
 		Integer weightKg = row.value(WEIGHT, ExcelValues::parseInteger);
 		String licenseStreet = row.text(LICENSE_STREET, Vehicle.class, "licenseStreet");
 		String licenseCity = row.text(LICENSE_CITY, Vehicle.class, "licenseCity");
@@ -343,6 +365,7 @@ public class ExcelImporterService {
 		Integer storedEngineCc = fuelType == FuelType.ΗΛΕΚΤΡΙΣΜΟΣ && Integer.valueOf(0).equals(engineCc)
 				? null
 				: engineCc;
+		Short storedSeats = seats;
 
 		return vehicle -> {
 			vehicle.setVin(vin);
@@ -354,7 +377,7 @@ public class ExcelImporterService {
 			vehicle.setCategory(category);
 			vehicle.setUsageType(usageType);
 			vehicle.setColor(color);
-			vehicle.setSeats(seats);
+			vehicle.setSeats(storedSeats);
 			vehicle.setEngineCc(storedEngineCc);
 			vehicle.setPowerKw(powerKw);
 			vehicle.setFuelType(fuelType);
@@ -366,6 +389,26 @@ public class ExcelImporterService {
 			vehicle.setLicenseCity(licenseCity);
 			vehicle.setLicensePostalCode(licensePostalCode);
 		};
+	}
+
+	/**
+	 * A cell of a list (Task 23a) as the list writes it, or, outside the list,
+	 * as it came, with a line in the report instead of a refused row (decision
+	 * 6). Measured as it will be stored (Task 28).
+	 */
+	private static String listed(ExcelRow row, String column, String text, Function<String, Match> list,
+			String field, Run run) {
+		if (text == null) {
+			return null;
+		}
+		Match match = list.apply(text);
+		if (!row.fits(column, match.value(), Vehicle.class, field)) {
+			return null;
+		}
+		if (!match.listed()) {
+			run.warnings.add(row.warning(column, "«" + text + "» εκτός λίστας· εισήχθη όπως είναι"));
+		}
+		return match.value();
 	}
 
 	private static Consumer<Policy> readPolicyFields(ExcelRow row, String policyNumber) {
@@ -490,6 +533,10 @@ public class ExcelImporterService {
 	/** Counters and lookups for one import. */
 	private static final class Run {
 
+		final VehicleValues.Brands brands;
+		// Values imported outside their list, in file order.
+		final List<ImportError> warnings = new ArrayList<>();
+
 		final Counter intermediaries = new Counter();
 		final Counter customers = new Counter();
 		final Counter vehicles = new Counter();
@@ -506,9 +553,13 @@ public class ExcelImporterService {
 		final Map<String, Customer> customersByTaxId = new HashMap<>();
 		final Map<String, Intermediary> intermediariesByName = new HashMap<>();
 
+		Run(VehicleValues.Brands brands) {
+			this.brands = brands;
+		}
+
 		ImportResult result() {
 			return new ImportResult(intermediaries.counts(), customers.counts(), vehicles.counts(),
-					ownerships.counts(), policies.counts());
+					ownerships.counts(), policies.counts(), List.copyOf(warnings));
 		}
 
 	}

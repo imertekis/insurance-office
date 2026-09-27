@@ -7,7 +7,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,11 +28,13 @@ import gr.insuranceoffice.entity.Customer;
 import gr.insuranceoffice.entity.Ownership;
 import gr.insuranceoffice.entity.Policy;
 import gr.insuranceoffice.entity.Vehicle;
+import gr.insuranceoffice.entity.VehicleBrand;
 import gr.insuranceoffice.mapper.OwnershipMapper;
 import gr.insuranceoffice.mapper.PolicyMapper;
 import gr.insuranceoffice.mapper.VehicleMapper;
 import gr.insuranceoffice.repository.OwnershipRepository;
 import gr.insuranceoffice.repository.PolicyRepository;
+import gr.insuranceoffice.repository.VehicleBrandRepository;
 import gr.insuranceoffice.repository.VehicleRepository;
 import gr.insuranceoffice.security.Roles;
 import gr.insuranceoffice.util.TextNormalizationUtils;
@@ -44,6 +48,8 @@ public class VehicleService {
 	private final OwnershipRepository ownershipRepository;
 
 	private final PolicyRepository policyRepository;
+
+	private final VehicleBrandRepository vehicleBrandRepository;
 
 	private final VehicleMapper vehicleMapper;
 
@@ -60,11 +66,13 @@ public class VehicleService {
 	private static final Pattern POSTAL_CODE = Pattern.compile("\\d{5}");
 
 	public VehicleService(VehicleRepository vehicleRepository, OwnershipRepository ownershipRepository,
-			PolicyRepository policyRepository, VehicleMapper vehicleMapper, OwnershipMapper ownershipMapper,
-			PolicyMapper policyMapper, HitAssembler hitAssembler) {
+			PolicyRepository policyRepository, VehicleBrandRepository vehicleBrandRepository,
+			VehicleMapper vehicleMapper, OwnershipMapper ownershipMapper, PolicyMapper policyMapper,
+			HitAssembler hitAssembler) {
 		this.vehicleRepository = vehicleRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
+		this.vehicleBrandRepository = vehicleBrandRepository;
 		this.vehicleMapper = vehicleMapper;
 		this.ownershipMapper = ownershipMapper;
 		this.policyMapper = policyMapper;
@@ -145,7 +153,7 @@ public class VehicleService {
 		}
 
 		VehicleDto values = cleaned(dto);
-		checkFields(values, id).throwIfAny();
+		checkFields(values, vehicle).throwIfAny();
 
 		vehicleMapper.updateEntity(values, vehicle);
 		// Flushed here so that a concurrent change fails inside this call and
@@ -204,6 +212,26 @@ public class VehicleService {
 		return vin != null && VIN.matcher(vin).matches();
 	}
 
+	/**
+	 * The seats rule, shared with the Excel import (Task 23a, decision 8): 1
+	 * to 99 whatever the category, which catches 0, negatives and three digits
+	 * without a table of limits per category.
+	 */
+	public static boolean isSeatCount(short seats) {
+		return seats >= 1 && seats <= 99;
+	}
+
+	/**
+	 * The brands, for the form's rule and the Excel import's mapping (Task
+	 * 23a). Read on every call: some hundred rows, and a new brand comes with
+	 * a migration.
+	 */
+	@Transactional(readOnly = true)
+	public VehicleValues.Brands brands() {
+		return new VehicleValues.Brands(vehicleBrandRepository.findAll().stream()
+				.collect(Collectors.toMap(VehicleBrand::getName, VehicleBrand::getSynonyms)));
+	}
+
 	// The values as Vehicle will store them (Tasks 14, 17): the VIN in
 	// capitals, the plate without dashes or spaces, in capitals and without
 	// accents, its alphabet as typed. Done before validation, which so sees
@@ -219,7 +247,12 @@ public class VehicleService {
 				values.licensePostalCode(), values.version());
 	}
 
-	private Violations checkFields(VehicleDto values, Long id) {
+	/**
+	 * @param stored the vehicle as saved before this edit, or null for a new
+	 *               one: its old values outside the lists stay allowed
+	 */
+	private Violations checkFields(VehicleDto values, Vehicle stored) {
+		Long id = stored == null ? null : stored.getId();
 		Violations violations = new Violations();
 		violations.required("vin", values.vin(), "Ο αριθμός πλαισίου (VIN) είναι υποχρεωτικός.");
 		violations.format("vin", values.vin(), VIN, "Το VIN έχει 17 χαρακτήρες, χωρίς τα γράμματα I, O και Q.");
@@ -237,11 +270,20 @@ public class VehicleService {
 		}
 
 		violations.required("brand", values.brand(), "Η μάρκα είναι υποχρεωτική.");
+		listed(violations, "brand", values.brand(), stored == null ? null : stored.getBrand(),
+				brand -> brands().contains(brand), "Επιλέξτε μάρκα από τη λίστα.");
 		violations.required("model", values.model(), "Το μοντέλο είναι υποχρεωτικό.");
 		violations.required("firstRegistration", values.firstRegistration(),
 				"Η ημερομηνία 1ης άδειας είναι υποχρεωτική.");
 		violations.required("category", values.category(), "Η κατηγορία είναι υποχρεωτική.");
+		listed(violations, "category", values.category(), stored == null ? null : stored.getCategory(),
+				VehicleValues::isCategory, "Επιλέξτε κατηγορία από τη λίστα.");
 		violations.required("color", values.color(), "Το χρώμα είναι υποχρεωτικό.");
+		listed(violations, "color", values.color(), stored == null ? null : stored.getColor(),
+				VehicleValues::isColor, "Επιλέξτε χρώμα από τη λίστα.");
+		listed(violations, "emissionStandard", values.emissionStandard(),
+				stored == null ? null : stored.getEmissionStandard(), VehicleValues::isEmissionStandard,
+				"Επιλέξτε Euro από τη λίστα.");
 		violations.addIf(!isValid(values.usageType(), Vehicle.UsageType.class),
 				"usageType", "Επιλέξτε χρήση οχήματος.");
 		violations.addIf(!isValid(values.fuelType(), Vehicle.FuelType.class),
@@ -263,8 +305,8 @@ public class VehicleService {
 					"engineCc", "Τα κυβικά πρέπει να είναι θετικός αριθμός.");
 		}
 
-		violations.addIf(values.seats() != null && values.seats() <= 0,
-				"seats", "Οι θέσεις πρέπει να είναι θετικός αριθμός.");
+		violations.addIf(values.seats() != null && !isSeatCount(values.seats()),
+				"seats", "Οι θέσεις πρέπει να είναι από 1 έως 99.");
 		violations.addIf(values.co2() != null && values.co2() < 0, "co2", "Το CO2 δεν μπορεί να είναι αρνητικό.");
 		violations.addIf(values.weightKg() != null && values.weightKg() <= 0,
 				"weightKg", "Το βάρος πρέπει να είναι θετικός αριθμός.");
@@ -282,6 +324,17 @@ public class VehicleService {
 		violations.fitsColumn("licenseStreet", values.licenseStreet(), Vehicle.class);
 		violations.fitsColumn("licenseCity", values.licenseCity(), Vehicle.class);
 		return violations;
+	}
+
+	/**
+	 * Task 23a: a new or changed value must be one of the list. A value saved
+	 * before the list, or imported from outside it, is kept while the clerk
+	 * leaves it as it is (decision 7), so that correcting another field does
+	 * not first need the right colour or category.
+	 */
+	private static void listed(Violations violations, String field, String value, String storedValue,
+			Predicate<String> inList, String message) {
+		violations.addIf(value != null && !value.equals(storedValue) && !inList.test(value), field, message);
 	}
 
 	private static <E extends Enum<E>> boolean isValid(String value, Class<E> type) {

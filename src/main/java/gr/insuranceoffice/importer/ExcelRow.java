@@ -101,6 +101,14 @@ final class ExcelRow {
 		return date(column, true);
 	}
 
+	/**
+	 * A note about a cell that does not refuse the row, such as a value
+	 * outside its list (Task 23a): a line of the report of a successful import.
+	 */
+	ImportError warning(String column, String message) {
+		return new ImportError(file, number, column, message);
+	}
+
 	/** Records a problem with this row; {@code column} is null when it concerns the whole row. */
 	void reject(String column, String message) {
 		errors.add(new ImportError(file, number, column, message));

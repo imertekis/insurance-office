@@ -12,13 +12,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -34,6 +39,7 @@ import gr.insuranceoffice.repository.VehicleRepository;
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+@ExtendWith(OutputCaptureExtension.class)
 class ExcelImportRunnerTest {
 
 	@Autowired
@@ -86,6 +92,32 @@ class ExcelImportRunnerTest {
 		assertThat(customerRepository.count()).isEqualTo(8);
 		assertThat(vehicleRepository.count()).isEqualTo(8);
 		assertThat(policyRepository.count()).isEqualTo(8);
+	}
+
+	// Task 23a: a successful import has more to say than counts. One line
+	// per value imported outside its list, as the errors are printed.
+	@Test
+	void printsEveryValueImportedOutsideItsList(CapturedOutput output) throws IOException {
+		List<Map<String, Object>> rows = sampleArchive();
+		rows.get(4).put("Χρώμα (R)", "ΛΑΔΙ");
+		rows.get(6).put("Κατηγορία (J)", "Ι.Χ.");
+		Files.delete(archive);
+		archive = write("archive.xlsx", workbook(ARCHIVE_HEADERS, rows));
+
+		runner(customers, archive, false).run(null);
+
+		assertThat(vehicleRepository.count()).isEqualTo(8);
+		assertThat(output.getOut()).contains(
+				"2 τιμές εκτός λίστας εισήχθησαν όπως είναι· διορθώστε τις στην εφαρμογή:",
+				"Αρχείο οχημάτων και συμβολαίων, γραμμή 6, στήλη «Χρώμα (R)»: «ΛΑΔΙ» εκτός λίστας· εισήχθη όπως είναι",
+				"Αρχείο οχημάτων και συμβολαίων, γραμμή 8, στήλη «Κατηγορία (J)»: «Ι.Χ.» εκτός λίστας· εισήχθη όπως είναι");
+	}
+
+	@Test
+	void printsNoWarningForValuesOfTheLists(CapturedOutput output) {
+		runner(customers, archive, false).run(null);
+
+		assertThat(output.getOut()).contains("Η εισαγωγή ολοκληρώθηκε").doesNotContain("εκτός λίστας");
 	}
 
 	// NOTES "Import risks": a re-import overwrites what the office changed.

@@ -180,8 +180,9 @@ class FullSchemaTest {
 		List<String> listed = new ArrayList<>(Arrays.stream(UniqueConstraint.values())
 				.map(UniqueConstraint::indexName).toList());
 		// Out of scope: accounts are made by the create-user profile, which
-		// looks the user up first.
+		// looks the user up first, and brands by migrations only (Task 23a).
 		listed.add("idx_app_user_username");
+		listed.add("idx_vehicle_brand_name");
 		assertThat(uniqueIndexes).containsExactlyInAnyOrderElementsOf(listed);
 	}
 

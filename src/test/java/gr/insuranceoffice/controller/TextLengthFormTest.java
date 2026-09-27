@@ -93,8 +93,7 @@ class TextLengthFormTest {
 	}
 
 	@ParameterizedTest(name = "{0}: {2}")
-	@CsvSource({ "plate, plate, 10", "brand, brand, 50", "model, model, 100", "category, category, 10",
-			"color, color, 50", "engineNumber, engine_number, 50", "emissionStandard, emission_standard, 20",
+	@CsvSource({ "plate, plate, 10", "model, model, 100", "engineNumber, engine_number, 50",
 			"licenseStreet, license_street, 200", "licenseCity, license_city, 100" })
 	void vehicleFieldTakesItsColumnLengthAndNotOneMore(String field, String column, int limit) throws Exception {
 		MultiValueMap<String, String> values = vehicle();
@@ -105,6 +104,40 @@ class TextLengthFormTest {
 
 		values.set(field, text(field, limit));
 		saved("/vehicles", values);
+		assertThat(jdbcTemplate.queryForObject("SELECT " + column + " FROM vehicle", String.class))
+				.isEqualTo(text(field, limit));
+	}
+
+	// Brand, category, colour and Euro take only their lists' values (Task
+	// 23a), so a value as long as the column comes only from the import. It
+	// is kept while left as it is; a longer one typed in gets the list's
+	// message beside the field, not an error page.
+	@ParameterizedTest(name = "{0}: {2}")
+	@CsvSource({ "brand, brand, 50, Επιλέξτε μάρκα από τη λίστα.",
+			"category, category, 10, Επιλέξτε κατηγορία από τη λίστα.",
+			"color, color, 50, Επιλέξτε χρώμα από τη λίστα.",
+			"emissionStandard, emission_standard, 20, Επιλέξτε Euro από τη λίστα." })
+	void listFieldKeepsAnImportedValueAsLongAsItsColumn(String field, String column, int limit, String listMessage)
+			throws Exception {
+		saved("/vehicles", vehicle());
+		Long id = vehicleRepository.findAll().getFirst().getId();
+		// As the import stores a value outside its list, without the form.
+		jdbcTemplate.update("UPDATE vehicle SET " + column + " = ?", text(field, limit));
+		MultiValueMap<String, String> values = vehicle();
+		values.set("id", id.toString());
+		values.set("version", "0");
+
+		values.set(field, text(field, limit + 1));
+		String html = mockMvc.perform(post("/vehicles/" + id).with(csrf()).params(values))
+				.andExpect(status().isOk())
+				.andExpect(view().name("vehicle-form"))
+				.andReturn().getResponse().getContentAsString();
+		assertThat(input(html, field)).contains("is-invalid", "value=\"" + text(field, limit + 1) + "\"");
+		assertThat(message(html, field)).isEqualTo(listMessage);
+
+		values.set(field, text(field, limit));
+		values.set("model", "Golf Variant");
+		saved("/vehicles/" + id, values);
 		assertThat(jdbcTemplate.queryForObject("SELECT " + column + " FROM vehicle", String.class))
 				.isEqualTo(text(field, limit));
 	}

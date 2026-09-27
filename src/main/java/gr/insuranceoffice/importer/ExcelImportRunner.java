@@ -94,6 +94,12 @@ public class ExcelImportRunner implements ApplicationRunner {
 		log.info("  Οχήματα        {}", counts(result.vehicles()));
 		log.info("  Ιδιοκτησίες    {}", counts(result.ownerships()));
 		log.info("  Συμβόλαια      {}", counts(result.policies()));
+		// Task 23a: imported as they came, one line each, as with the errors.
+		if (!result.warnings().isEmpty()) {
+			log.warn("{} τιμές εκτός λίστας εισήχθησαν όπως είναι· διορθώστε τις στην εφαρμογή:",
+					result.warnings().size());
+			result.warnings().forEach(warning -> log.warn("{}", warning));
+		}
 	}
 
 	private static Path readable(String property, String value) {
