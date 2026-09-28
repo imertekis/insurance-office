@@ -187,7 +187,9 @@ the request; with the cancelling broken too, a test fails.
 ## Deployment requirements
 
 What the installation in the office must provide, recorded as decisions
-come up; the deployment task starts from this list.
+come up; the deployment task starts from this list. Planned as Tasks
+29–38 in `docs/TASKS.md`, which add SPEC §3 and §12 (Docker Compose,
+encryption at rest, backups) to it.
 
 - **All access goes through Tailscale, also inside the office** (TASKS,
   Task 22, decision 9). SPEC §12 asks for HTTPS even on the LAN; the
@@ -387,18 +389,14 @@ entry leaves this list when the decision is recorded (in DECISIONS, CLAUDE.md
 or the task). Details that live elsewhere in this file are linked, not
 repeated.
 
+- **Deployment (Tasks 29–38): Ε5, Ε9, Ε11, Ε12, Ε13 are still open**, listed
+  at the end of that section of `docs/TASKS.md`, each to answer before the
+  task that needs it. The other twelve are decided in their tasks, among
+  them the login length (Ε1, Task 29) and re-import (Ε3, Task 30), which
+  were open here.
 - **Tasks 25–27 (stubs) end with «Ανοιχτά ερωτήματα»** in `docs/TASKS.md`,
   kept there beside the task they belong to. To be decided after the first
   week of use in the office. (Tasks 22–24 have their decisions recorded.)
-- **How should a re-import treat existing data?** Insert-only, an explicit
-  "overwrite existing" confirmation, or an import that knows about
-  transfers. Today the only guard is `--import.allow-existing-data=true`.
-  Decide before the app goes live, and in any case before the office
-  re-imports. Details: «Import risks» above, and REVIEW-03 finding 4
-  (customer rules not checked on import) under «Deferred review findings».
-- **How long should a login last?** The session timeout is the Spring
-  Boot default (30 minutes idle), with no "remember me". Decide before the
-  office starts using the app. Details: «REVIEW-04, session timeout».
 - **What should the search do with a 9-digit input that is no known
   ΑΦΜ?** Today it looks up the ΑΦΜ only and shows «Κανένα αποτέλεσμα.».
   The entry said to decide in Task 9; Task 9 kept the empty result without
@@ -408,11 +406,6 @@ repeated.
   numbers starting with `21` are recognised, and `policy_number` is in no
   `search_normalized`. Needs the other insurers' formats. Details: «Policy
   number search».
-- **Which of the ΔΙΑΧΕΙΡΙΣΤΗΣ functions of SPEC §2 are needed before
-  go-live?** User management, the audit-log view and exports do not exist,
-  and neither does a screen for intermediaries (TASKS Task 11e leaves them
-  here). Details: «No user-management screen» and «Roles enforced for
-  deletions only».
 - **Which alphabet should a plate's look-alike letters be stored in?**
   Task 17 uppercases plates and strips accents on save but keeps the
   alphabet as typed (DECISIONS §5), so today it depends on the source:
@@ -518,7 +511,10 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   from the application, and SPEC §2 expects that. Since Task 22a every
   user changes their own password («Αλλαγή κωδικού», in the user menu). Intermediaries are in the same position: the policy form of Task
   11d only picks from existing ones, and today they are created only by
-  the import. Worth a task of its own, covering both.
+  the import. Worth a task of its own, covering both. Until then, after
+  go-live the developer adds an intermediary with SQL, with its
+  `audit_log` row (`docs/DEPLOYMENT.md`, «Νέος διαμεσολαβητής»; TASKS,
+  Task 38).
 - **Roles enforced for deletions only (Tasks 10, 11e).** Since Task 11e
   only the ΔΙΑΧΕΙΡΙΣΤΗΣ may delete, checked with `@PreAuthorize` on the
   services. SPEC §2 also reserves user management, the audit log and
