@@ -26,6 +26,10 @@
 		<!-- Not managed by Spring Boot. Served locally, same reason as Bootstrap
 		     (Task 16a: dd/MM/yyyy date inputs, no native browser locale). -->
 		<flatpickr.version>4.6.13</flatpickr.version>
+		<!-- Test only, in the browser profile below (Task 24). Pinned: each
+		     Playwright version runs its own build of Chromium, so the browser
+		     tests see the same browser on every machine. -->
+		<playwright.version>1.63.0</playwright.version>
 	</properties>
 
 	<dependencies>
@@ -149,5 +153,47 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!-- Task 24: what app.js does, checked in a real browser:
+		     ./mvnw verify -Pbrowser. Only this profile adds Playwright and the
+		     tests in src/browser-test/java, so a plain ./mvnw verify neither
+		     downloads nor compiles any of it. Playwright's driver carries its
+		     own Node runtime; nothing needs Node or npm installed (CLAUDE.md,
+		     Stack). The first run downloads Chromium into ~/.cache/ms-playwright. -->
+		<profile>
+			<id>browser</id>
+			<dependencies>
+				<dependency>
+					<groupId>com.microsoft.playwright</groupId>
+					<artifactId>playwright</artifactId>
+					<version>${playwright.version}</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>add-browser-tests</id>
+								<phase>generate-test-sources</phase>
+								<goals>
+									<goal>add-test-source</goal>
+								</goals>
+								<configuration>
+									<sources>
+										<source>src/browser-test/java</source>
+									</sources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

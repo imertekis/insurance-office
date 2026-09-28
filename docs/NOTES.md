@@ -124,6 +124,66 @@ JSON. The Task 21b headless check logged out in a second tab, typed in
 the first (no list), pressed Enter (the login page) and logged in: back
 on the search page, not on the JSON.
 
+## Browser tests (Task 24)
+
+`./mvnw verify -Pbrowser` is `./mvnw verify` plus, in the same test run,
+the tests in `src/browser-test/java`: what `app.js` does, and with it the
+date picker (`date-picker.js`) and the theme button (`theme.js`), in
+headless Chromium through Playwright for Java. One class per part:
+`DatePickerBrowserTest` (16a), `FormSafeguardsBrowserTest` (16f-2),
+`OwnerSharesBrowserTest` (20), `SearchSuggestionsBrowserTest` (21b),
+`ShortcutAndThemeBrowserTest` (16e, 16f-1) and `VehicleBrandBrowserTest`
+(23b). They make their own synthetic data, and an account with a random
+password (`BrowserTestBase`); neither is in the repository.
+
+**Time,** on the machine of the Task 21a measurement (i5-6500, 4 cores),
+with Chromium already downloaded, `time ./mvnw -q …`:
+
+| Command | Tests | Time |
+|---|---|---|
+| `./mvnw verify`, before Task 24 | 650 | 93 s |
+| `./mvnw verify`, after | 650 | 94 s |
+| `./mvnw verify -Pbrowser` | 650 + 42 | 145 s |
+
+The 42 browser tests take some 53 s of that. The application starts once
+more, on a port of its own and with a PostgreSQL container of its own, and
+much of the rest is waiting on purpose: for the 250 ms after the last key
+before suggestions are asked for, and for answers that must not come. Right
+after switching between the two commands Maven recompiles the tests, which
+added 13 s to the plain build and 42 s to the browser one (187 s).
+
+**The first run** needs the internet. Maven fetches Playwright, some 200 MB
+(its driver carries Node for every platform), and the first test class
+installs Chromium's headless build and nothing else (TASKS, Task 24,
+decision 2): a 120 MB download into `~/.cache/ms-playwright`, 266 MB
+unpacked with ffmpeg. Playwright 1.63.0 is pinned in `pom.xml`, and with it
+Chromium 153.0.8010.12. A new Playwright version downloads its own Chromium
+beside the old one, which can then be deleted from that folder. A plain
+`./mvnw verify` fetches and compiles none of it.
+
+**What the tests cannot do,** and what stands in for it:
+- Letters reach the page directly, never through a keyboard layout: the
+  Greek layout and its dead key stay manual checks (below).
+- «Πίσω» from the browser's cache: the pages are `no-store` and Playwright's
+  Chromium keeps no page, so the test sends the `pageshow` event the
+  browser would, as the Task 20 check did.
+- A slow network is an answer held back (`page.route`) after the request
+  has reached the server.
+- The model's `<datalist>` is drawn by the browser: the tests read which
+  list the field points at, and what it holds.
+- Printing is `page.pdf()`, which sends `beforeprint` and `afterprint` as a
+  print does; the printed page stays a manual check.
+- Chromium only, headless: Firefox, and Safari on a phone, are not run.
+
+**Each part was seen failing.** 29 changes to `app.js`, `date-picker.js`
+and `theme.js`, one at a time, among them the date format, the submit
+guard, the buttons locked without the delay, the question before leaving,
+the 100 for one owner, the `AbortController`, `innerHTML` for a name, the
+`Accept` header and the Greek keys of the brand: each made a test of its
+part fail but one. Showing an answer after the field has lost the focus
+fails nothing on its own, because leaving the field has already cancelled
+the request; with the cancelling broken too, a test fails.
+
 ## Deployment requirements
 
 What the installation in the office must provide, recorded as decisions
@@ -143,10 +203,6 @@ What an automated run cannot show, to check by hand in the office's own
 browsers and on its own screens before the app goes live. Grouped by task;
 an item leaves this list once it has been checked.
 
-### Task 16a
-- **Vehicle or policy form:** save a date such as 03/04/2020, reopen the
-  form and the card: it still reads 03/04/2020, never 04/03/2020.
-
 ### Task 16d-2
 - **Any page, in a real browser tab:** the app's icon shows in the tab, in
   the browser's light and dark look.
@@ -156,12 +212,6 @@ an item leaves this list once it has been checked.
   header's search box; in a field it types "/".
 - **A vehicle card, dark theme, Ctrl+P:** it prints black on white, on one
   A4 page.
-
-### Task 16f-2
-- **A customer form after typing:** F5, Ctrl+W, «Πίσω» (Alt+←) and closing
-  the window each make the browser ask before leaving.
-- **New customer, from a second PC over the office network:** a double
-  click on «Αποθήκευση» saves one customer, not two.
 
 ### Task 18
 - **New customer, two tabs, the same ΑΦΜ saved at once:** the second shows
@@ -211,13 +261,15 @@ an item leaves this list once it has been checked.
   after the application starts is slower (197 ms here) and does not count.
 
 ### Task 21b
-- **Suggestions, in each browser the office uses.** The check ran in
-  headless Chrome only, with key events that give each letter directly.
-  With the Greek layout, type «Αλεξίου» with its accent (the dead key «΄»,
-  then the letter): the list opens after the third letter and follows every
-  letter typed, the accented one too. Then ↓ and ↑ move through the rows,
-  Enter opens the chosen one, Esc closes the list and leaves the text, a
-  click on a row opens it, a click elsewhere closes the list.
+- **Suggestions, with the Greek keyboard layout.** The browser tests (Task
+  24) cover the list in Chromium, which is Chrome and Edge, with key events
+  that give each letter directly, never through a layout. With the Greek
+  layout, type «Αλεξίου» with its accent (the dead key «΄», then the
+  letter): the list opens after the third letter and follows every letter
+  typed, the accented one too. In a browser of the office that is not
+  Chromium, also: ↓ and ↑ move through the rows, Enter opens the chosen one,
+  Esc closes the list and leaves the text, a click on a row opens it, a
+  click elsewhere closes the list.
 - **Suggestions, with a screen reader.** The field is a WAI-ARIA combobox
   and the list a listbox with groups. With the screen reader the office
   may use (NVDA or Narrator): the field is read as a combobox, collapsed
@@ -290,13 +342,14 @@ an item leaves this list once it has been checked.
   Then drop the throwaway database.
 
 ### Task 23b
-- **The brand, with the office's keyboards, in each browser the office
-  uses.** The check ran in headless Chrome only, and its key events gave
-  each letter directly, never through a keyboard layout. With the Greek
-  layout on, type the keys b, m, w («βμς»): the list under the field shows
-  BMW; Down, Enter takes it. With the Latin layout, «skoda» and Tab gives
-  «Škoda». A click on a brand of the list takes it. Typing something that
-  is no brand and leaving the field puts the last brand back.
+- **The brand, with the Greek keyboard layout.** The browser tests (Task
+  24) cover the field in Chromium, with key events that give each letter
+  directly, never through a keyboard layout. With the Greek layout on, type
+  the keys b, m, w («βμς»): the list under the field shows BMW; Down, Enter
+  takes it. In a browser of the office that is not Chromium, also: with the
+  Latin layout, «skoda» and Tab gives «Škoda»; a click on a brand of the
+  list takes it; typing something that is no brand and leaving the field
+  puts the last brand back.
 - **The model suggestions, in each browser.** The browser draws a
   datalist's list itself, and headless Chrome drew none: the check only
   saw the model field point at the brand's list. Choose a brand the office

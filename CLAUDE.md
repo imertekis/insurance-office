@@ -202,6 +202,8 @@ that tracks them. Ask before implementing anything that depends on one.
 ```bash
 docker compose up -d        # start PostgreSQL
 ./mvnw verify               # build + all tests (definition of done)
+./mvnw verify -Pbrowser     # the same + the browser tests of app.js (Task 24);
+                            # the first run downloads Chromium (needs internet)
 ./mvnw spring-boot:run      # run the app
 
 # Create a user, or reset a password, then exit. There is no user
