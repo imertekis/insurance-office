@@ -280,6 +280,10 @@ encryption at rest, backups) to it.
   WireGuard tunnel encrypts it, and the application is not reachable on the
   office LAN outside it. Until then, passwords cross the office network in
   the clear.
+- **Never the demo profile on the office server** (TASKS, Task 39b). It
+  seeds synthetic data and accounts for strangers running the public
+  repository; it refuses a database with data or with another name, and a
+  test keeps it out of the server's compose file and `.env.example`.
 
 ## Manual checks before deployment
 
