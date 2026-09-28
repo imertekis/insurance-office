@@ -184,6 +184,88 @@ part fail but one. Showing an answer after the field has lost the focus
 fails nothing on its own, because leaving the field has already cancelled
 the request; with the cancelling broken too, a test fails.
 
+## Session expiry: browser check (Task 29)
+
+Checked through re-login on 2026-09-28 with Playwright 1.63.0,
+headless Chromium
+153.0.8010.12, Greek locale and Europe/Athens time zone.
+
+**Isolation.** A disposable `postgres:18` container, with its data in
+tmpfs and database `task29_review_check`, held only synthetic data. The
+application's datasource and Flyway connection were explicitly set to
+that container before startup, and the actual JDBC URL and database name
+were checked. No development database was used. The application listened
+on `127.0.0.1` at a random port. Only this process used
+`server.servlet.session.timeout=1m` and
+`server.tomcat.background-processor-delay=1s`; the normal setting stayed
+`4h`. A session listener confirmed the actual 60-second idle timeout and
+recorded expiry without changing the session. Temporary observation code
+also recorded servlet dispatches and the saved request, and inspected the
+running security chain without changing its behavior.
+
+**Observed steps and results.**
+
+1. Log in through `/login` as a synthetic `ΥΠΑΛΛΗΛΟΣ` with a random
+   password. Open `/customers/new` and save a control customer: the POST
+   returns 302, opens `/customers/1`, and the database contains one customer.
+2. Open `/customers/new` again while still logged in. Fill Επώνυμο with
+   «Δοκιμή Λήξης Συνεδρίας», Όνομα with «Συνθετικός», Κινητό with
+   `6900000029` and Email with `task29@example.com`; leave the optional
+   fields empty. The control used the same valid fields with a different
+   surname.
+3. Leave this filled form open for 75 seconds, with no requests during
+   the wait. The server records the session's destruction after 64.2
+   seconds of inactivity. No logout, cookie clearing or new browser
+   session: the original `JSESSIONID` cookie and form CSRF token are still
+   present immediately before clicking «Αποθήκευση».
+4. Click «Αποθήκευση». The browser records `POST /customers` → **302**
+   with `Location: /login`, then `GET /login` → **200**, ending at `/login`.
+   The clerk sees «Ασφαλιστικό Γραφείο», «Όνομα χρήστη», «Κωδικός» and
+   «Σύνδεση»: the ordinary login page, with no session-expiry message
+   and no error page.
+   The entered values are no longer visible. The customer count stays
+   at one: the expired submission saves nothing.
+5. Log in again as the same clerk: `POST /login` → **302**,
+   `Location: /`, then `GET /` → **200**. The exact landing path is `/`,
+   showing «Λήξεις συμβολαίων», the selected «30 ημέρες» and
+   «Κανένα συμβόλαιο σε αυτή την περίοδο.». The form is not restored.
+   A database check still finds only the control customer and zero
+   customers named «Δοκιμή Λήξης Συνεδρίας».
+
+**Server evidence.** During step 4, the observer recorded
+`FORWARD POST /access-denied`, originating at `/customers`, with
+`MissingCsrfTokenException`; that dispatch ended with 302 to `/login`.
+There was no browser request to `/access-denied`. No saved request was
+present after the forward, on the login page or after re-login.
+
+**Cause, from code inspection (Spring Security 7.1.1).** Expiry removes
+the session's `HttpSessionCsrfTokenRepository` value.
+`CsrfFilter.doFilterInternal`
+rejects the old token with `MissingCsrfTokenException`.
+`CsrfConfigurer.getDefaultAccessDeniedHandler` uses the handler configured
+by `SecurityConfig.filterChain`'s `accessDeniedPage("/access-denied")`.
+`AccessDeniedHandlerImpl.handle` sets 403 and calls
+`RequestDispatcher.forward`,
+retaining POST. The forward is checked by `.anyRequest().authenticated()`;
+`ExceptionTranslationFilter.sendStartAuthentication` tries to save it and
+invokes the login entry point, producing the browser's 302 to `/login`.
+
+The running `HttpSessionRequestCache` matcher was inspected and checked:
+with CSRF enabled, `RequestCacheConfigurer.createDefaultSavedRequestMatcher`
+requires GET and excludes `/favicon.*`, JSON/multipart/event-stream
+`Accept` types, `X-Requested-With: XMLHttpRequest` and `Upgrade: websocket`.
+The forwarded POST is therefore ineligible. These are this configuration's
+[cache rules](https://raw.githubusercontent.com/spring-projects/spring-security/7.1.1/config/src/main/java/org/springframework/security/config/annotation/web/configurers/RequestCacheConfigurer.java),
+not a general restriction of `HttpSessionRequestCache`.
+`SecurityConfig`'s `defaultSuccessUrl("/")` sets `alwaysUse=false`:
+`SavedRequestAwareAuthenticationSuccessHandler` prefers a saved request
+when present and otherwise uses `/`. Here the observed empty cache
+explains the landing at `/`; the form POST is not replayed.
+
+The browser and application were closed and the disposable database
+container removed. Both temporary timeout-related overrides ended with
+that process. The response to an expired submission was left unchanged.
+
 ## Deployment requirements
 
 What the installation in the office must provide, recorded as decisions
@@ -500,11 +582,15 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   archive would pull everything into memory. The search caps each group
   at 50 hits, and the three list pages of Task 15 are paged (50 rows).
   The dashboard and the cards are still to do.
-- **REVIEW-04, session timeout left at the default.** Nothing sets
-  `server.servlet.session.timeout`, so the Spring Boot default applies
-  (30 minutes idle) and there is no "remember me". SPEC §2 implies a
-  clerk should not have to log in again and again during a working day.
-  Decide on a longer timeout before the office starts using the app.
+- **REVIEW-04, session timeout: done.** Kept here because TASKS links to
+  the finding: the unset timeout used Spring Boot's 30-minute idle default.
+  Task 29 (Ε1) sets `server.servlet.session.timeout=4h`: four hours of
+  inactivity, for both roles, without "remember me". This covers the lunch
+  break, not the night; "remember me" could leave an unattended computer logged in for
+  days. Sessions and the login lockouts of Task 22b live in memory: an
+  application restart logs everyone out and forgets every lockout,
+  regardless of this timeout. The observed form submission after expiry
+  is recorded under «Session expiry: browser check (Task 29)» above.
 - **No user-management screen (Task 10), and no intermediary screen.**
   Accounts are made and passwords reset only with the `create-user`
   profile. Nothing lets the ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk or deactivate one

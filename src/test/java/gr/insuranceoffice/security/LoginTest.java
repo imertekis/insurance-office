@@ -12,6 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.web.server.autoconfigure.ServerProperties;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpSession;
@@ -45,6 +48,9 @@ class LoginTest {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
+	@Autowired
+	private ServerProperties serverProperties;
+
 	@BeforeEach
 	void createUser() {
 		appUserRepository.deleteAll();
@@ -54,6 +60,12 @@ class LoginTest {
 	@AfterEach
 	void deleteUsers() {
 		appUserRepository.deleteAll();
+	}
+
+	// Task 29: the configured idle timeout from the application context.
+	@Test
+	void setsTheSessionTimeoutToFourHours() {
+		assertThat(serverProperties.getServlet().getSession().getTimeout()).isEqualTo(Duration.ofHours(4));
 	}
 
 	@ParameterizedTest(name = "{0}")
