@@ -280,6 +280,39 @@ encryption at rest, backups) to it.
   WireGuard tunnel encrypts it, and the application is not reachable on the
   office LAN outside it. Until then, passwords cross the office network in
   the clear.
+- **The application in Docker** (Task 31): `deploy/compose.yaml` with a
+  `.env` beside it that stays on the server (`deploy/.env.example` names
+  the values; with one missing, compose refuses to start), and an image
+  built here from the jar `./mvnw verify` made. The steps are in
+  `docs/DEPLOYMENT.md`. Checked here with a throwaway `.env`, synthetic
+  data and the image for amd64, and the arm64 image under QEMU.
+- **Both containers in the office's time zone** (Task 31). Without it a
+  container runs in UTC: "today" on the home page would change at 02:00 or
+  03:00, and `created_at`, `audit_log` and the lockout line of Task 22b
+  would be 2–3 hours behind. Checked: all three read the wall clock.
+- **The application's database role is not a superuser** (Task 31). It
+  owns its database and ran every migration; `deploy/initdb/` makes it at
+  the first start and leaves the superuser without a password, so no other
+  container can log in as it. Inside the PostgreSQL container the local
+  socket and 127.0.0.1 stay trusted (initdb's default): only a shell there
+  reaches the superuser. The database is on an internal Docker network
+  with no published port. The server itself can still reach the
+  container's own address on that network, with the role's password; no
+  other machine can.
+- **The application only on 127.0.0.1:8080, behind `tailscale serve`**
+  (Tasks 31, 35b). It trusts `X-Forwarded-Proto` and `X-Forwarded-Host`
+  from private addresses, which keep every redirect on https, and the
+  session cookie is always `Secure` there: `deploy/compose.yaml` fixes it,
+  and it is not a setting of `.env`. Checked here by
+  sending those headers with curl: the redirects to the login page, after
+  it and to `?error` or `?locked` all stayed https. Task 35b checks that
+  `tailscale serve` really sends them.
+- **The journal holds personal data** (Task 31, for Task 35a). Both
+  containers log to journald (tags `insurance-office-app` and
+  `insurance-office-db`), so the lockout lines survive an update, which
+  re-creates the containers. Those lines hold account names, and the
+  import writes its report there. `/var/log/journal` must therefore be on
+  encrypted storage too, not only the data folder.
 - **Never the demo profile on the office server** (TASKS, Task 39b). It
   seeds synthetic data and accounts for strangers running the public
   repository; it refuses a database with data or with another name, and a

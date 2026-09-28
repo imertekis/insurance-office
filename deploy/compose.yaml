@@ -1,0 +1,81 @@
+# Task 31: the application on the office server (docs/DEPLOYMENT.md). One
+# `docker compose up -d` in this folder starts PostgreSQL and the
+# application. Every value comes from .env beside this file (.env.example
+# lists them), which stays on the server; without one, nothing starts.
+# The development database is ../docker-compose.yml, a project of its own.
+name: insurance-office-server
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      # The server's own zone (initdb writes it to postgresql.conf), and the
+      # zone of psql inside the container.
+      TZ: Europe/Athens
+      PGTZ: Europe/Athens
+      # The image needs a superuser password to create the data folder; the
+      # first start then removes it (initdb/), and the application connects
+      # as its own role.
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      # For initdb/, which creates the application's role and database.
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      # On the encrypted data disk (Task 35a). PostgreSQL 18 keeps its data
+      # under /var/lib/postgresql/18/docker.
+      - ${DATA_DIR:?Set DATA_DIR in .env}/postgresql:/var/lib/postgresql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    # No ports, and a network without a way out: only the application
+    # reaches the database.
+    networks:
+      - database
+    healthcheck:
+      # Over TCP, which the image opens only once initdb/ has run.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$DB_USER\" -d \"$$DB_NAME\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Time for a clean shutdown, instead of crash recovery at the next start.
+    stop_grace_period: 1m
+    logging:
+      driver: journald
+      options:
+        tag: insurance-office-db
+
+  app:
+    image: insurance-office:${APP_VERSION:?Set APP_VERSION in .env}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:?Set DB_NAME in .env}
+      DB_USER: ${DB_USER:?Set DB_USER in .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      # Fixed, not a setting of .env: on the office server the application
+      # is reached only through the HTTPS of tailscale serve (Task 35b), so
+      # the session cookie must never travel over plain HTTP.
+      SESSION_COOKIE_SECURE: "true"
+    mem_limit: ${APP_MEMORY:?Set APP_MEMORY in .env}
+    # Only on the server itself; `tailscale serve` (Task 35b) brings it to the
+    # office's machines over HTTPS.
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - database
+      - web
+    # In the server's journal, which outlives the container: an update
+    # re-creates it, and the lockout lines of Task 22b must stay.
+    logging:
+      driver: journald
+      options:
+        tag: insurance-office-app
+
+networks:
+  database:
+    internal: true
+  web: {}

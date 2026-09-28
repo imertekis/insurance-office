@@ -3,6 +3,16 @@ server:
     session:
       # Task 29, Ε1: four idle hours cover the lunch break, not the night.
       timeout: 4h
+      cookie:
+        # Task 31: true on the office server, reached only over the HTTPS of
+        # tailscale serve (fixed in deploy/compose.yaml); plain HTTP in
+        # development.
+        secure: ${SESSION_COOKIE_SECURE:false}
+  # Task 31: behind tailscale serve the application gets plain HTTP. Its
+  # X-Forwarded-Proto and X-Forwarded-Host keep every redirect (to the login
+  # page, back after it) on the https address. Tomcat trusts them only from
+  # private addresses, and only the server itself can connect (127.0.0.1).
+  forward-headers-strategy: native
 
 spring:
   application:

@@ -1,0 +1,5 @@
+# Task 31: the image needs only the jar that ./mvnw verify built (Dockerfile).
+# Nothing else of the working tree reaches the build: no .env, no data, no
+# Excel files, no sources.
+*
+!target/insurance-office-*.jar

@@ -220,4 +220,16 @@ docker compose up -d        # start PostgreSQL
 # --import.allow-existing-data=true is added (NOTES "Import risks").
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=import \
   -Dspring-boot.run.arguments="--import.customers-file=<customers.xlsx> --import.archive-file=<archive.xlsx>"
+
+# The office server (Task 31, docs/DEPLOYMENT.md). The image is built here,
+# from the jar ./mvnw verify made (Dockerfile), for the server's platform:
+docker buildx build --platform linux/amd64 --build-arg APP_VERSION=<version> \
+  -t insurance-office:<version> --load .
+# On the server, in the folder of deploy/compose.yaml and its .env:
+docker compose up -d                          # PostgreSQL and the app
+docker compose run --rm -it app --spring.profiles.active=create-user \
+  --user.username=<όνομα> '--user.full-name=<ονοματεπώνυμο>' [--user.role=ΥΠΑΛΛΗΛΟΣ]
+docker compose run --rm -it -v <φάκελος των Excel>:/import:ro app --spring.profiles.active=import \
+  --import.customers-file=/import/<customers.xlsx> --import.archive-file=/import/<archive.xlsx>
+journalctl -t insurance-office-app            # the app's log, older containers included
 ```
