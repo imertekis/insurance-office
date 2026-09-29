@@ -275,5 +275,6 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/repo:ro $GITLEAKS dir /rep
 # And two that print nothing: a spreadsheet, CSV, database or .env in any
 # commit; an author or committer email other than the GitHub noreply one.
 git log --all --format= --name-only | grep -E '\.(xlsx|xls|csv|db)$|(^|/)\.env$'
-git log --all --format='%ae%n%ce' | sort -u | grep -v '@users\.noreply\.github\.com$'
+# GitHub's generic noreply address is its own committer for edits made on github.com.
+git log --all --format='%ae%n%ce' | sort -u | grep -vE '@users\.noreply\.github\.com$|^noreply@github\.com$'
 ```
