@@ -61,6 +61,7 @@ Root package: `gr.insuranceoffice`. Technical layering, strictly:
 | `config` | Spring configuration (Web, JPA, Security wiring). |
 | `security` | Authentication/authorization logic. |
 | `importer` | Excel import (POI) and its transformations. |
+| `demo` | The `demo` profile (Task 39b): fills an empty demo database with synthetic data. |
 | `util` | Stateless helpers shared across layers (e.g. `TextNormalizationUtils`). No Spring beans, no dependencies on other app packages. |
 
 Rules:
@@ -72,6 +73,11 @@ Rules:
   (JPA callbacks for normalization, `@Version`, listeners).
 - `importer` writes through services/repositories. It must not duplicate
   validation or normalization logic.
+- `demo` writes through the services, so its data pass the forms' rules and
+  reach `audit_log`; only intermediaries and accounts, which no screen makes,
+  go through their repositories. Only `compose.demo.yaml` (and
+  `spring-boot:run` in development) activates the profile, never a file of
+  the office server.
 - On the Java side, text/plate normalization lives in ONE utility
   (`TextNormalizationUtils`), used by `Vehicle`'s JPA callbacks and by
   `SearchService`. Never duplicate it in Java. `search_normalized` is the
@@ -127,8 +133,8 @@ Rules:
   intermediary (tests and docs use invented ones); no server or tailnet name,
   no IP address. `docs/DEPLOYMENT.md` writes placeholders only
   (`<όνομα>.<tailnet>.ts.net`). `*.xlsx`, `*.xls`, `*.csv`, `*.db` and `.env`
-  are gitignored. Tests use synthetic fixtures only, from the series that
-  `.gitleaks.toml` exempts (ΑΦΜ `9000000…`, mobiles `69000000…`,
+  are gitignored. Tests and the demo use synthetic data only, from the
+  series that `.gitleaks.toml` exempts (ΑΦΜ `90000…`, mobiles `6900000…`,
   `@example.com`); a new exception there states its reason. The check under
   «Commands» runs again before every push, and finds nothing.
 
@@ -199,6 +205,11 @@ These override any older wording in `docs/`.
     beside the field. Decided with the office: 16d-1 wins, and the field has
     the hint «Από 1 έως 99.» under it; 0 or 100 get the server's message
     (Task 23a).
+11. **The synthetic series are ten times wider.** TASKS Task 39b asks for
+    some 200 demo customers with ΑΦΜ from the tests' series, then
+    `900000xxx`: one check digit per eight digits leaves 100 valid ΑΦΜ, and
+    `69000000xx` 100 mobiles. Decided: the series are `90000xxxx` (1000
+    valid ΑΦΜ) and `6900000xxx` (1000 mobiles), in `.gitleaks.toml` too.
 
 ## Open questions (ask before implementing)
 
@@ -222,6 +233,17 @@ docker compose up -d        # start PostgreSQL
 # The password is asked for twice in the terminal, without showing it
 # (Task 22a); --user.password is refused. Run it in a terminal: with the
 # input or output redirected there is no console, and it stops.
+
+# The demo (Task 39b), for anyone with only Docker: builds the app from the
+# sources, fills an empty database with synthetic data and prints two
+# accounts with random passwords; then http://127.0.0.1:8080. The data stay
+# between runs; down -v forgets them, for a new fill at the next up.
+docker compose -f compose.demo.yaml up
+docker compose -f compose.demo.yaml down -v
+# The same in development, in a database of its own beside the development
+# one (the profile fills no other); dropdb and createdb for a new fill:
+docker compose exec postgres createdb -U insurance insurance_office_demo
+./mvnw spring-boot:run -Dspring-boot.run.profiles=demo
 
 # One-off Excel migration into the configured database, then exit.
 # Refuses a database that already has customers or vehicles unless

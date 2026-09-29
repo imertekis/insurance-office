@@ -1,0 +1,10 @@
+# Profile "demo" (Task 39b): fills an empty database with synthetic data at
+# startup and prints two accounts (DemoRunner), then runs as usual.
+# compose.demo.yaml activates it; in development:
+#   ./mvnw spring-boot:run -Dspring-boot.run.profiles=demo
+# Never on the office server (deploy/compose.yaml sets no profile).
+spring:
+  datasource:
+    # A database of its own, beside the development one: the profile fills
+    # no other (DemoRunner.DATABASE_NAME). The rest as in application.yml.
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:insurance_office_demo}

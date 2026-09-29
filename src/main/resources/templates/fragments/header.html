@@ -12,6 +12,12 @@
 	     parts sit either side of the search on desktop, and after it (order-1)
 	     on narrower screens. -->
 	<th:block th:fragment="header(active)">
+	<!-- Task 39b: under the demo profile, a strip above the header of every
+	     page, so that a demo opened where it should not be is seen at once. A
+	     strip of its own, as a badge beside the brand pushed the hamburger
+	     onto a row of its own at 375px. -->
+	<div class="text-bg-warning text-center small fw-semibold py-1" th:if="${@environment.matchesProfiles('demo')}"
+		id="demo-banner">DEMO · συνθετικά δεδομένα</div>
 	<nav class="navbar navbar-expand-xl bg-body-tertiary border-bottom mb-4"
 		th:with="expired=${active == 'Λήξεις' and dashboard != null and dashboard.period.expired}">
 		<div class="container">

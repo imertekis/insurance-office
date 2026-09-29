@@ -1,0 +1,75 @@
+# Task 39b: the demo, for anyone with Docker and nothing else. In this folder:
+#
+#   docker compose -f compose.demo.yaml up
+#
+# builds the application from the sources (the first time takes a few
+# minutes), starts PostgreSQL and the application, fills the empty database
+# with synthetic data, and prints two accounts, an administrator and a
+# clerk, with random passwords. Then: http://127.0.0.1:8080
+#
+# The data and the accounts stay from one `up` to the next. To start over,
+# with new data and new passwords:
+#
+#   docker compose -f compose.demo.yaml down -v
+#
+# After a `git pull`, `up --build` builds the new version.
+#
+# A project of its own: its containers and its volume never mix with the
+# development database (docker-compose.yml) or the office server
+# (deploy/compose.yaml), and `down -v` removes only the demo's.
+name: insurance-office-demo
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      TZ: Europe/Athens
+      PGTZ: Europe/Athens
+      # The name the demo profile checks: it fills no other database.
+      POSTGRES_DB: insurance_office_demo
+      # The development defaults of application.yml. The database has no
+      # port on the machine; only the application reaches it.
+      POSTGRES_USER: insurance
+      POSTGRES_PASSWORD: insurance
+    volumes:
+      # PostgreSQL 18 keeps its data under /var/lib/postgresql/18/docker.
+      - data:/var/lib/postgresql
+    networks:
+      - database
+    healthcheck:
+      # Over TCP, which the image opens only once the database is created.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build:
+      context: .
+      target: demo
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # The only place the demo profile is activated (Task 39b); the office
+      # server's files never name it (DemoActivationTest).
+      SPRING_PROFILES_ACTIVE: demo
+      DB_HOST: postgres
+      DB_NAME: insurance_office_demo
+      DB_USER: insurance
+      DB_PASSWORD: insurance
+    # On this machine only, as on the office server. Plain HTTP, so the
+    # session cookie is not marked Secure (application.yml).
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - database
+      - web
+
+networks:
+  database:
+    internal: true
+  web: {}
+
+volumes:
+  data: {}

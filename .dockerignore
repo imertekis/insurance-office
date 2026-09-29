@@ -1,5 +1,16 @@
-# Task 31: the image needs only the jar that ./mvnw verify built (Dockerfile).
-# Nothing else of the working tree reaches the build: no .env, no data, no
-# Excel files, no sources.
+# What a build may read of the working tree, and nothing else: no .env, no
+# data, no Excel files, no tests.
 *
+# Task 31: the server's image, only the jar that ./mvnw verify built.
 !target/insurance-office-*.jar
+# Task 39b: the demo's image builds its jar from these (Dockerfile, "build").
+!mvnw
+!pom.xml
+!.mvn/wrapper/maven-wrapper.properties
+!src/main
+# Never, not even under src/main (.gitignore).
+**/*.xlsx
+**/*.xls
+**/*.csv
+**/*.db
+**/.env
