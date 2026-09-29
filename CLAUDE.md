@@ -121,8 +121,16 @@ Rules:
 - Ownership percentages per vehicle sum to 100. Exactly one `is_primary`
   per vehicle. Ownership is a join **entity** (two `@ManyToOne`), not
   `@ManyToMany`.
-- Never commit real customer data. `*.xlsx`, `*.xls`, `*.csv` and `.env`
-  are gitignored. Tests use synthetic fixtures only.
+- **The repository is public** (Task 39). Never commit real customer data,
+  or anything that shows the office: no real name, ΑΦΜ, phone, email, plate
+  or VIN; not the office's name, address, phones or ΑΦΜ; no real insurer or
+  intermediary (tests and docs use invented ones); no server or tailnet name,
+  no IP address. `docs/DEPLOYMENT.md` writes placeholders only
+  (`<όνομα>.<tailnet>.ts.net`). `*.xlsx`, `*.xls`, `*.csv`, `*.db` and `.env`
+  are gitignored. Tests use synthetic fixtures only, from the series that
+  `.gitleaks.toml` exempts (ΑΦΜ `9000000…`, mobiles `69000000…`,
+  `@example.com`); a new exception there states its reason. The check under
+  «Commands» runs again before every push, and finds nothing.
 
 ## Resolved doc conflicts
 
@@ -232,4 +240,18 @@ docker compose run --rm -it app --spring.profiles.active=create-user \
 docker compose run --rm -it -v <φάκελος των Excel>:/import:ro app --spring.profiles.active=import \
   --import.customers-file=/import/<customers.xlsx> --import.archive-file=/import/<archive.xlsx>
 journalctl -t insurance-office-app            # the app's log, older containers included
+
+# Before every push (Task 39a): secrets and personal data in every commit, in
+# the commit messages and in the files as they are, by the rules and
+# exceptions of .gitleaks.toml. Each prints «no leaks found»; a finding is
+# shown by file and line, its value redacted. gitleaks runs from its image,
+# pinned by digest: nothing is installed.
+GITLEAKS=zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/repo:ro $GITLEAKS git /repo --log-opts=--all --redact -v
+git log --all --format=%B | docker run --rm -i -v "$PWD/.gitleaks.toml":/c.toml:ro $GITLEAKS stdin --config /c.toml --redact -v
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/repo:ro $GITLEAKS dir /repo --redact -v
+# And two that print nothing: a spreadsheet, CSV, database or .env in any
+# commit; an author or committer email other than the GitHub noreply one.
+git log --all --format= --name-only | grep -E '\.(xlsx|xls|csv|db)$|(^|/)\.env$'
+git log --all --format='%ae%n%ce' | sort -u | grep -v '@users\.noreply\.github\.com$'
 ```

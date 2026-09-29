@@ -1,0 +1,138 @@
+# Task 39a: what may not be published. gitleaks' own secret rules, plus rules
+# for personal data. The repository is public: every value an exception names
+# below is invented, and every exception says why. The command is in CLAUDE.md.
+
+title = "insurance-office: secrets and personal data"
+
+[extend]
+useDefault = true
+
+# Paths that are never committed (.gitignore): the build and the editor's
+# settings, which gitleaks dir would otherwise read, and git's own folder.
+[[allowlists]]
+description = "Not part of the repository: build output, editor settings, git internals."
+paths = [
+  '''(^|/)target/''',
+  '''(^|/)\.vscode/''',
+  '''(^|/)\.git/''',
+]
+
+# ---------------------------------------------------------------- ΑΦΜ
+
+[[rules]]
+id = "pii-tax-id"
+description = "Greek tax number (ΑΦΜ): nine digits"
+regex = '''(?:^|[^0-9A-Za-z])([0-9]{9})(?:[^0-9A-Za-z]|$)'''
+secretGroup = 1
+
+  [[rules.allowlists]]
+  description = "The tests' ΑΦΜ series, with a valid check digit (900000017, ...)."
+  regexes = ['''^900000[0-9]{3}$''']
+
+  [[rules.allowlists]]
+  description = "123456789 and 123456783: a run of digits, the second with a valid check digit."
+  regexes = ['''^12345678[0-9]$''']
+
+  [[rules.allowlists]]
+  description = "The ΑΦΜ of the SPEC §6 example, invented (TASKS, Task 39, decision 5)."
+  regexes = ['''^189856820$''']
+
+  [[rules.allowlists]]
+  description = "Prefixes to which the tests append a digit: policy numbers (21...) and mobiles (69...)."
+  regexes = ['''^210000000$''', '''^691230000$''']
+
+  [[rules.allowlists]]
+  description = "The premium ceiling in PolicyService, an amount."
+  condition = "AND"
+  regexes = ['''^100000000$''']
+  paths = ['''src/main/java/gr/insuranceoffice/service/PolicyService\.java$''']
+
+  [[rules.allowlists]]
+  description = "An input of the Task 21a timing table, from data made with generate_series (NOTES)."
+  condition = "AND"
+  regexes = ['''^101057138$''']
+  paths = ['''docs/NOTES\.md$''']
+
+# ---------------------------------------------------------------- phones
+
+[[rules]]
+id = "pii-mobile"
+description = "Greek mobile: 69 and eight digits, with or without +30 and spaces"
+regex = '''(?:^|[^0-9A-Za-z+])((?:(?:\+|00)30[ -]?)?69[0-9](?:[0-9]{7}|[ -][0-9]{3}[ -]?[0-9]{4}|[0-9][ -][0-9]{6}))(?:[^0-9A-Za-z]|$)'''
+secretGroup = 1
+
+  [[rules.allowlists]]
+  description = "The tests' mobile series (6900000001, ...)."
+  regexes = ['''^69000000[0-9]{2}$''']
+
+  [[rules.allowlists]]
+  description = "An input of the Task 21a timing table, from data made with generate_series (NOTES)."
+  condition = "AND"
+  regexes = ['''^6941121570$''']
+  paths = ['''docs/NOTES\.md$''']
+
+[[rules]]
+id = "pii-landline"
+description = "Greek landline: 2 and nine digits, with or without a space after the area code"
+regex = '''(?:^|[^0-9A-Za-z+])((?:(?:\+|00)30[ -]?)?2(?:[0-9]{9}|[0-9]{2}[ -][0-9]{7}|[0-9]{3}[ -][0-9]{6}|[0-9]{4}[ -][0-9]{5}))(?:[^0-9A-Za-z]|$)'''
+secretGroup = 1
+
+  [[rules.allowlists]]
+  description = "The tests' policy numbers, which are also landlines (2100000001, ...; CLAUDE.md, resolved conflict 3)."
+  regexes = ['''^21000[0-9]{5}$''']
+
+  [[rules.allowlists]]
+  description = "Limits and runs of digits in the tests: 2101234567, 2199999999, and 2990000000, whose area code no Greek region has."
+  regexes = ['''^2101234567$''', '''^2199999999$''', '''^2990000000$''']
+
+# ---------------------------------------------------------------- email
+
+[[rules]]
+id = "pii-email"
+description = "Email address"
+regex = '''([A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})'''
+secretGroup = 1
+
+  [[rules.allowlists]]
+  description = "The tests' addresses, at example domains (example.com, example.gr, lancia.example)."
+  regexes = ['''(?i)@([a-z0-9-]+\.)*example(\.(com|gr))?$''']
+
+  [[rules.allowlists]]
+  description = "The Co-Authored-By trailer of the commit messages."
+  regexes = ['''^noreply@anthropic\.com$''']
+
+# ---------------------------------------------------------------- vehicles
+
+[[rules]]
+id = "pii-plate"
+description = "Greek plate: three look-alike letters, Greek or Latin, and four digits"
+regex = '''(?:^|[^0-9A-Za-zΑ-Ωα-ωΆ-Ώά-ώ])([ΑΒΕΖΗΙΚΜΝΟΡΤΥΧABEZHIKMNOPTYX]{3}[ -]?[1-9][0-9]{3})(?:[^0-9]|$)'''
+secretGroup = 1
+
+  [[rules.allowlists]]
+  description = "Examples and tests: runs, repeats and round numbers (1234, 4321, 9999, 1000, ...) and the numbers that follow them, as in ΑΒΕ-1234 = ABE-1234 of SPEC §6 and CLAUDE.md."
+  regexes = ['''[ -]?(1234|4321|5678|9876|9012|9999|7777|[1-3]000|100[1-4]|123[5-6])$''']
+
+  [[rules.allowlists]]
+  description = "The plate of the SPEC §6 example, invented (TASKS, Task 39, decision 5), in Greek, Latin and mixed letters."
+  regexes = ['''^(NZA|ΝΖΑ|ΝZA)[ -]?8812$''']
+
+  [[rules.allowlists]]
+  description = "A consecutive pair of plates in SearchServiceTest (Task 21a)."
+  regexes = ['''^ΗΟΚ[ -]?220[12]$''']
+
+  [[rules.allowlists]]
+  description = "Inputs of the Task 21a timing table, from data made with generate_series (NOTES)."
+  condition = "AND"
+  regexes = ['''^ΜΟΟ-9733$''', '''^PKP3797$''']
+  paths = ['''docs/NOTES\.md$''']
+
+[[rules]]
+id = "pii-vin"
+description = "Vehicle identification number: 17 characters, without I, O or Q"
+regex = '''(?:^|[^0-9A-Za-z])([A-HJ-NPR-Z0-9]{17})(?:[^0-9A-Za-z]|$)'''
+secretGroup = 1
+
+  [[rules.allowlists]]
+  description = "The tests' VINs: a real maker prefix or SYN, and a serial that is a counter, a run or a repeat (000001, 123456, 654321, 999999, ...)."
+  regexes = ['''(0000[0-9]{2}|12345[6-8]|654321|111111|999999|100001)$''']
