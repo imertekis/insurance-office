@@ -85,10 +85,11 @@ tax and mobile numbers few. To make them again:
 
 ## Run it
 
-It needs Docker with Compose, and nothing else. In the folder of the
-cloned repository:
+It needs Docker with Compose, and nothing else:
 
 ```sh
+git clone https://github.com/imertekis/insurance-office.git
+cd insurance-office
 docker compose -f compose.demo.yaml up
 ```
 
@@ -205,8 +206,8 @@ test runs on PostgreSQL 18 in Testcontainers, never H2: generated columns,
 JavaScript (search suggestions, the guards on forms, owners' shares, the
 date picker, the theme) is tested in headless Chromium with Playwright for
 Java, in a Maven profile of its own, with no Node installed. Each part was
-seen failing: 29 deliberate breakages of the JavaScript, one at a time, each
-failed a test of its part but one, which is explained.
+seen failing: 29 deliberate breakages of the JavaScript, one at a time, each 
+made a test of its part fail, except one, which is explained.
 Code: [`TestcontainersConfiguration`](src/test/java/gr/insuranceoffice/TestcontainersConfiguration.java),
 [`src/browser-test`](src/browser-test/java/gr/insuranceoffice/browser/).
 Decision: [Task 24](docs/TASKS.md#task-24-έλεγχοι-browser-για-το-appjs);
