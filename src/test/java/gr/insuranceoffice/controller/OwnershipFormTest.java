@@ -505,6 +505,20 @@ class OwnershipFormTest {
 		assertThat(ownershipRepository.count()).isEqualTo(1);
 	}
 
+	// The date in the message as dd/MM/yyyy, as in every other message, not
+	// as LocalDate.toString() gives it (REVIEW-06, finding 3).
+	@Test
+	void refusesATransferBeforeTheLeavingOwnerJoinedAndGivesTheDateAsTheFormsDo() throws Exception {
+		LocalDate joined = TODAY.minusDays(10);
+		halvedWithNikos(joined);
+
+		String html = html(owners(List.of(maria), List.of("100"), maria, TODAY.minusDays(20)).param("action", "save"));
+
+		assertThat(html).contains("Ο πελάτης Βασιλείου Νίκος έγινε ιδιοκτήτης στις " + joined.format(GREEK_DATE)
+				+ ", μετά την ημερομηνία μεταβίβασης.");
+		assertThat(current()).hasSize(2);
+	}
+
 	// Ownership has no version of its own: saving it raises the vehicle's, so
 	// two clerks cannot both win (SPEC §9).
 	@Test

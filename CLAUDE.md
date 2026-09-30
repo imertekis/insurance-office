@@ -115,8 +115,11 @@ Rules:
   cascades the children and `AuditListener` logs each one.
 - Audit logging uses a custom JPA `@EntityListener` writing JSONB to
   `audit_log` in the same transaction. No Hibernate Envers.
-- Optimistic locking uses `@Version` on customer, vehicle and policy.
-  A conflict returns HTTP 409.
+- Optimistic locking uses `@Version` on customer, vehicle and policy. A
+  form sends back the version it was opened with, and the service compares
+  it. A conflict never overwrites the other change: the form comes back with
+  a message at the top and the values the clerk typed. (Task 7's HTTP 409
+  was for the JSON API that the forms replaced.)
 - Search is a single box with regex type detection (DECISIONS §3, REJECTED
   proposal: do not add a type dropdown). VIN regex is
   `^[A-HJ-NPR-Z0-9]{17}$`, never `^.{17}$` (NOTES). If a pattern is

@@ -266,9 +266,13 @@ public class OwnershipService {
 			violations.addIf(transferDate.isAfter(today), "transferDate",
 					"Η ημερομηνία μεταβίβασης δεν μπορεί να είναι μελλοντική.");
 			for (Ownership ownership : leaving) {
-				violations.addIf(ownership.getFromDate() != null && transferDate.isBefore(ownership.getFromDate()),
-						"transferDate", "Ο πελάτης " + name(ownership.getCustomer()) + " έγινε ιδιοκτήτης στις "
-								+ ownership.getFromDate() + ", μετά την ημερομηνία μεταβίβασης.");
+				// Not addIf: the message would be built, and the empty start of
+				// an imported owner formatted, even when the rule holds.
+				if (ownership.getFromDate() != null && transferDate.isBefore(ownership.getFromDate())) {
+					violations.add("transferDate", "Ο πελάτης " + name(ownership.getCustomer())
+							+ " έγινε ιδιοκτήτης στις " + ownership.getFromDate().format(GREEK_DATE)
+							+ ", μετά την ημερομηνία μεταβίβασης.");
+				}
 			}
 			checkRejoining(vehicleId, joining.stream().filter(id -> !reopened.containsKey(id)).toList(),
 					transferDate, violations);

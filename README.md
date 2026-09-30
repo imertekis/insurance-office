@@ -240,9 +240,14 @@ what was accepted or rejected ([`DECISIONS`](docs/DECISIONS.md)).
 The code was written mostly by Claude Code, one task at a time, under the
 rules of [`CLAUDE.md`](CLAUDE.md): only the task at hand, done only when the
 whole test suite passes, and a question back to me whenever the documents
-disagreed. Google Antigravity (`agy`) reviewed the work, for correctness
-only ([`REVIEW-01`](docs/REVIEW-01.md) to [`REVIEW-10`](docs/REVIEW-10.md)); its
-findings became tasks of their own, such as Task 18, or open items in
+disagreed. The work was reviewed for correctness only: Google Antigravity
+(`agy`) wrote [`REVIEW-01`](docs/REVIEW-01.md) to
+[`REVIEW-05`](docs/REVIEW-05.md),
+[`REVIEW-06-BINDING`](docs/REVIEW-06-BINDING.md) and
+[`REVIEW-07`](docs/REVIEW-07.md) to [`REVIEW-10`](docs/REVIEW-10.md), and
+[`REVIEW-06`](docs/REVIEW-06.md) came from Claude Code's own review feature
+(ultrareview). The findings became tasks of their own, such as Task 18 from
+REVIEW-06 and Task 24 from REVIEW-09, or open items in
 [`NOTES`](docs/NOTES.md).
 
 The commit history shows the same order: a task's specification in a
