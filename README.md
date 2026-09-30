@@ -122,6 +122,12 @@ this machine only, shows a yellow DEMO strip on every page, and fills no
 database but its own: it checks the name before Flyway touches anything
 ([Task 39b](docs/TASKS.md#task-39b-το-profile-demo)).
 
+On Windows, the same commands work in PowerShell with Docker Desktop, in its
+default Linux containers mode, from a clone or from GitHub's *Download ZIP*
+(in the folder that holds `compose.demo.yaml`). The files keep their LF line
+endings whatever Git's `core.autocrlf` says (`.gitattributes`), and the build
+runs the Maven wrapper with `sh`, so it needs no executable bit.
+
 For development, with JDK 21 and Docker: `./mvnw verify` builds and runs
 every test on a real PostgreSQL, and `./mvnw verify -Pbrowser` adds the
 browser tests (the first run downloads Chromium). The other commands are in

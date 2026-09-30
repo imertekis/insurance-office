@@ -1,2 +1,7 @@
-/mvnw text eol=lf
+# Every text file keeps LF in every checkout, whatever core.autocrlf says
+# (Git for Windows sets it to true): the files are built and run in Linux
+# containers, where a CR breaks a shell script. deploy/initdb/ with CRLF stops
+# PostgreSQL's first start at "$'\r': command not found".
+* text=auto eol=lf
+# cmd.exe's own.
 *.cmd text eol=crlf
