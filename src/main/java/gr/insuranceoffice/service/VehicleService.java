@@ -1,5 +1,6 @@
 package gr.insuranceoffice.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -62,6 +63,8 @@ public class VehicleService {
 
 	private final HitAssembler hitAssembler;
 
+	private final Clock clock;
+
 	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
 	// SPEC §8: I, O and Q never appear in a VIN.
@@ -71,7 +74,7 @@ public class VehicleService {
 	public VehicleService(VehicleRepository vehicleRepository, OwnershipRepository ownershipRepository,
 			PolicyRepository policyRepository, VehicleBrandRepository vehicleBrandRepository,
 			VehicleMapper vehicleMapper, OwnershipMapper ownershipMapper, PolicyMapper policyMapper,
-			HitAssembler hitAssembler) {
+			HitAssembler hitAssembler, Clock clock) {
 		this.vehicleRepository = vehicleRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
@@ -80,6 +83,7 @@ public class VehicleService {
 		this.ownershipMapper = ownershipMapper;
 		this.policyMapper = policyMapper;
 		this.hitAssembler = hitAssembler;
+		this.clock = clock;
 	}
 
 	/**
@@ -427,7 +431,7 @@ public class VehicleService {
 	// Each policy carries the customer who held the vehicle when it started
 	// (Task 13), so the history shows who it was then, not who owns it today.
 	private List<PolicyViewDto> policyViews(List<Policy> policies, List<Ownership> ownerships) {
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(clock);
 		return policies.stream()
 				.map(policy -> PolicyCustomers.attach(policyMapper.toViewDto(policy,
 						PolicyStatus.of(policy.getStartDate(), policy.getEndDate(), today)), ownerships))

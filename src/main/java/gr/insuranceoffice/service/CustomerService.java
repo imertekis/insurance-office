@@ -1,5 +1,6 @@
 package gr.insuranceoffice.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -62,9 +63,11 @@ public class CustomerService {
 
 	private final HitAssembler hitAssembler;
 
+	private final Clock clock;
+
 	public CustomerService(CustomerRepository customerRepository, OwnershipRepository ownershipRepository,
 			PolicyRepository policyRepository, CustomerMapper customerMapper, OwnershipMapper ownershipMapper,
-			PolicyMapper policyMapper, HitAssembler hitAssembler) {
+			PolicyMapper policyMapper, HitAssembler hitAssembler, Clock clock) {
 		this.customerRepository = customerRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyRepository = policyRepository;
@@ -72,6 +75,7 @@ public class CustomerService {
 		this.ownershipMapper = ownershipMapper;
 		this.policyMapper = policyMapper;
 		this.hitAssembler = hitAssembler;
+		this.clock = clock;
 	}
 
 	/**
@@ -129,7 +133,7 @@ public class CustomerService {
 	 * do, as a vehicle can be sold and bought back.
 	 */
 	private List<PolicyViewDto> policyViews(List<Policy> policies, List<Ownership> ownerships) {
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(clock);
 		Map<Long, List<Ownership>> ownershipsByVehicle = ownerships.stream()
 				.collect(Collectors.groupingBy(ownership -> ownership.getVehicle().getId()));
 		return policies.stream()
@@ -175,7 +179,7 @@ public class CustomerService {
 		// DECISIONS §1: the office must be able to reach whoever answers for an
 		// insured vehicle. Only an existing customer can own one.
 		violations.addIf(values.mobile() == null
-				&& ownershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle(id, LocalDate.now()),
+				&& ownershipRepository.isCurrentPrimaryOwnerOfInsuredVehicle(id, LocalDate.now(clock)),
 				"mobile", "Το κινητό είναι υποχρεωτικό για τον κύριο ιδιοκτήτη οχήματος με τρέχον συμβόλαιο.");
 		violations.throwIfAny();
 

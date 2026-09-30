@@ -1,6 +1,7 @@
 package gr.insuranceoffice.service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -60,12 +61,15 @@ public class OwnershipService {
 
 	private final PolicyRepository policyRepository;
 
+	private final Clock clock;
+
 	public OwnershipService(OwnershipRepository ownershipRepository, VehicleRepository vehicleRepository,
-			CustomerRepository customerRepository, PolicyRepository policyRepository) {
+			CustomerRepository customerRepository, PolicyRepository policyRepository, Clock clock) {
 		this.ownershipRepository = ownershipRepository;
 		this.vehicleRepository = vehicleRepository;
 		this.customerRepository = customerRepository;
 		this.policyRepository = policyRepository;
+		this.clock = clock;
 	}
 
 	/** One current owner's share of a vehicle. */
@@ -105,7 +109,7 @@ public class OwnershipService {
 		List<OwnerRowDto> rows = current.stream()
 				.map(ownership -> row(ownership.getCustomer(), typed(ownership.getPercentage())))
 				.toList();
-		return new OwnersFormDto(vehicleId, vehicle.getPlate(), vehicle.getVersion(), LocalDate.now(), primary,
+		return new OwnersFormDto(vehicleId, vehicle.getPlate(), vehicle.getVersion(), LocalDate.now(clock), primary,
 				rows, false);
 	}
 
@@ -207,7 +211,7 @@ public class OwnershipService {
 				// never fails over data that breaks it.
 				.collect(Collectors.toMap(o -> o.getCustomer().getId(), Function.identity(), (first, second) -> first));
 		Map<Long, Customer> customers = customers(submission.customerIds());
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(clock);
 		Violations violations = new Violations();
 
 		// Each share on its own: readable, above 0, at most 100, two decimals.

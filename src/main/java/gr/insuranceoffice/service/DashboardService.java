@@ -1,5 +1,6 @@
 package gr.insuranceoffice.service;
 
+import java.time.Clock;
 import java.time.LocalDate;
 
 import org.springframework.stereotype.Service;
@@ -25,9 +26,12 @@ public class DashboardService {
 
 	private final DashboardMapper dashboardMapper;
 
-	public DashboardService(PolicyRepository policyRepository, DashboardMapper dashboardMapper) {
+	private final Clock clock;
+
+	public DashboardService(PolicyRepository policyRepository, DashboardMapper dashboardMapper, Clock clock) {
 		this.policyRepository = policyRepository;
 		this.dashboardMapper = dashboardMapper;
+		this.clock = clock;
 	}
 
 	/**
@@ -35,7 +39,7 @@ public class DashboardService {
 	 */
 	@Transactional(readOnly = true)
 	public DashboardDto expiries(ExpiryPeriod period, String insuranceCompany) {
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(clock);
 		// A policy is still in force on its end date, so it is expiring today,
 		// not expired.
 		LocalDate from = period.isExpired() ? today.minusDays(EXPIRED_LOOK_BACK_DAYS) : today;

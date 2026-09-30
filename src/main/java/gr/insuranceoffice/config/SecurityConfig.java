@@ -1,6 +1,5 @@
 package gr.insuranceoffice.config;
 
-import java.time.Clock;
 import java.util.Map;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -93,13 +92,6 @@ public class SecurityConfig {
 	AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,
 			PasswordEncoder passwordEncoder, LoginAttempts loginAttempts) {
 		return new PasswordCheckingAuthenticationProvider(userDetailsService, passwordEncoder, loginAttempts);
-	}
-
-	// The time of the login lockout (Task 22b), a bean so that tests can move
-	// it on instead of waiting five minutes.
-	@Bean
-	Clock clock() {
-		return Clock.systemDefaultZone();
 	}
 
 	// Task 22a: create-user asks for the password on the console, never on

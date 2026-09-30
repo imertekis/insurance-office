@@ -1,6 +1,7 @@
 package gr.insuranceoffice.service;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -60,15 +61,18 @@ public class PolicyService {
 
 	private final IntermediaryMapper intermediaryMapper;
 
+	private final Clock clock;
+
 	public PolicyService(PolicyRepository policyRepository, VehicleRepository vehicleRepository,
 			IntermediaryRepository intermediaryRepository, OwnershipRepository ownershipRepository,
-			PolicyMapper policyMapper, IntermediaryMapper intermediaryMapper) {
+			PolicyMapper policyMapper, IntermediaryMapper intermediaryMapper, Clock clock) {
 		this.policyRepository = policyRepository;
 		this.vehicleRepository = vehicleRepository;
 		this.intermediaryRepository = intermediaryRepository;
 		this.ownershipRepository = ownershipRepository;
 		this.policyMapper = policyMapper;
 		this.intermediaryMapper = intermediaryMapper;
+		this.clock = clock;
 	}
 
 	/**
@@ -136,7 +140,7 @@ public class PolicyService {
 		if (policies.isEmpty()) {
 			return List.of();
 		}
-		LocalDate today = LocalDate.now();
+		LocalDate today = LocalDate.now(clock);
 		Map<Long, List<Ownership>> ownerships = ownershipRepository
 				.findPrimaryByVehicleIdsWithCustomer(
 						policies.stream().map(policy -> policy.getVehicle().getId()).distinct().toList())
@@ -342,8 +346,8 @@ public class PolicyService {
 	}
 
 	// «Τρέχον» = CURRENT_DATE BETWEEN start_date AND end_date (DATA_MODEL).
-	private static boolean current(LocalDate start, LocalDate end) {
-		LocalDate today = LocalDate.now();
+	private boolean current(LocalDate start, LocalDate end) {
+		LocalDate today = LocalDate.now(clock);
 		return !today.isBefore(start) && !today.isAfter(end);
 	}
 

@@ -13,7 +13,10 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -35,6 +38,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -58,11 +62,15 @@ import gr.insuranceoffice.service.OwnershipService.Share;
  * compose.demo.yaml starts it, on an empty database of the demo's name; the
  * runner fills it during startup. Tests that empty it fill it again before
  * they end, so each test finds it filled.
+ * <p>
+ * The demo's dates are counted from the application's today, so the day is
+ * fixed here: the counts below are those of {@link #TODAY}, whatever day the
+ * tests run.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("demo")
-@Import(DemoSeedTest.DemoDatabase.class)
+@Import({ DemoSeedTest.DemoDatabase.class, DemoSeedTest.FixedDay.class })
 @ExtendWith(OutputCaptureExtension.class)
 class DemoSeedTest {
 
@@ -75,6 +83,21 @@ class DemoSeedTest {
 		PostgreSQLContainer postgresContainer() {
 			return new PostgreSQLContainer(DockerImageName.parse("postgres:18"))
 					.withDatabaseName(DemoRunner.DATABASE_NAME);
+		}
+
+	}
+
+	static final LocalDate TODAY = LocalDate.of(2026, 9, 29);
+
+	/** The application's clock, stopped at noon of {@link #TODAY} in Athens. */
+	@TestConfiguration(proxyBeanMethods = false)
+	static class FixedDay {
+
+		@Bean
+		@Primary
+		Clock fixedClock() {
+			ZoneId athens = ZoneId.of("Europe/Athens");
+			return Clock.fixed(TODAY.atTime(LocalTime.NOON).atZone(athens).toInstant(), athens);
 		}
 
 	}
@@ -213,12 +236,11 @@ class DemoSeedTest {
 
 	@Test
 	void policiesHaveRenewalsOfSixAndTwelveMonthsAndOneStartsInTheFuture() {
-		LocalDate today = LocalDate.now();
 		assertThat(count("SELECT count(*) FROM (SELECT vehicle_id FROM policy GROUP BY vehicle_id "
 				+ "HAVING count(*) > 2) renewed")).isGreaterThan(100);
 		assertThat(jdbcTemplate.queryForList("SELECT DISTINCT (end_date - start_date) / 30 FROM policy "
 				+ "ORDER BY 1", Integer.class)).containsExactly(6, 12);
-		assertThat(count("SELECT count(*) FROM policy WHERE start_date > '" + today + "'")).isEqualTo(1);
+		assertThat(count("SELECT count(*) FROM policy WHERE start_date > '" + TODAY + "'")).isEqualTo(1);
 		assertThat(count("SELECT count(*) FROM policy WHERE intermediary_id IS NOT NULL")).isPositive();
 		assertThat(jdbcTemplate.queryForList("SELECT DISTINCT insurance_company FROM policy", String.class))
 				.allMatch(company -> company.matches("(Northwind|Contoso|Fabrikam|Woodgrove|Tailspin) Ασφαλιστική"));

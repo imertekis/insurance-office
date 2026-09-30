@@ -1,6 +1,7 @@
 package gr.insuranceoffice.demo;
 
 import java.security.SecureRandom;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,11 +78,13 @@ public class DemoSeeder {
 	private final AuditLogRepository auditLogRepository;
 	private final PasswordEncoder passwordEncoder;
 
+	private final Clock clock;
+
 	public DemoSeeder(CustomerService customerService, VehicleService vehicleService,
 			OwnershipService ownershipService, PolicyService policyService, CustomerRepository customerRepository,
 			VehicleRepository vehicleRepository, PolicyRepository policyRepository,
 			IntermediaryRepository intermediaryRepository, AppUserRepository appUserRepository,
-			AuditLogRepository auditLogRepository, PasswordEncoder passwordEncoder) {
+			AuditLogRepository auditLogRepository, PasswordEncoder passwordEncoder, Clock clock) {
 		this.customerService = customerService;
 		this.vehicleService = vehicleService;
 		this.ownershipService = ownershipService;
@@ -93,6 +96,7 @@ public class DemoSeeder {
 		this.appUserRepository = appUserRepository;
 		this.auditLogRepository = auditLogRepository;
 		this.passwordEncoder = passwordEncoder;
+		this.clock = clock;
 	}
 
 	/**
@@ -110,7 +114,8 @@ public class DemoSeeder {
 				|| auditLogRepository.count() > 0) {
 			return Optional.empty();
 		}
-		Plan plan = DemoData.plan(DemoData.SEED, LocalDate.now());
+		// The application's today, the one the services check the data against.
+		Plan plan = DemoData.plan(DemoData.SEED, LocalDate.now(clock));
 
 		List<Long> intermediaries = plan.intermediaries().stream().map(planned -> {
 			Intermediary intermediary = new Intermediary();

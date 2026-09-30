@@ -98,12 +98,15 @@ starts PostgreSQL and the application, fills the empty database with the
 synthetic data, and prints two accounts with random passwords:
 
 ```text
-DEMO: συνθετικά δεδομένα (synthetic data): 200 πελάτες, 236 οχήματα, 647 συμβόλαια.
+DEMO: συνθετικά δεδομένα (synthetic data): 200 πελάτες, 236 οχήματα, <N> συμβόλαια.
 http://127.0.0.1:8080, με τους λογαριασμούς (accounts):
     ρόλος (role)  όνομα  κωδικός (password)
     ΔΙΑΧΕΙΡΙΣΤΗΣ  admin  <random>
     ΥΠΑΛΛΗΛΟΣ     clerk  <random>
 ```
+
+The policies' dates are counted from the day of the fill, so their number
+(some 650) varies with that day; the customers and vehicles do not.
 
 Open <http://127.0.0.1:8080> and log in as `clerk`, or as `admin`, the
 administrator, who can also delete. The passwords are printed only by the
