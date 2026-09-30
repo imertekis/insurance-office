@@ -4,11 +4,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 /**
- * A policy as the vehicle and customer cards show it: with its vehicle's
- * plate and how it stands today.
+ * A policy as the vehicle and customer cards and the policy list show it:
+ * with its vehicle's plate and how it stands today.
  *
  * @param customerId   the customer the policy belonged to when it started
- *                     (Task 13); set on the vehicle card only, null elsewhere
+ *                     (Task 13); set on the vehicle card and the policy
+ *                     list, null on the customer card
  * @param customerName that customer's name, null with {@code customerId}
  */
 public record PolicyViewDto(

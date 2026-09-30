@@ -47,12 +47,15 @@ import gr.insuranceoffice.util.TextNormalizationUtils;
  */
 final class DemoData {
 
-	/** The seed of every run. */
 	static final long SEED = 39L;
 
 	static final int CUSTOMERS = 200;
 
-	/** How many customers own one, two and three vehicles, in that order. */
+	/**
+	 * How many customers are first made the owner of at least one, at least
+	 * two and three vehicles: 146 of one, 30 of two, 10 of three, before
+	 * some vehicles are shared and one is sold.
+	 */
 	private static final int ONE_VEHICLE = 186;
 	private static final int TWO_VEHICLES = 40;
 	private static final int THREE_VEHICLES = 10;
@@ -62,7 +65,11 @@ final class DemoData {
 	private static final int SHARED_VEHICLES = 15;
 	private static final int TAXIS = 2;
 
-	/** The home screen's periods (SPEC §7.1), filled by the first vehicles of the shuffled list. */
+	/**
+	 * The home screen's periods (SPEC §7.1), filled by the first vehicles of
+	 * the shuffled list, and the policies lost longer ago than any of them
+	 * shows.
+	 */
 	private static final int ENDING_IN_7_DAYS = 7;
 	private static final int ENDING_IN_30_DAYS = 18;
 	private static final int EXPIRED_NOT_RENEWED = 12;

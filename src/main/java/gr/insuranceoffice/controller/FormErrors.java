@@ -44,7 +44,8 @@ final class FormErrors {
 	 * another clerk saved the same value meanwhile (Task 18). Shown like the
 	 * service's own check, beside the field. The controllers call this once
 	 * the service's transaction has rolled back, so the form can be read
-	 * again; the seven of them share it so the mapping is written once.
+	 * again; their seven save handlers share it so the mapping is written
+	 * once.
 	 *
 	 * @throws DataIntegrityViolationException the same exception when it is
 	 *             not a unique index with a form field: a bug, for the error page

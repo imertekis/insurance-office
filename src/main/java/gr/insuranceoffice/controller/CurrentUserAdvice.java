@@ -10,6 +10,10 @@ import gr.insuranceoffice.security.CurrentUser;
  * and whether to offer the delete buttons (Task 11e). Hiding a button is a
  * courtesy; the services refuse the delete itself.
  */
+// The controllers are listed by hand, and nothing checks the list: a new
+// controller left out renders its pages without the user's name in the
+// header and without delete buttons, and no test fails (NOTES, «Controller
+// advice lists»).
 @ControllerAdvice(assignableTypes = { DashboardController.class, SearchController.class, CustomerController.class,
 		VehicleController.class, OwnershipController.class, PolicyController.class, AccountController.class })
 public class CurrentUserAdvice {

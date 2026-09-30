@@ -85,6 +85,11 @@ public class CreateUserRunner implements ApplicationRunner {
 		user.setUsername(username.strip());
 		user.setPasswordHash(passwordEncoder.encode(password));
 		user.setRole(parsedRole);
+		// A reset also lets a deactivated account in again: create-user is the
+		// one way back into an account, with no screen to reactivate it, and
+		// whoever runs it has the server. Said out loud, so it is never done
+		// unknowingly.
+		boolean reactivated = existed && !user.isActive();
 		user.setActive(true);
 		if (!fullName.isBlank()) {
 			user.setFullName(fullName.strip());
@@ -93,6 +98,9 @@ public class CreateUserRunner implements ApplicationRunner {
 
 		log.info("{} ο χρήστης {} ({})", existed ? "Ενημερώθηκε" : "Δημιουργήθηκε", user.getUsername(),
 				parsedRole);
+		if (reactivated) {
+			log.warn("Ο λογαριασμός {} ήταν απενεργοποιημένος και ενεργοποιήθηκε ξανά.", user.getUsername());
+		}
 	}
 
 	/**

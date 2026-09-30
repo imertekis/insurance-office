@@ -144,8 +144,9 @@ class TextNormalizationUtilsTest {
 			assertThat(TextNormalizationUtils.storedPlate("nza-8812")).isEqualTo("NZA8812");
 		}
 
-		// Unlike normalizePlate, which only feeds the search column: Greek
-		// stays Greek, Latin stays Latin, Greek-only letters stay.
+		// Unlike normalizePlate, which turns the look-alikes Latin for
+		// plate_normalized: Greek stays Greek, Latin stays Latin, Greek-only
+		// letters stay.
 		@Test
 		void keepsTheAlphabetAsTyped() {
 			assertThat(TextNormalizationUtils.storedPlate("abe1234")).isEqualTo("\u0041\u0042\u0045" + "1234");

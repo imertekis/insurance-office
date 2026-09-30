@@ -108,7 +108,24 @@ class CreateUserRunnerTest {
 		assertThat(passwordEncoder.matches(old, user.getPasswordHash())).isFalse();
 	}
 
-	// Decision 8: the command line stays in the shell's history.
+	// The recovery path: a reset lets a deactivated account in again, and says so.
+	@Test
+	void reactivatesADeactivatedAccountOnAResetAndSaysSo(CapturedOutput output) {
+		String old = generatedPassword();
+		String reset = generatedPassword();
+		runner("maria", "Μαρία Δοκιμαστική", "ΔΙΑΧΕΙΡΙΣΤΗΣ", new Console(old, old)).run(null);
+		assertThat(output.getAll()).doesNotContain("ενεργοποιήθηκε ξανά");
+		AppUser deactivated = appUserRepository.findByUsername("maria").orElseThrow();
+		deactivated.setActive(false);
+		appUserRepository.save(deactivated);
+
+		runner("maria", "", "ΔΙΑΧΕΙΡΙΣΤΗΣ", new Console(reset, reset)).run(null);
+
+		assertThat(appUserRepository.findByUsername("maria")).get().extracting(AppUser::isActive).isEqualTo(true);
+		assertThat(output.getAll()).containsOnlyOnce("Ο λογαριασμός maria ήταν απενεργοποιημένος και ενεργοποιήθηκε ξανά.");
+	}
+
+	// Task 22, decision 8: the command line stays in the shell's history.
 	@Test
 	void refusesAPasswordOnTheCommandLine() {
 		String password = generatedPassword();

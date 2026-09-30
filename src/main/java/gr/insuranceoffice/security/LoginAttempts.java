@@ -24,12 +24,12 @@ import gr.insuranceoffice.repository.AppUserRepository;
  * There is no limit per IP address: the office goes out through one address,
  * and such a limit would lock everyone out together.
  * <p>
- * Counted per name as typed, whether an account has it or not (decision 4),
+ * Counted per name as typed, whether an account has it or not (Task 22, decision 4),
  * so a name without an account locks in the same way and the login page
  * never tells which accounts exist. While a name is locked out, neither its
  * account nor its password is looked at, so the answer takes the same time
  * for both. Each lockout goes to the application log, with the name only
- * when an account has it (decision 5).
+ * when an account has it (Task 22, decision 5).
  * <p>
  * Kept in memory, not in {@code app_user}: names without an account count
  * too, and they have no row there. A restart forgets everything. At most
@@ -203,7 +203,7 @@ public class LoginAttempts {
 
 	/**
 	 * The name only if an account has it: a password typed into the name
-	 * field by mistake must not reach the log (decision 5).
+	 * field by mistake must not reach the log (Task 22, decision 5).
 	 */
 	private void logLockout(String username, Instant now) {
 		String who = appUserRepository.findByUsername(username).isPresent()

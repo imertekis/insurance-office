@@ -628,6 +628,15 @@ entries marked REVIEW-03 or REVIEW-04 from `docs/REVIEW-03.md` and
   application restart logs everyone out and forgets every lockout,
   regardless of this timeout. The observed form submission after expiry
   is recorded under «Session expiry: browser check (Task 29)» above.
+- **Controller advice lists (comment audit).** `CurrentUserAdvice` (the
+  header's name and `canDelete`) and `ViewExceptionHandler` (the «Δεν
+  βρέθηκε» page) each name the seven controllers by hand. A new controller
+  left out of them renders without the user's name and without delete
+  buttons, and shows a deleted record as an error page; no test catches
+  it. The list was once needed to keep the JSON endpoints of Tasks 1 and 7
+  out, and those are gone. Later change: cover every controller (e.g.
+  `annotations = Controller.class`), or add a test that lists the
+  `@Controller` beans and compares.
 - **No user-management screen (Task 10), and no intermediary screen.**
   Accounts are made and passwords reset only with the `create-user`
   profile. Nothing lets the ΔΙΑΧΕΙΡΙΣΤΗΣ add a clerk or deactivate one

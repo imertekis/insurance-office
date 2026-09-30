@@ -31,7 +31,9 @@ public class AuditLog {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	// Plain id, not a @ManyToOne: the log must survive the user being deleted.
+	// Plain id, as AuditListener writes it. The foreign key is ON DELETE SET
+	// NULL (V3): deleting an account keeps its rows but loses who made them
+	// (DATA_MODEL, audit_log).
 	@Column(name = "user_id")
 	private Long userId;
 

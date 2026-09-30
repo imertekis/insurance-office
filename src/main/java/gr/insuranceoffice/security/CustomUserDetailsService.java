@@ -23,8 +23,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 	public UserDetails loadUserByUsername(String username) {
 		return appUserRepository.findByUsername(username)
 				.map(AppUserDetails::new)
-				// The same message whether the user is unknown or the password
-				// is wrong: the login page must not confirm usernames.
+				// This message is never shown: the login provider turns the
+				// exception into the wrong-password one, and the login page
+				// has one message for both, so it confirms no username.
 				.orElseThrow(() -> new UsernameNotFoundException("Άγνωστος χρήστης"));
 	}
 

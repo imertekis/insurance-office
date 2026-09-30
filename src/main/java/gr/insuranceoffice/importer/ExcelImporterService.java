@@ -62,9 +62,9 @@ import gr.insuranceoffice.util.TextNormalizationUtils;
  * enforces, such as a policy ending after it starts, is reported as a refused
  * row.
  * <p>
- * A value outside its list does not refuse the row (decision 6): it is
- * imported as it came, and {@link ImportResult#warnings()} names it, for the
- * clerk to correct in the application.
+ * A value outside its list does not refuse the row (Task 23, decision 6):
+ * it is imported as it came, and {@link ImportResult#warnings()} names it,
+ * for the clerk to correct in the application.
  */
 @Service
 public class ExcelImporterService {
@@ -499,6 +499,9 @@ public class ExcelImporterService {
 			ownership.setPrimary(owner.primary());
 			ownershipRepository.save(ownership);
 		}
+		// Deleted, not closed with a to_date as the owners form does. Only a
+		// re-import meets such a row, and Task 30 forbids re-import; the
+		// task revisits this code.
 		for (Ownership former : current.values()) {
 			ownershipRepository.delete(former);
 			counter.removed++;

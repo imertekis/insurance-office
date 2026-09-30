@@ -16,7 +16,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Until a password that no longer meets the rule is changed, every page
  * leads to «Αλλαγή κωδικού» (Task 22a, decision 1): what was asked for, a
  * form sent from another tab included, is not served. The change page
- * itself, logging out, the static files and the error page still are.
+ * itself, the login page, logging out, the static files and the error page
+ * still are.
  */
 public class ForcedPasswordChangeFilter extends OncePerRequestFilter {
 

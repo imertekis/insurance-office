@@ -24,7 +24,8 @@ import gr.insuranceoffice.TestcontainersConfiguration;
 
 /**
  * Task 16c, the part the server renders. What the theme does in the browser
- * (the OS following, the menu clicks) is checked visually, as TASKS asks.
+ * (the OS following, the menu clicks) is in ShortcutAndThemeBrowserTest
+ * (Task 24).
  */
 @SpringBootTest
 @AutoConfigureMockMvc

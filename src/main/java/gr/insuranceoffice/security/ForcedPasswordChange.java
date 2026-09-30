@@ -46,7 +46,7 @@ public final class ForcedPasswordChange {
 	/**
 	 * The password has been changed: the same login goes on, without the
 	 * restriction, in this request and the next ones. The session keeps its
-	 * id; the other sessions of the user are left as they are (decision 6).
+	 * id; the other sessions of the user are left as they are (Task 22, decision 6).
 	 */
 	public static void lift(HttpServletRequest request, HttpServletResponse response) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

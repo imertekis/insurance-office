@@ -82,6 +82,8 @@ public class OwnershipController {
 			model.addAttribute("q", query);
 			model.addAttribute("results", candidates(query, submission));
 		}
+		// Anything else, such as the hidden «Ανανέωση» (action=refresh) that
+		// Enter presses, shows the rows again and writes nothing.
 		return view(ownershipService.ownersForm(id, submission), model);
 	}
 

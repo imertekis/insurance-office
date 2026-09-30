@@ -31,7 +31,7 @@ import gr.insuranceoffice.service.VehicleValues;
 @Controller
 public class VehicleController {
 
-	// «Πολύχρωμο» is a first colour, never a second (decision 3).
+	// «Πολύχρωμο» is a first colour, never a second (Task 23, decision 3).
 	private static final List<String> FIRST_COLORS = Stream.concat(VehicleValues.COLORS.stream(),
 			Stream.of(VehicleValues.MULTICOLOURED)).toList();
 

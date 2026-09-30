@@ -270,14 +270,12 @@ class TextLengthFormTest {
 		return pattern.repeat(length / pattern.length() + 1).substring(0, length);
 	}
 
-	/** The input tag of one field. */
 	private static String input(String html, String name) {
 		Matcher input = Pattern.compile("<input[^>]*name=\"" + name + "\"[^>]*>").matcher(html);
 		assertThat(input.find()).as(name).isTrue();
 		return input.group();
 	}
 
-	/** The select tag of one field. */
 	private static String select(String html, String name) {
 		Matcher select = Pattern.compile("<select[^>]*name=\"" + name + "\"[^>]*>").matcher(html);
 		assertThat(select.find()).as(name).isTrue();

@@ -14,7 +14,10 @@ public interface OwnershipRepository extends JpaRepository<Ownership, Long> {
 
 	List<Ownership> findByVehicle(Vehicle vehicle);
 
-	/** A vehicle's owners with their customer, primary and largest share first. */
+	/**
+	 * A vehicle's owners with their customer: current owners first, then
+	 * primary and largest share first.
+	 */
 	@Query("""
 			select o from Ownership o join fetch o.customer
 			where o.vehicle.id = :vehicleId

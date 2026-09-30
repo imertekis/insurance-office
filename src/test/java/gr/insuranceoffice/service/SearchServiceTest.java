@@ -676,7 +676,8 @@ class SearchServiceTest {
 		for (int i = 0; i <= SearchService.MAX_HITS; i++) {
 			saveCustomer("Παπαδόπουλος", String.format("Όνομα %03d", i), null);
 		}
-		// Found by the plate form of the input: ΠΑΠ is stored as ΠAΠ.
+		// Found by the plate form of the input: plate_normalized, and so
+		// search_normalized, holds ΠΑΠ as ΠAΠ.
 		saveVehicle("WVWZZZ1KZAW123456", "ΠΑΠ-1234", "Volkswagen", "Golf");
 		saveVehicle("WVWZZZ1KZAW123457", "ΠΑΠ-1235", "Volkswagen", "Polo");
 

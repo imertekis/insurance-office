@@ -438,7 +438,6 @@ class VehicleFormTest {
 		return post(url).with(csrf()).params(values);
 	}
 
-	/** The input tag of one field, as rendered. */
 	private static String input(String html, String name) {
 		Matcher input = Pattern.compile("<input[^>]*name=\"" + name + "\"[^>]*>").matcher(html);
 		assertThat(input.find()).as(name).isTrue();

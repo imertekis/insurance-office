@@ -119,7 +119,7 @@ class LoginLockoutTest {
 		assertThat(page(sixth, "/login?locked")).contains(LOCKED_OUT).doesNotContain(WRONG_NAME_OR_PASSWORD);
 	}
 
-	// Decision 4: the same answers, one by one, and the same page.
+	// Task 22, decision 4: the same answers, one by one, and the same page.
 	@Test
 	void locksANameWithoutAnAccountTheSameWay() throws Exception {
 		List<String> withAccount = new ArrayList<>();
@@ -194,7 +194,7 @@ class LoginLockoutTest {
 		mockMvc.perform(formLogin("/login").user(maria).password(mariaPassword)).andExpect(authenticated());
 	}
 
-	// Decision 5: the name of an account, never a name without one; once
+	// Task 22, decision 5: the name of an account, never a name without one; once
 	// per lockout, with the time.
 	@Test
 	void logsEachLockoutWithTheNameOnlyOfAnAccount(CapturedOutput output) throws Exception {

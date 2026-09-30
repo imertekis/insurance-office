@@ -70,7 +70,8 @@ public final class TextNormalizationUtils {
 	 * removed, accents removed and upper-cased like {@link #normalizeText}, the
 	 * alphabet kept as typed. "νκν-7777" becomes "ΝΚΝ7777" and "abe 1234"
 	 * becomes "ABE1234": Greek stays Greek and Latin stays Latin, unlike
-	 * {@link #normalizePlate(String)}, which only feeds the search column.
+	 * {@link #normalizePlate(String)}, which gives the form plates are
+	 * compared in ({@code plate_normalized}).
 	 */
 	public static String storedPlate(String plate) {
 		if (plate == null) {
@@ -97,8 +98,9 @@ public final class TextNormalizationUtils {
 				|| Character.getType(c) == Character.DASH_PUNCTUATION;
 	}
 
-	// Greek capitals that look identical to a Latin capital (SPEC §6).
-	// Escapes are used because the two alphabets are indistinguishable in source.
+	// Greek capitals that look identical to a Latin capital (SPEC §6). Each
+	// case names its Greek letter, since the two alphabets look the same in
+	// source.
 	private static char toLatinLookalike(char c) {
 		return switch (c) {
 			case 'Α' -> 'A'; // Alpha

@@ -191,7 +191,7 @@ class ExcelImporterServiceTest {
 
 		Vehicle electric = vehicleRepository.findByVin("SYNTHVH0000000008").orElseThrow();
 		assertThat(electric.getEngineCc()).isNull();
-		// Only engine capacity uses 0 for "none"; zero emissions is a real value.
+		// 0 cc means "none", as 0 seats do (Task 23a); zero emissions is a real value.
 		assertThat(electric.getCo2()).isZero();
 	}
 
@@ -583,7 +583,7 @@ class ExcelImporterServiceTest {
 						tuple("Mercedes-Benz", "M1", "Ασημί-Μαύρο", "Euro 6"));
 	}
 
-	// Decision 6: a typing mistake does not stop the import, and nothing is
+	// Task 23, decision 6: a typing mistake does not stop the import, and nothing is
 	// guessed: «Ι.Χ.» may be M1 or N1.
 	@Test
 	void importsAValueOutsideItsListAsItCameAndReportsIt() {
@@ -620,7 +620,7 @@ class ExcelImporterServiceTest {
 		assertThat(vehicleRepository.findByVin("SYNTHVH0000000001")).get().extracting(Vehicle::getSeats).isNull();
 	}
 
-	// The form's rule, 1 to 99 (decision 8). A negative number is refused
+	// The form's rule, 1 to 99 (Task 23, decision 8). A negative number is refused
 	// already as it is read: the file's numbers have no sign.
 	@Test
 	void refusesNegativeSeatsOrMoreThanNinetyNine() {

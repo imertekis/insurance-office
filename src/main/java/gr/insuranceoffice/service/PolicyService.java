@@ -189,6 +189,8 @@ public class PolicyService {
 	@Transactional
 	public PolicyDto update(Long id, PolicyFormDto form) {
 		Policy policy = policy(id);
+		// Hibernate compares the version it loaded, not the form's, so a form
+		// opened before another clerk's save has to be caught here.
 		if (!Objects.equals(form.version(), policy.getVersion())) {
 			throw new ObjectOptimisticLockingFailureException(Policy.class, id);
 		}

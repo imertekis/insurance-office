@@ -201,6 +201,8 @@ public class OwnershipService {
 	public void saveOwners(Long vehicleId, OwnersSubmissionDto submission) {
 		Vehicle vehicle = vehicleRepository.findForOwnersChange(vehicleId)
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν υπάρχει πια."));
+		// Hibernate compares the version it loaded, not the form's, so a form
+		// opened before another clerk's save has to be caught here.
 		if (!Objects.equals(submission.vehicleVersion(), vehicle.getVersion())) {
 			throw new ObjectOptimisticLockingFailureException(Vehicle.class, vehicleId);
 		}
@@ -381,6 +383,8 @@ public class OwnershipService {
 			throw new BusinessException(preview.blockers().stream()
 					.map(blocker -> new BusinessException.Violation(null, blocker)).toList());
 		}
+		// deleteById loads the row and removes it through JPA, so
+		// AuditListener logs it (DECISIONS §4).
 		ownershipRepository.deleteById(ownershipId);
 		return preview.vehicleId();
 	}

@@ -180,6 +180,8 @@ public class VehicleService {
 	public VehicleDto update(Long id, VehicleDto dto) {
 		Vehicle vehicle = vehicleRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("Το όχημα δεν υπάρχει πια."));
+		// Hibernate compares the version it loaded, not the form's, so a form
+		// opened before another clerk's save has to be caught here.
 		if (!Objects.equals(dto.version(), vehicle.getVersion())) {
 			throw new ObjectOptimisticLockingFailureException(Vehicle.class, id);
 		}
@@ -406,7 +408,7 @@ public class VehicleService {
 	/**
 	 * Task 23a: a new or changed value must be one of the list. A value saved
 	 * before the list, or imported from outside it, is kept while the clerk
-	 * leaves it as it is (decision 7), so that correcting another field does
+	 * leaves it as it is (Task 23, decision 7), so that correcting another field does
 	 * not first need the right colour or category.
 	 */
 	private static void listed(Violations violations, String field, String value, String storedValue,

@@ -50,8 +50,8 @@ import gr.insuranceoffice.repository.VehicleRepository;
  * makes; each test gets a fresh browser context (no cookies, no storage) and
  * an account with a random password, made here and never written anywhere.
  * <p>
- * Chromium only (decision 2), headless, in the version Playwright pins
- * (decision 3). Playwright's own first start would download Firefox and
+ * Chromium only (Task 24, decision 2), headless, in the version Playwright
+ * pins (Task 24, decision 3). Playwright's own first start would download Firefox and
  * WebKit too, so it is told not to, and only Chromium's headless build is
  * installed, into ~/.cache/ms-playwright; once there, installing it again
  * does nothing.
@@ -168,7 +168,6 @@ abstract class BrowserTestBase {
 		page = context.newPage();
 	}
 
-	/** Logs in through the login page, then opens the page asked for. */
 	protected void logInAndOpen(String path) {
 		page.navigate("/login");
 		logIn(page);

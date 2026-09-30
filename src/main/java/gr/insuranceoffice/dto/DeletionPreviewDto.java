@@ -9,7 +9,7 @@ import java.util.List;
  * @param alsoDeleted what goes with it, e.g. a vehicle's policies
  * @param blockers    why it cannot be deleted now; empty when it can
  * @param vehicleId   the vehicle card the record belongs to, to return to;
- *                    null for a customer
+ *                    null for a customer or a vehicle
  */
 public record DeletionPreviewDto(
 		String subject,

@@ -16,7 +16,7 @@ import gr.insuranceoffice.security.PasswordPolicy;
  * password, a new one equal to it) is checked here.
  * <p>
  * No password or hash goes to a message, the log or {@code audit_log}:
- * {@code app_user} has no audit yet (decision 7).
+ * {@code app_user} has no audit yet (Task 22, decision 7).
  */
 @Service
 public class AccountService {

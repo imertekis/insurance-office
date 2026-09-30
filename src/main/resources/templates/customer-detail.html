@@ -73,7 +73,6 @@
 						<tr th:each="vehicle : ${detail.vehicles}"
 							th:classappend="${vehicle.current} ? '' : 'row-muted'">
 							<td class="text-nowrap">
-								<!-- Every plate is a link to the vehicle card. -->
 								<a th:href="@{/vehicles/{id}(id=${vehicle.vehicleId})}" th:text="${vehicle.plate}">ΑΒΕ1234</a>
 								<span th:if="${vehicle.primary}" class="badge text-bg-primary ms-1">Κύριος ιδιοκτήτης</span>
 								<span th:unless="${vehicle.current}" class="badge bg-body-secondary text-body ms-1">Πρώην</span>

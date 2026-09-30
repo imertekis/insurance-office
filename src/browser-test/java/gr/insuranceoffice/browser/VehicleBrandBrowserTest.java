@@ -119,7 +119,7 @@ class VehicleBrandBrowserTest extends BrowserTestBase {
 		assertThat(vehicleRepository.findById(vehicle.getId()).orElseThrow().getBrand()).isEqualTo("VW");
 	}
 
-	// Decision 5: the models stored for the brand in the field, from the
+	// Task 23, decision 5: the models stored for the brand in the field, from the
 	// page; any model can still be typed. The browser draws the list itself,
 	// so what is checked is the list the field points at.
 	@Test

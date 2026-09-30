@@ -98,7 +98,7 @@ class VehicleServiceTest {
 				.containsExactly("Mercedes-Benz", "N1", "Λευκό-Μαύρο", "ZEV");
 	}
 
-	// Decision 7: correcting the model does not first need the right colour.
+	// Task 23, decision 7: correcting the model does not first need the right colour.
 	@Test
 	void savesAnOldValueOutsideTheListWhileItIsLeftAsItIs() {
 		Vehicle old = storedWithOldValues();

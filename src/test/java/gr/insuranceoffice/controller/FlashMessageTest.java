@@ -195,7 +195,7 @@ class FlashMessageTest {
 		assertThat(html).doesNotContain("class=\"container flash\"", "Αποθηκεύτηκε.");
 	}
 
-	// The shortcut and the print theme; loaded by the login page too.
+	// The page's own script, loaded by the login page too.
 	@Test
 	@WithAnonymousUser
 	void servesTheScriptEveryPageLoadsBeforeLogin() throws Exception {

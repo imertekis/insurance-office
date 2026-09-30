@@ -18,7 +18,7 @@ import gr.insuranceoffice.service.BusinessException;
 /**
  * «Αλλαγή κωδικού» (Task 22a), in the user menu of every page. The page a
  * login with a password that no longer meets the rule is held on until the
- * password is changed (decision 1).
+ * password is changed (Task 22, decision 1).
  */
 @Controller
 public class AccountController {

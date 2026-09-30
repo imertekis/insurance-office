@@ -94,7 +94,6 @@
 					<tbody>
 						<tr th:each="owner : ${detail.owners}" th:classappend="${owner.current} ? '' : 'row-muted'">
 							<td>
-								<!-- Every name is a link back to its customer card. -->
 								<a th:href="@{/customers/{id}(id=${owner.customerId})}"
 									th:text="${owner.firstName == null} ? ${owner.lastName} : |${owner.lastName} ${owner.firstName}|">Αλεξίου Μαρία</a>
 								<span th:if="${owner.primary}" class="badge text-bg-primary ms-1">Κύριος ιδιοκτήτης</span>

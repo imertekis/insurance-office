@@ -212,7 +212,7 @@ class LoginAttemptsTest {
 						+ "στις 27/09/2026 12:00:00, για 5 λεπτά.");
 	}
 
-	// Decision 5: a password typed into the name field by mistake stays out of the log.
+	// Task 22, decision 5: a password typed into the name field by mistake stays out of the log.
 	@Test
 	void logsTheLockoutOfANameWithoutAnAccountWithoutTheName(CapturedOutput output) {
 		failTimes("κ7x9-πληκτρολογημένος", MAX_FAILURES);

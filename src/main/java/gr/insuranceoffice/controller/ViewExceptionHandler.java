@@ -8,12 +8,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import gr.insuranceoffice.service.NotFoundException;
 
-/**
- * Shows a record that is gone as a page rather than an error trace. The JSON
- * endpoints keep their problem responses in {@link GlobalExceptionHandler}.
- */
-// Listed one by one: @RestController is itself a @Controller, and the JSON
-// endpoints must keep answering with problem details.
+/** Shows a record that is gone as a page rather than an error trace. */
+// Listed one by one, as in CurrentUserAdvice: a new controller left out here
+// shows a record that is gone as an error page (NOTES, «Controller advice
+// lists»).
 @ControllerAdvice(assignableTypes = { DashboardController.class, SearchController.class, CustomerController.class,
 		VehicleController.class, OwnershipController.class, PolicyController.class, AccountController.class })
 public class ViewExceptionHandler {

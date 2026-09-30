@@ -23,21 +23,21 @@ import gr.insuranceoffice.util.TextNormalizationUtils;
  * {@link #color}, {@link Brands#match}): case and accents aside, and through
  * the synonyms, a value becomes the list's own spelling; a value that could
  * mean more than one thing matches nothing and is kept as it came, for the
- * clerk to correct (decision 6). V8 applied the same mapping, in SQL, to the
+ * clerk to correct (Task 23, decision 6). V8 applied the same mapping, in SQL, to the
  * vehicles already stored.
  */
 public final class VehicleValues {
 
-	/** The EU's basic categories, as the licence writes them in J (decision 1). */
+	/** The EU's basic categories, as the licence writes them in J (Task 23, decision 1). */
 	public static final List<String> CATEGORIES = List.of("M1", "M2", "M3", "N1", "N2", "N3", "O1", "O2", "O3", "O4",
 			"L1e", "L2e", "L3e", "L4e", "L5e", "L6e", "L7e", "T");
 
-	/** Decision 2. Empty is allowed too: the column is nullable. */
+	/** Task 23, decision 2. Empty is allowed too: the column is nullable. */
 	public static final List<String> EMISSION_STANDARDS = List.of("Euro 1", "Euro 2", "Euro 3", "Euro 4", "Euro 5",
 			"Euro 6", "ZEV");
 
 	/**
-	 * The licence's colours (decision 3). A vehicle of two colours stores both
+	 * The licence's colours (Task 23, decision 3). A vehicle of two colours stores both
 	 * in the one column, "Λευκό-Μαύρο"; of more than two, {@link #MULTICOLOURED}.
 	 */
 	public static final List<String> COLORS = List.of("Λευκό", "Μαύρο", "Γκρι", "Ασημί", "Μπλε", "Κόκκινο",
@@ -70,7 +70,7 @@ public final class VehicleValues {
 	}
 
 	/**
-	 * A value as the import stores it (decision 6).
+	 * A value as the import stores it (Task 23, decision 6).
 	 *
 	 * @param value  the list's own spelling when it matched, otherwise the value as it came
 	 * @param listed whether it matched; if not, the import reports it
@@ -107,7 +107,7 @@ public final class VehicleValues {
 	/**
 	 * A colour as the form's two choices (Task 23b, decision 3): «Λευκό-Μαύρο»
 	 * is Λευκό and Μαύρο. A value outside the list stays whole, as the first
-	 * choice, so the form offers it as it is (decision 7).
+	 * choice, so the form offers it as it is (Task 23, decision 7).
 	 *
 	 * @param first  the colour, or «Πολύχρωμο», or an old value outside the list
 	 * @param second the second colour, or null
@@ -132,7 +132,7 @@ public final class VehicleValues {
 	/**
 	 * Compared as plates are (SPEC §6), so «Μ1» with a Greek Μ is M1, and «l3e»
 	 * is L3e. «Ι.Χ.» is a use, not a category, and matches nothing: it may be
-	 * M1 or N1 (decision 6).
+	 * M1 or N1 (Task 23, decision 6).
 	 */
 	public static Match category(String text) {
 		String category = CATEGORY_KEYS.get(TextNormalizationUtils.normalizePlate(text.strip()));
@@ -174,7 +174,7 @@ public final class VehicleValues {
 	}
 
 	/**
-	 * The brands of {@code vehicle_brand} (decision 4), read by
+	 * The brands of {@code vehicle_brand} (Task 23, decision 4), read by
 	 * {@link VehicleService#brands()}. Compared case and accents aside, through
 	 * each brand's synonyms.
 	 */

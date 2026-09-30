@@ -111,7 +111,7 @@ class VehicleFormListsTest {
 				"data-models-for=\"model\"").doesNotContain("role=", "list=");
 	}
 
-	// Decision 5: the models stored, by brand, for the model field's datalist.
+	// Task 23, decision 5: the models stored, by brand, for the model field's datalist.
 	@Test
 	void holdsTheModelsStoredForEachBrand() throws Exception {
 		stored("WVWZZZ1KZAW000001", "ΑΒΕ1001", "Volkswagen", "Golf", "Λευκό");
@@ -166,7 +166,7 @@ class VehicleFormListsTest {
 				.containsExactly("ΦΙΑΤ", "Ι.Χ.", "ΛΑΔΙ", "Euro 6d-TEMP");
 	}
 
-	// Decision 3: two colours, one column; the form shows them as two choices.
+	// Task 23, decision 3: two colours, one column; the form shows them as two choices.
 	@Test
 	void storesTwoColoursInOneColumnAndShowsThemAsTwoChoices() throws Exception {
 		MultiValueMap<String, String> values = valid();

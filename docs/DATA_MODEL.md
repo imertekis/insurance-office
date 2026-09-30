@@ -234,6 +234,13 @@ migration: η ανάγνωση των μαρκών τότε αποτυγχάνε
 `entity_type`, `entity_id`, `old_values` (JSONB), `new_values` (JSONB),
 `ip_address`, `timestamp`
 
+`audit_log.user_id`: FK στο `app_user` με `ON DELETE SET NULL` (V3). Η
+διαγραφή ενός λογαριασμού κρατά τις γραμμές του log αλλά σβήνει ποιος τις
+έκανε. Το σχόλιο του V3 («deleting an account must not erase who did what»)
+λέει το αντίθετο· το migration δεν αλλάζει, ισχύει αυτή η σημείωση. Σήμερα η
+εφαρμογή δεν διαγράφει λογαριασμούς· το Task 27 να το ξαναδεί πριν
+προσθέσει διαγραφή.
+
 ---
 
 ## Αναζήτηση

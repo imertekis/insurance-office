@@ -31,8 +31,8 @@ import gr.insuranceoffice.util.TextNormalizationUtils;
 
 /**
  * The single search box (SPEC §6). The input's shape decides what it is: a
- * VIN, plate, ΑΦΜ or policy number is looked up exactly, and anything else
- * is free text matched against {@code search_normalized} through its trigram
+ * VIN, plate, ΑΦΜ, mobile, landline or policy number is looked up exactly,
+ * and anything else is free text matched against {@code search_normalized} through its trigram
  * index. There is no type dropdown (DECISIONS §3).
  * <p>
  * A fixed number of queries runs whatever the number of hits: vehicle counts
@@ -297,8 +297,9 @@ public class SearchService {
 		};
 	}
 
-	// A plate is stored with Latin letters and no dash, so each word is also
-	// tried in plate form: "ΑΒΕ-12" finds ABE-1234.
+	// search_normalized holds the plate as plate_normalized does, look-alike
+	// letters Latin and no dash, so each word is also tried in that form:
+	// "ΑΒΕ-12" finds ΑΒΕ1234.
 	private static PredicateSpecification<Vehicle> vehicleText(List<String> words) {
 		return (from, cb) -> {
 			Expression<String> searchNormalized = from.get("searchNormalized");

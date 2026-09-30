@@ -7,7 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Who is making the current change, for the audit log. Empty when nobody is
- * logged in, as in the Excel import or a scheduled job.
+ * logged in, as in the Excel import or the demo's fill.
  */
 public final class CurrentUser {
 

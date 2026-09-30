@@ -82,8 +82,9 @@ public class Vehicle {
 	@Column(name = "seats")
 	private Short seats;
 
-	// Nullable: an electric vehicle has none, and a 0 in the Excel is stored
-	// as NULL so it cannot skew averages or sorting.
+	// Nullable: an electric vehicle has none, and its 0 in the Excel is
+	// stored as NULL so it cannot skew averages or sorting. A 0 on any other
+	// fuel is refused by the column's check.
 	@Column(name = "engine_cc")
 	private Integer engineCc;
 

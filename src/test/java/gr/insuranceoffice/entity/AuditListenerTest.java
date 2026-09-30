@@ -38,7 +38,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Changes go through the repositories, each in its own committed transaction,
- * as they will from the services. The log is read back with SQL.
+ * as they do from the services. The log is read back with SQL.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -206,7 +206,7 @@ class AuditListenerTest {
 
 	// The database would cascade to ownership and policy on its own, but
 	// nothing would be logged and the rows could not be put back. Loaded
-	// first, as a service will before deleting.
+	// first, as the services do before deleting.
 	@Test
 	void logsThePoliciesAndOwnershipsOfADeletedVehicle() {
 		InsuredVehicle insured = insuredVehicle();

@@ -143,7 +143,7 @@ class VehicleValuesTest {
 		assertThat(ColorChoices.of(null)).isEqualTo(new ColorChoices(null, null));
 	}
 
-	// Decision 3: two colours fit the colour column.
+	// Task 23, decision 3: two colours fit the colour column.
 	@Test
 	void fitsTheLongestPairOfColoursInItsColumn() {
 		int longest = VehicleValues.COLORS.stream().mapToInt(String::length).max().orElseThrow();

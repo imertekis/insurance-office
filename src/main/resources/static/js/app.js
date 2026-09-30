@@ -285,7 +285,7 @@
 	//   value from before the list stays while it is not typed over (Task
 	//   23a, decision 7).
 	// - The model field suggests the models stored for the brand in the
-	//   field (<datalist data-brand>, decision 5).
+	//   field (<datalist data-brand>, Task 23, decision 5).
 	// - Without JavaScript this is a text field (the combobox roles are only
 	//   given here), and the server answers a brand outside the list.
 	var GREEK_KEYS = {
