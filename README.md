@@ -238,10 +238,12 @@ Decision: [Task 22](docs/TASKS.md#task-22-κωδικοί-και-σύνδεση).
 
 ## How it was built
 
-I wrote the specification and made the decisions: what the office needs
-([`SPEC`](docs/SPEC.md), [`DATA_MODEL`](docs/DATA_MODEL.md)), the plan as
-numbered tasks with the decisions of each ([`TASKS`](docs/TASKS.md)), and
-what was accepted or rejected ([`DECISIONS`](docs/DECISIONS.md)).
+I set the requirements and made every decision. The original documents in
+[`docs/`](docs/) were written with Google Antigravity. Claude Code drafted
+most of the task specifications in [`TASKS`](docs/TASKS.md) from my
+requirements; I reviewed them and answered its questions. What was accepted
+or rejected is in [`DECISIONS`](docs/DECISIONS.md). I wrote Task 29, the
+session timeout, myself.
 
 The code was written mostly by Claude Code, one task at a time, under the
 rules of [`CLAUDE.md`](CLAUDE.md): only the task at hand, done only when the
