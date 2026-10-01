@@ -243,7 +243,8 @@ I set the requirements and made every decision. The original documents in
 most of the task specifications in [`TASKS`](docs/TASKS.md) from my
 requirements; I reviewed them and answered its questions. What was accepted
 or rejected is in [`DECISIONS`](docs/DECISIONS.md). I wrote Task 29, the
-session timeout, myself.
+session timeout, myself. OpenAI Codex ran the automated browser check for
+Task 29 and wrote its entry in [`NOTES`](docs/NOTES.md).
 
 The code was written mostly by Claude Code, one task at a time, under the
 rules of [`CLAUDE.md`](CLAUDE.md): only the task at hand, done only when the
