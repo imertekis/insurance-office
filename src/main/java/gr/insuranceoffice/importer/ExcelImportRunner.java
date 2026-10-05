@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
 import org.slf4j.Logger;
@@ -107,12 +108,22 @@ public class ExcelImportRunner implements ApplicationRunner {
 			throw new IllegalStateException("Λείπει το --" + property + "=<αρχείο .xlsx>. Χρήση: "
 					+ "--import.customers-file=<πελάτες.xlsx> --import.archive-file=<αρχείο.xlsx>");
 		}
-		Path path = Path.of(value);
+		Path path;
+		try {
+			path = Path.of(value);
+		} catch (InvalidPathException e) {
+			// A name this OS refuses, such as one ending in a space on Windows:
+			// no such file can exist. The cause keeps the parser's reason.
+			throw new IllegalStateException(notReadable(property, value), e);
+		}
 		if (!Files.isRegularFile(path) || !Files.isReadable(path)) {
-			throw new IllegalStateException("Δεν βρέθηκε ή δεν διαβάζεται το αρχείο " + path.toAbsolutePath()
-					+ " (" + property + ")");
+			throw new IllegalStateException(notReadable(property, path.toAbsolutePath().toString()));
 		}
 		return path;
+	}
+
+	private static String notReadable(String property, String file) {
+		return "Δεν βρέθηκε ή δεν διαβάζεται το αρχείο " + file + " (" + property + ")";
 	}
 
 	private static String counts(Counts counts) {

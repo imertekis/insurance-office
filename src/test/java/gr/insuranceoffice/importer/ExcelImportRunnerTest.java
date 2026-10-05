@@ -145,9 +145,21 @@ class ExcelImportRunnerTest {
 		assertThatThrownBy(() -> runner(null, archive, false).run(null))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("--import.customers-file=");
-		assertThatThrownBy(() -> runner(customers, Path.of(" "), false).run(null))
+		assertThatThrownBy(() -> runner(customers.toString(), " ", false).run(null))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("--import.archive-file=");
+	}
+
+	// A value that is no path on this OS gets the runner's message, not the
+	// parser's exception. NUL is refused everywhere; on Windows so are a
+	// trailing space and ? * < > | ".
+	@Test
+	void explainsAFileArgumentThatIsNotAPath() {
+		assertThatThrownBy(() -> runner(customers.toString(), "αρχείο\0.xlsx", false).run(null))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("Δεν βρέθηκε ή δεν διαβάζεται το αρχείο")
+				.hasMessageContaining("(import.archive-file)");
+		assertThat(customerRepository.count()).isZero();
 	}
 
 	@Test
@@ -173,8 +185,13 @@ class ExcelImportRunnerTest {
 	}
 
 	private ExcelImportRunner runner(Path customersFile, Path archiveFile, boolean allowExistingData) {
-		return new ExcelImportRunner(importer, customerRepository, vehicleRepository,
-				customersFile == null ? "" : customersFile.toString(), archiveFile.toString(), allowExistingData);
+		return runner(customersFile == null ? "" : customersFile.toString(), archiveFile.toString(),
+				allowExistingData);
+	}
+
+	private ExcelImportRunner runner(String customersFile, String archiveFile, boolean allowExistingData) {
+		return new ExcelImportRunner(importer, customerRepository, vehicleRepository, customersFile, archiveFile,
+				allowExistingData);
 	}
 
 	private Path write(String name, InputStream workbook) throws IOException {
