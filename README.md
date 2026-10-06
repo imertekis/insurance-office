@@ -126,12 +126,13 @@ On Windows, the same commands work in PowerShell with Docker Desktop, in its
 default Linux containers mode, from a clone or from GitHub's *Download ZIP*
 (in the folder that holds `compose.demo.yaml`). The files keep their LF line
 endings whatever Git's `core.autocrlf` says (`.gitattributes`), and the build
-runs the Maven wrapper with `sh`, so it needs no executable bit.
+runs the Maven wrapper with `sh`, so it needs no executable bit. Both the demo
+and the full test suite have been run on Ubuntu 24.04 and on Windows 11.
 
 For development, with JDK 21 and Docker: `./mvnw verify` builds and runs
-every test on a real PostgreSQL, and `./mvnw verify -Pbrowser` adds the
-browser tests (the first run downloads Chromium). The other commands are in
-[`CLAUDE.md`](CLAUDE.md#commands).
+every test on a real PostgreSQL (on Windows, `.\mvnw.cmd verify`), and
+`./mvnw verify -Pbrowser` adds the browser tests (the first run downloads
+Chromium). The other commands are in [`CLAUDE.md`](CLAUDE.md#commands).
 
 ## Technical highlights
 
