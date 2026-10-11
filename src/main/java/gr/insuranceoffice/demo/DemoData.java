@@ -450,6 +450,13 @@ final class DemoData {
 	 * overlapping), the latest ending on {@code end}: up to five, none
 	 * starting before the vehicle was licensed here. A vehicle licensed after
 	 * its latest policy started was licensed that day.
+	 * <p>
+	 * Each earlier policy ends on the day the next one starts, counted back one
+	 * policy at a time (Task 40). Counted from the latest end instead, a
+	 * six-month policy ending on 31/12 starts on 30/06, the one before it on
+	 * 30/12, yet 31/12 less twelve months is 31/12: an end a day after that
+	 * start. minusMonths cuts a day to the end of a shorter month, and the cut
+	 * is not undone.
 	 */
 	private void policyEnds(Draft draft, LocalDate end) {
 		LocalDate latestStart = end.minusMonths(draft.months);
@@ -458,12 +465,14 @@ final class DemoData {
 			draft.firstRegistration = earliest(draft.firstRegistration, latestStart);
 		}
 		int wanted = pick(List.of(1, 2, 2, 3, 3, 3, 4, 4, 5));
+		LocalDate e = end;
 		for (int k = 0; k < wanted; k++) {
-			LocalDate e = end.minusMonths((long) draft.months * k);
-			if (e.minusMonths(draft.months).isBefore(draft.licenseIssueDate)) {
+			LocalDate start = e.minusMonths(draft.months);
+			if (start.isBefore(draft.licenseIssueDate)) {
 				break;
 			}
 			draft.ends.add(e);
+			e = start;
 		}
 	}
 

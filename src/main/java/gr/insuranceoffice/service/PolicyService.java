@@ -46,8 +46,12 @@ public class PolicyService {
 
 	private static final DateTimeFormatter GREEK_DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-	// NUMERIC(10,2): eight digits before the decimal point.
-	private static final BigDecimal MAX_PREMIUM = new BigDecimal("100000000");
+	/**
+	 * NUMERIC(10,2): eight digits before the decimal point. A premium is
+	 * below it. Public for the demo's test (Task 40), which holds its
+	 * premiums to this rule.
+	 */
+	public static final BigDecimal MAX_PREMIUM = new BigDecimal("100000000");
 
 	private final PolicyRepository policyRepository;
 
