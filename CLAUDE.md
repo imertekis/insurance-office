@@ -268,13 +268,24 @@ journalctl -t insurance-office-app            # the app's log, older containers 
 
 # Before every push (Task 39a): secrets and personal data in every commit, in
 # the commit messages and in the files as they are, by the rules and
-# exceptions of .gitleaks.toml. Each prints «no leaks found»; a finding is
-# shown by file and line, its value redacted. gitleaks runs from its image,
-# pinned by digest: nothing is installed.
+# exceptions of .gitleaks.toml. Each prints «no leaks found», the first then
+# «OK»; a finding is shown by file and line, its value redacted. gitleaks
+# runs from its image, pinned by digest: nothing is installed. In Git Bash on
+# Windows too: pwd -W gives the folder as Docker Desktop mounts it, and
+# MSYS_NO_PATHCONV keeps /repo from being turned into a Windows path.
 GITLEAKS=zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
-docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/repo:ro $GITLEAKS git /repo --log-opts=--all --redact -v
-git log --all --format=%B | docker run --rm -i -v "$PWD/.gitleaks.toml":/c.toml:ro $GITLEAKS stdin --config /c.toml --redact -v
-docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/repo:ro $GITLEAKS dir /repo --redact -v
+REPO="$(pwd -W 2>/dev/null || pwd)"
+# The history. The mounted folder has another owner than the container's
+# user, and git refuses it unless safe.directory allows it (on Windows it
+# does): gitleaks then scans 0 commits and still prints «no leaks found». So
+# «OK» needs at least one commit scanned; otherwise «FAILED», exit status 1.
+MSYS_NO_PATHCONV=1 docker run --rm --user "$(id -u):$(id -g)" -e GIT_CONFIG_COUNT=1 \
+  -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*' -v "$REPO":/repo:ro \
+  $GITLEAKS git /repo --log-opts=--all --redact -v --no-color 2>&1 | tee /dev/stderr \
+  | grep -cE 'INF ([1-9][0-9]* commits scanned|no leaks found)' | grep -qx 2 \
+  && echo "OK: history scanned, no leaks" || { echo "FAILED: leaks found, or 0 commits scanned"; false; }
+git log --all --format=%B | MSYS_NO_PATHCONV=1 docker run --rm -i -v "$REPO/.gitleaks.toml":/c.toml:ro $GITLEAKS stdin --config /c.toml --redact -v
+MSYS_NO_PATHCONV=1 docker run --rm --user "$(id -u):$(id -g)" -v "$REPO":/repo:ro $GITLEAKS dir /repo --redact -v
 # And two that print nothing: a spreadsheet, CSV, database or .env in any
 # commit; an author or committer email other than the GitHub noreply one.
 git log --all --format= --name-only | grep -E '\.(xlsx|xls|csv|db)$|(^|/)\.env$'
